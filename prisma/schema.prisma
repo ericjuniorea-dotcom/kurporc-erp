@@ -1,0 +1,2193 @@
+// KurPorc ERP — Schema PostgreSQL completo
+// Multi-tenancy: tenant_id en todas las tablas + Row-Level Security en PostgreSQL
+// Migración a schema-por-tenant documentada en docs/multi-tenancy.md
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ================================================================
+// ENUMS
+// ================================================================
+
+enum Plan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum Language {
+  ES
+  GN
+  PT
+}
+
+enum ServiceType {
+  AI             // Inseminación artificial
+  NATURAL_MOUNT  // Monta natural
+}
+
+enum PregnancyCheckMethod {
+  ULTRASOUND
+  BLOOD_TEST
+  VISUAL
+}
+
+enum PregnancyCheckResult {
+  PREGNANT
+  NOT_PREGNANT
+  RECHECK
+}
+
+enum FarrowingType {
+  NORMAL
+  ASSISTED
+  CESAREAN
+  DYSTOCIA
+}
+
+enum PigletSex {
+  MALE
+  FEMALE
+}
+
+enum PigletIdentType {
+  TATTOO
+  EAR_TAG
+}
+
+enum PigletStatus {
+  VIABLE
+  LOW_VIABILITY
+}
+
+enum PigletDeathCause {
+  WEAKNESS
+  CRUSHING
+  DIARRHEA
+  DEFICIENT
+  DISEASE
+  SHELTER
+  HYPOTHERMIA
+  ACCIDENT
+  CONGENITAL
+  ELIMINATED
+  OTHER
+}
+
+enum SowDisposalDestination {
+  GESTATION
+  CULL
+  OTHER
+}
+
+enum BodyConditionScore {
+  SCORE_1
+  SCORE_2
+  SCORE_3
+  SCORE_4
+  SCORE_5
+}
+
+enum StockAdjustmentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum NurseryPhase {
+  PHASE_1
+  PHASE_2
+}
+
+enum PhaseChangeReason {
+  WEIGHT
+  SPACE
+}
+
+enum RawMaterialType {
+  PROTEIN
+  ENERGY
+  NUCLEUS
+  ADDITIVE
+  MINERAL
+}
+
+enum FormulaStatus {
+  ACTIVE
+  INACTIVE
+  SUPERSEDED
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SENT
+  CONFIRMED
+  RECEIVED
+  CANCELLED
+}
+
+enum GoodsReceiptStatus {
+  COMPLETE
+  PARTIAL
+}
+
+enum HealthTaskType {
+  TAIL_DOCKING
+  TOOTH_CLIPPING
+  CASTRATION
+  IRON_INJECTION
+  VACCINATION
+  CLEANING
+  OTHER_PROCEDURE
+}
+
+enum VaccinationRoute {
+  IM
+  SC
+  ORAL
+}
+
+enum DiagnosisType {
+  DIARRHEA
+  ARTHRITIS
+  PNEUMONIA
+  OTHER
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum AlertType {
+  // Maternidad
+  PIGLETS_OVERDUE_WEANING
+  SOW_STOCK_NEGATIVE
+  SOW_ZERO_PIGLETS_NO_WEANING
+  FARROWING_LONG_DURATION
+  LOW_BIRTH_WEIGHT
+  GESTATION_DAYS_OUT_OF_RANGE
+  SOW_OVERDUE_FARROWING
+  WITHDRAWAL_PERIOD_NEAR_WEANING
+  // Gestación
+  PEAK_FARROWINGS_PROJECTED
+  SEMEN_DOSE_EXPIRED
+  HEAT_REPEAT_DISCARD
+  // Recría / Engorde
+  BATCH_REACHED_TRANSFER_WEIGHT
+  PEN_OVER_CAPACITY
+  NO_PENS_AVAILABLE
+  // BAL / Alimentación
+  FINISHED_STOCK_BELOW_MIN
+  RAW_MATERIAL_BELOW_MIN
+  MYCOTOXIN_LIMIT_EXCEEDED
+  PROJECTED_SHORTAGE_60_DAYS
+  BATCH_NOT_FED
+  // Sanidad
+  HEALTH_TASK_OVERDUE
+  WITHDRAWAL_PERIOD_NEAR_SALE
+  // Stock
+  STOCK_ADJUSTMENT_PENDING
+  // BAL — fórmulas
+  FORMULA_PENDING_APPROVAL
+}
+
+enum WhatsAppSessionStatus {
+  ACTIVE
+  EXPIRED
+  COMPLETED
+}
+
+enum SowPlantelState {
+  QUARANTINE
+  REPLACEMENT_DEVELOPING
+  REPLACEMENT_READY
+  MATED
+  PREGNANT
+  FARROWING
+  LACTATING
+  EMPTY
+  CULLED
+  DEAD
+}
+
+enum BoarPlantelState {
+  QUARANTINE
+  ACTIVE
+  RESTING
+  CULLED
+  DEAD
+}
+
+enum NotificationChannel {
+  PUSH
+  WHATSAPP
+  BOTH
+}
+
+enum PayrollStatus {
+  DRAFT
+  APPROVED
+  PAID
+}
+
+enum ProductionOrderStatus {
+  PENDING
+  CONFIRMED
+  PRODUCED
+  CANCELLED
+}
+
+enum LocationType {
+  GESTATION
+  MATERNITY
+  NURSERY
+  GROWING
+  BAL
+  OTHER
+}
+
+// ================================================================
+// SISTEMA / AUTH
+// ================================================================
+
+model Tenant {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  farmName    String
+  plan        Plan     @default(FREE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  config      Json     @default("{}")
+  phoneNumber String?  // Número principal de la granja (para identificar tenant en WhatsApp)
+  isActive    Boolean  @default(true)
+
+  users       User[]
+
+  @@map("tenants")
+}
+
+// Roles fijos del sistema — se inicializan en seed
+// ID 1–14 mapeados 1:1 con la especificación del documento
+model Role {
+  id          Int        @id
+  name        String     @unique  // slug en inglés: "farm_admin"
+  nameEs      String              // Nombre en español: "Admin de granja"
+  level       Int
+  description String
+
+  userRoles   UserRole[]
+
+  @@map("roles")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  tenantId     String
+  email        String    @unique
+  passwordHash String
+  name         String
+  phone        String?   // Número WhatsApp del usuario/operario
+  language     Language  @default(ES)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
+  userRoles    UserRole[]
+  accounts     Account[]
+  sessions     Session[]
+  pushTokens   PushToken[]
+  notificationPref NotificationPreference?
+  approvedVersions FormulaVersion[] @relation("ApprovedVersions")
+  assignedHealthTasks HealthTask[]  @relation("AssignedHealthTasks")
+
+  @@index([tenantId])
+  @@map("users")
+}
+
+model UserRole {
+  userId    String
+  roleId    Int
+  grantedAt DateTime @default(now())
+  grantedBy String?
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id])
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+// NextAuth.js — modelos requeridos por el adaptador Prisma
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ================================================================
+// INSTALACIONES: SECTORES Y CORRALES
+// ================================================================
+
+model FarmLocation {
+  id          String       @id @default(cuid())
+  tenantId    String
+  name        String       // "Calle 6", "Galpón A", "Sala Maternidad 1"
+  locationType LocationType
+  isActive    Boolean      @default(true)
+
+  pens        Pen[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("farm_locations")
+}
+
+model Pen {
+  id          String       @id @default(cuid())
+  tenantId    String
+  locationId  String
+  number      String       // "8", "A3" — único dentro de la ubicación
+  capacity    Int
+  isActive    Boolean      @default(true)
+
+  location    FarmLocation @relation(fields: [locationId], references: [id])
+  nurseryBatches NurseryBatch[]
+  growingBatches GrowingBatch[]
+  farrowings  FarrowingEvent[]
+
+  @@unique([tenantId, locationId, number])
+  @@index([tenantId])
+  @@map("pens")
+}
+
+// ================================================================
+// REPRODUCTORES
+// ================================================================
+
+model Sow {
+  id                 String           @id @default(cuid())
+  tenantId           String
+  identCode          String           // Tatuaje o número único (campo original)
+  breed              String?
+  birthDate          DateTime?
+  entryDate          DateTime         @default(now())
+  currentParityCount Int              @default(0)
+  isActive           Boolean          @default(true)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  // Plantel Reproductivo — nullable para compat. con registros existentes
+  erpCode            String?          // HEM-GRN-NNNN generado automáticamente
+  caravanaCode       String?
+  tattooCode         String?
+  rfidChip           String?
+  photoUrl           String?
+  geneticLine        String?
+  entryWeightKg      Decimal?         @db.Decimal(8, 2)
+  sourceProvider     String?
+  purchasePriceGs    Decimal?         @db.Decimal(14, 0)
+  damCodeOrigin      String?
+  sireCodeOrigin     String?
+  galponAssigned     String?
+  corralAssigned     String?
+  plantelState       SowPlantelState?
+  plantelNotes       String?
+
+  serviceEvents      ServiceEvent[]
+  pregnancyChecks    PregnancyCheck[]
+  heatRepeats        HeatRepeat[]
+  abortions          AbortionEvent[]
+  discards           SowDiscard[]
+  farrowings         FarrowingEvent[]
+  stockAdjustments   StockAdjustmentRequest[]
+  animalEvents       AnimalEvent[]
+
+  @@unique([tenantId, identCode])
+  @@unique([tenantId, erpCode])
+  @@index([tenantId])
+  @@map("sows")
+}
+
+model Boar {
+  id              String            @id @default(cuid())
+  tenantId        String
+  identCode       String            // Código original "R-204"
+  breed           String?
+  isActive        Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  // Plantel Reproductivo — nullable para compat. con registros existentes
+  erpCode         String?           // REP-GRN-NNNN generado automáticamente
+  caravanaCode    String?
+  tattooCode      String?
+  rfidChip        String?
+  photoUrl        String?
+  geneticLine     String?
+  birthDate       DateTime?
+  entryDate       DateTime?
+  entryWeightKg   Decimal?          @db.Decimal(8, 2)
+  sourceProvider  String?
+  purchasePriceGs Decimal?          @db.Decimal(14, 0)
+  galponAssigned  String?
+  corralAssigned  String?
+  plantelState    BoarPlantelState?
+  plantelNotes    String?
+
+  semenDoses    SemenDose[]
+  serviceEvents ServiceEvent[]
+  animalEvents  AnimalEvent[]
+
+  @@unique([tenantId, identCode])
+  @@unique([tenantId, erpCode])
+  @@index([tenantId])
+  @@map("boars")
+}
+
+model SemenDose {
+  id              String   @id @default(cuid())
+  tenantId        String
+  boarId          String?
+  doseCode        String
+  elaborationDate DateTime
+  expiryDate      DateTime
+  isUsed          Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  boar            Boar?    @relation(fields: [boarId], references: [id])
+  serviceEvents   ServiceEvent[]
+
+  @@index([tenantId])
+  @@map("semen_doses")
+}
+
+// ================================================================
+// MÓDULO CONFIG — configuración por módulo y tenant
+// ================================================================
+
+// KPIs / metas configurables por módulo
+model ConfigMeta {
+  id        String   @id @default(cuid())
+  tenantId  String
+  modulo    String   // MATERNIDAD | GESTACION | RECRIA | ENGORDE | BAL
+  kpiKey    String   // nacidos_vivos_meta | mortalidad_pct | etc.
+  valor     Decimal  @db.Decimal(10, 3)
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, modulo, kpiKey])
+  @@index([tenantId])
+  @@map("config_metas")
+}
+
+// Catálogo de razas por tenant
+model ConfigRaza {
+  id                String   @id @default(cuid())
+  tenantId          String
+  nombre            String
+  tipoLinea         String   // LINEA_MATERNA | LINEA_PATERNA | SINTETICA | CRUCE_COMERCIAL
+  usoPrincipal      String   // REPRODUCCION | CRUZAMIENTO | COMERCIAL
+  proveedorGenetico String?
+  nacidosVivosMeta  Decimal? @db.Decimal(6, 2)
+  pesoNacimientoKg  Decimal? @db.Decimal(6, 3)
+  pesoDesteteMeta   Decimal? @db.Decimal(6, 2)
+  mortalidadRefPct  Decimal? @db.Decimal(5, 2)
+  diasGestacion     Int?
+  activa            Boolean  @default(true)
+  notas             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([tenantId, nombre])
+  @@index([tenantId])
+  @@map("config_razas")
+}
+
+// Protocolo de vacunas configurable (17 campos completos según v3)
+model ConfigVacuna {
+  id                   String    @id @default(cuid())
+  tenantId             String
+  modulo               String    // MATERNIDAD | GESTACION | RECRIA | ENGORDE | ALL
+  nombreVacuna         String
+  marcaComercial       String
+  laboratorio          String
+  principioActivo      String
+  enfermedadObjetivo   String?   // Contra qué enfermedad actúa
+  viaAplicacion        String    // IM | SC | IV | ORAL | INTRANASAL
+  dosisMl              Decimal   @db.Decimal(8, 3)
+  momentoAplicacion    String
+  refuerzoDias         Int?
+  paisProcedencia      String
+  tempConservacion     String
+  diasAlertaVto        Int       @default(30)
+  loteActual           String?
+  fechaVencimientoLote DateTime?
+  stockDosis           Int?
+  stockMinimoAlerta    Int?
+  fichaTecnicaUrl      String?   // URL a la ficha técnica del producto
+  obligatoria          Boolean   @default(false)
+  diasEsperaServicio   Int       @default(0)   // días post-vacuna obligatoria para autorizar servicio
+  notas                String?
+  activa               Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([tenantId, modulo])
+  @@map("config_vacunas")
+}
+
+// Configuración de procesos operativos por módulo (valor flexible JSON)
+model ConfigProceso {
+  id         String   @id @default(cuid())
+  tenantId   String
+  modulo     String
+  procesoKey String
+  valor      Json
+  updatedBy  String?
+  updatedAt  DateTime @updatedAt
+
+  @@unique([tenantId, modulo, procesoKey])
+  @@index([tenantId])
+  @@map("config_procesos")
+}
+
+// Umbrales de alertas por módulo
+model ConfigAlerta {
+  id         String   @id @default(cuid())
+  tenantId   String
+  modulo     String
+  eventoKey  String
+  umbral     Decimal? @db.Decimal(10, 3)
+  canales    String[] // PUSH | WHATSAPP | EMAIL
+  activa     Boolean  @default(true)
+  gravedad   String   @default("WARNING") // INFO | WARNING | CRITICAL
+  updatedAt  DateTime @updatedAt
+
+  @@unique([tenantId, modulo, eventoKey])
+  @@index([tenantId])
+  @@map("config_alertas")
+}
+
+// ================================================================
+// MÓDULO 0: PLANTEL REPRODUCTIVO — modelos adicionales
+// ================================================================
+
+// Historial de eventos por animal (escritura desde cualquier módulo)
+model AnimalEvent {
+  id            String   @id @default(cuid())
+  tenantId      String
+  sowId         String?
+  boarId        String?
+  eventType     String   // ENTRY | STATE_CHANGE | DEATH | DISCARD | SERVICE | FARROWING | WEANING | etc.
+  eventDate     DateTime
+  description   String?
+  previousState String?
+  newState      String?
+  moduleSource  String?  // PLANTEL | GESTACION | MATERNIDAD | SANIDAD
+  userId        String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  sow  Sow?  @relation(fields: [sowId],  references: [id])
+  boar Boar? @relation(fields: [boarId], references: [id])
+
+  @@index([tenantId, sowId])
+  @@index([tenantId, boarId])
+  @@map("animal_events")
+}
+
+// Lotes de semen externo (identidad genética + stock físico)
+model ExternalSemenLot {
+  id              String   @id @default(cuid())
+  tenantId        String
+  lotCode         String   // IN-GRN-NNNN generado automáticamente
+  geneticLine     String
+  donorBoarCode   String   // Código del verraco en establecimiento de origen
+  originFarm      String   // Granja/Laboratorio de origen
+  productionDate  DateTime
+  expiryDate      DateTime
+  totalDoses      Int
+  availableDoses  Int
+  pricePerDoseGs  Decimal  @db.Decimal(14, 0)
+  certUrl         String?
+  observations    String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, lotCode])
+  @@index([tenantId])
+  @@map("external_semen_lots")
+}
+
+// ================================================================
+// MÓDULO 1A: GESTACIÓN
+// ================================================================
+
+// Agrupa cerdas servidas en la misma semana ISO
+model ServiceBatch {
+  id        String   @id @default(cuid())
+  tenantId  String
+  weekLabel String   // Formato "2026-W25"
+  createdAt DateTime @default(now())
+
+  serviceEvents ServiceEvent[]
+
+  @@unique([tenantId, weekLabel])
+  @@index([tenantId])
+  @@map("service_batches")
+}
+
+model ServiceEvent {
+  id              String      @id @default(cuid())
+  tenantId        String
+  sowId           String
+  boarId          String?
+  semenDoseId     String?
+  serviceBatchId  String
+  serviceDate     DateTime
+  serviceType     ServiceType
+  durationMinutes Int?
+  employeeId      String?
+  notes           String?
+  createdAt       DateTime    @default(now())
+
+  sow             Sow          @relation(fields: [sowId], references: [id])
+  boar            Boar?        @relation(fields: [boarId], references: [id])
+  semenDose       SemenDose?   @relation(fields: [semenDoseId], references: [id])
+  serviceBatch    ServiceBatch @relation(fields: [serviceBatchId], references: [id])
+  pregnancyChecks PregnancyCheck[]
+  farrowing       FarrowingEvent?
+
+  @@index([tenantId, sowId])
+  @@index([tenantId, serviceDate])
+  @@map("service_events")
+}
+
+model PregnancyCheck {
+  id             String               @id @default(cuid())
+  tenantId       String
+  sowId          String
+  serviceEventId String
+  checkDate      DateTime
+  method         PregnancyCheckMethod
+  result         PregnancyCheckResult
+  employeeId     String?
+  notes          String?
+  createdAt      DateTime             @default(now())
+
+  sow            Sow          @relation(fields: [sowId], references: [id])
+  serviceEvent   ServiceEvent @relation(fields: [serviceEventId], references: [id])
+
+  @@index([tenantId])
+  @@map("pregnancy_checks")
+}
+
+model HeatRepeat {
+  id             String   @id @default(cuid())
+  tenantId       String
+  sowId          String
+  serviceEventId String?
+  repeatDate     DateTime
+  cause          String?
+  employeeId     String?
+  createdAt      DateTime @default(now())
+
+  sow            Sow @relation(fields: [sowId], references: [id])
+
+  @@index([tenantId])
+  @@map("heat_repeats")
+}
+
+model AbortionEvent {
+  id             String   @id @default(cuid())
+  tenantId       String
+  sowId          String
+  serviceEventId String?
+  abortionDate   DateTime
+  cause          String?
+  vetDiagnosis   String?
+  employeeId     String?
+  createdAt      DateTime @default(now())
+
+  sow            Sow @relation(fields: [sowId], references: [id])
+
+  @@index([tenantId])
+  @@map("abortion_events")
+}
+
+model SowDiscard {
+  id          String   @id @default(cuid())
+  tenantId    String
+  sowId       String
+  discardDate DateTime
+  reason      String   @default("")
+  destination String?
+  employeeId  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Categorización extendida
+  categoria             String?
+  motivosEspecificos    String[]
+  motivoPrincipal       String?
+  tipoDescarte          String?
+
+  // Estado al momento del descarte
+  pesoKg                Decimal?  @db.Decimal(8, 2)
+  condicionCorporal     Int?
+  estadoSanitario       String?
+  estadoReproductivo    String?
+  estadoProductivo      String?
+
+  // Info reproductiva
+  numeroParto           Int?
+  diasUltimoParto       Int?
+  diasUltimoServicio    Int?
+  numeroServicios       Int?
+  lechonesDestetados    Int?
+
+  // Info sanitaria
+  diagnostico           String?
+  veterinario           String?
+  observacionesClinicas String?  @db.Text
+
+  // General
+  observaciones         String?  @db.Text
+  responsableAutoriza   String?
+
+  sow         Sow @relation(fields: [sowId], references: [id])
+
+  @@index([tenantId])
+  @@map("sow_discards")
+}
+
+// ================================================================
+// MÓDULO 1B: MATERNIDAD
+// ================================================================
+
+model FarrowingEvent {
+  id                  String        @id @default(cuid())
+  tenantId            String
+  sowId               String
+  serviceEventId      String?       @unique
+  farrowingType       FarrowingType @default(NORMAL)
+  startDatetime       DateTime
+  endDatetime         DateTime?
+  // Campos calculados automáticamente al guardar
+  gestationDays       Int?          // fecha_parto - fecha_servicio
+  durationMinutes     Int?          // end - start
+  bornAlive           Int
+  bornDead            Int           @default(0)
+  mummified           Int           @default(0)
+  totalBorn           Int           // = bornAlive + bornDead + mummified
+  femalesBornAlive    Int?
+  malesBornAlive      Int?
+  lowViabilityCount   Int           @default(0)
+  totalLitterWeightKg Decimal       @db.Decimal(8, 3)
+  avgPigletWeightKg   Decimal?      @db.Decimal(8, 3) // = totalLitterWeightKg / bornAlive
+  // Porcentaje pérdidas al nacimiento = (bornDead + mummified) / totalBorn * 100
+  penId               String?
+  sowWeightKg         Decimal?      @db.Decimal(8, 2)
+  employeeId          String?
+  notes               String?
+  // Stock calculado en tiempo real:
+  // currentStock = bornAlive + receivedCount - donatedCount - deathCount - weanedCount
+  // El sistema bloquea si llega a negativo (Regla 4)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  sow                  Sow              @relation(fields: [sowId], references: [id])
+  serviceEvent         ServiceEvent?    @relation(fields: [serviceEventId], references: [id])
+  pen                  Pen?             @relation(fields: [penId], references: [id])
+  piglets              Piglet[]
+  deaths               PigletDeath[]
+  movementsAsOrigin    PigletMovement[] @relation("MovementOrigin")
+  movementsAsDestination PigletMovement[] @relation("MovementDestination")
+  fosterAsReceiver     FosterEvent[]    @relation("FosterReceiver")
+  fosterDonations      FosterDonation[] @relation("FarrowingAsDonor")
+  weaning              WeaningEvent?
+  healthTasks          HealthTask[]
+  stockAdjustments     StockAdjustmentRequest[]
+  feedRecords          FeedRecord[]
+  curativeTreatments   CurativeTreatment[]
+  withdrawalPeriods    WithdrawalPeriod[]
+
+  @@index([tenantId, sowId])
+  @@index([tenantId, startDatetime])
+  @@map("farrowing_events")
+}
+
+model Piglet {
+  id          String          @id @default(cuid())
+  tenantId    String
+  farrowingId String
+  identCode   String?         // Tatuaje o número de caravana
+  identType   PigletIdentType?
+  sex         PigletSex?
+  weightKg    Decimal?        @db.Decimal(6, 3)
+  status      PigletStatus    @default(VIABLE)
+  birthDate   DateTime
+  isAlive     Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+
+  farrowing       FarrowingEvent    @relation(fields: [farrowingId], references: [id])
+  deaths          PigletDeath[]
+  treatments      CurativeTreatment[]
+  withdrawals     WithdrawalPeriod[]
+
+  @@unique([tenantId, identCode])
+  @@index([tenantId, farrowingId])
+  @@map("piglets")
+}
+
+model PigletDeath {
+  id             String           @id @default(cuid())
+  tenantId       String
+  farrowingId    String
+  pigletId       String?          // Si se identificó individualmente
+  deathDatetime  DateTime
+  quantity       Int              @default(1)
+  ageAtDeathDays Int?             // Calculado automáticamente
+  cause          PigletDeathCause
+  employeeId     String?
+  evidenceUrl    String?          // Foto/auditoría (S3)
+  createdAt      DateTime         @default(now())
+
+  farrowing      FarrowingEvent   @relation(fields: [farrowingId], references: [id])
+  piglet         Piglet?          @relation(fields: [pigletId], references: [id])
+
+  @@index([tenantId, farrowingId])
+  @@map("piglet_deaths")
+}
+
+// Adopción: mueve lechones de una cerda donadora a una receptora
+model PigletMovement {
+  id            String         @id @default(cuid())
+  tenantId      String
+  originId      String         // Cerda donadora
+  destinationId String         // Cerda receptora
+  movementDate  DateTime
+  quantity      Int
+  employeeId    String?
+  createdAt     DateTime       @default(now())
+
+  origin        FarrowingEvent @relation("MovementOrigin", fields: [originId], references: [id])
+  destination   FarrowingEvent @relation("MovementDestination", fields: [destinationId], references: [id])
+
+  @@index([tenantId])
+  @@map("piglet_movements")
+}
+
+// Nodriza: cerda que recibe lechones de múltiples donadoras
+model FosterEvent {
+  id              String         @id @default(cuid())
+  tenantId        String
+  receiverId      String         // Cerda nodriza receptora
+  penLocation     String?
+  receiveDate     DateTime
+  avgAgeAtFosterDays Decimal?   @db.Decimal(5, 1)
+  createdAt       DateTime       @default(now())
+
+  receiver        FarrowingEvent @relation("FosterReceiver", fields: [receiverId], references: [id])
+  donations       FosterDonation[]
+
+  @@index([tenantId])
+  @@map("foster_events")
+}
+
+model FosterDonation {
+  id            String         @id @default(cuid())
+  fosterEventId String
+  donorId       String         // Cerda donadora
+  quantity      Int
+  pigletAgeDays Int            // Edad de los lechones al momento del traslado
+
+  fosterEvent   FosterEvent    @relation(fields: [fosterEventId], references: [id])
+  donor         FarrowingEvent @relation("FarrowingAsDonor", fields: [donorId], references: [id])
+
+  @@map("foster_donations")
+}
+
+model WeaningEvent {
+  id                  String                 @id @default(cuid())
+  tenantId            String
+  farrowingId         String                 @unique
+  weaningDate         DateTime
+  lactationDays       Int                    // Calculado: weaningDate - startDatetime
+  pigletsAvailable    Int                    // Stock calculado antes del destete
+  lastMinuteDeaths    Int                    @default(0)
+  lastMinuteReceived  Int                    @default(0)
+  lastMinuteDonated   Int                    @default(0)
+  pigletsWeaned       Int                    // <= pigletsAvailable
+  totalLitterWeightKg Decimal                @db.Decimal(8, 3)
+  avgPigletWeightKg   Decimal                @db.Decimal(8, 3) // Calculado
+  nurseryBatchId      String?
+  sowDestination      SowDisposalDestination @default(GESTATION)
+  bodyConditionScore  BodyConditionScore?
+  sowWeightKg         Decimal?               @db.Decimal(8, 2)
+  employeeId          String?
+  notes               String?
+  createdAt           DateTime               @default(now())
+
+  farrowing    FarrowingEvent @relation(fields: [farrowingId], references: [id])
+  nurseryBatch NurseryBatch?  @relation(fields: [nurseryBatchId], references: [id])
+
+  @@index([tenantId])
+  @@map("weaning_events")
+}
+
+// Solicitud de ajuste de stock — flujo de aprobación (Regla 2)
+model StockAdjustmentRequest {
+  id            String                @id @default(cuid())
+  tenantId      String
+  farrowingId   String
+  sowId         String
+  currentStock  Int
+  correctStock  Int
+  reason        String
+  notes         String?
+  status        StockAdjustmentStatus @default(PENDING)
+  requestedById String
+  reviewedById  String?
+  reviewedAt    DateTime?
+  reviewNotes   String?
+  createdAt     DateTime              @default(now())
+
+  farrowing     FarrowingEvent @relation(fields: [farrowingId], references: [id])
+  sow           Sow            @relation(fields: [sowId], references: [id])
+
+  @@index([tenantId, status])
+  @@map("stock_adjustment_requests")
+}
+
+// ================================================================
+// MÓDULO 1C: RECRÍA Y ENGORDE
+// ================================================================
+
+model NurseryBatch {
+  id              String       @id @default(cuid())
+  tenantId        String
+  batchCode       String       // Código generado: "R-2026-W26-001"
+  phase           NurseryPhase @default(PHASE_1)
+  entryDate       DateTime
+  currentCount    Int
+  penId           String?
+  currentWeightKg Decimal?     @db.Decimal(10, 3)
+  avgWeightKg     Decimal?     @db.Decimal(8, 3)
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  pen           Pen?           @relation(fields: [penId], references: [id])
+  weanings      WeaningEvent[]
+  weightRecords WeightRecord[]
+  phaseChanges  PhaseChange[]
+  feedRecords   FeedRecord[]
+  growingBatches GrowingBatch[]
+  sales         BatchSale[]
+
+  @@unique([tenantId, batchCode])
+  @@index([tenantId])
+  @@map("nursery_batches")
+}
+
+model WeightRecord {
+  id             String        @id @default(cuid())
+  tenantId       String
+  nurseryBatchId String?
+  growingBatchId String?
+  recordDate     DateTime
+  totalWeightKg  Decimal       @db.Decimal(10, 3)
+  animalCount    Int
+  avgWeightKg    Decimal       @db.Decimal(8, 3)    // Calculado
+  dailyGainKg    Decimal?      @db.Decimal(6, 3)    // GDP vs pesaje anterior
+  employeeId     String?
+  createdAt      DateTime      @default(now())
+
+  nurseryBatch   NurseryBatch? @relation(fields: [nurseryBatchId], references: [id])
+  growingBatch   GrowingBatch? @relation(fields: [growingBatchId], references: [id])
+
+  @@index([tenantId])
+  @@map("weight_records")
+}
+
+model PhaseChange {
+  id             String            @id @default(cuid())
+  tenantId       String
+  nurseryBatchId String
+  fromPhase      NurseryPhase
+  toPhase        NurseryPhase
+  changeDate     DateTime
+  reason         PhaseChangeReason
+  triggerWeightKg Decimal?         @db.Decimal(8, 3)
+  employeeId     String?
+  notes          String?
+  createdAt      DateTime          @default(now())
+
+  nurseryBatch   NurseryBatch @relation(fields: [nurseryBatchId], references: [id])
+
+  @@index([tenantId])
+  @@map("phase_changes")
+}
+
+model GrowingBatch {
+  id                  String        @id @default(cuid())
+  tenantId            String
+  batchCode           String
+  nurseryBatchId      String?
+  entryDate           DateTime
+  entryWeightKg       Decimal       @db.Decimal(10, 3)   // Peso total al ingreso
+  currentCount        Int
+  penId               String?
+  isActive            Boolean       @default(true)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  // Campos Engorde extendidos
+  sitio               String?                             // Sitio / ubicación
+  procedencia         String        @default("RECRIA_PROPIA") // RECRIA_PROPIA | COMPRA_EXTERNA
+  avgAgeAtEntryDays   Int?                                // Edad media al ingreso (días)
+  targetWeightKg      Decimal?      @db.Decimal(8, 2)    // Peso objetivo de salida (default 120)
+  employeeId          String?                             // Responsable
+  observations        String?
+  status              String        @default("ACTIVE")   // ACTIVE | CLOSED
+  closedAt            DateTime?
+  closedReason        String?
+
+  nurseryBatch        NurseryBatch?       @relation(fields: [nurseryBatchId], references: [id])
+  pen                 Pen?                @relation(fields: [penId], references: [id])
+  weightRecords       WeightRecord[]
+  feedRecords         FeedRecord[]
+  sales               BatchSale[]
+  deaths              GrowingDeath[]
+  outgoingTransfers   GrowingTransfer[]   @relation("TransferSource")
+  incomingTransfers   GrowingTransfer[]   @relation("TransferTarget")
+  otherExits          GrowingOtherExit[]
+
+  @@unique([tenantId, batchCode])
+  @@index([tenantId])
+  @@map("growing_batches")
+}
+
+model GrowingDeath {
+  id                String      @id @default(cuid())
+  tenantId          String
+  growingBatchId    String
+  deathDate         DateTime
+  deathTime         String?                           // "HH:MM"
+  count             Int         @default(1)
+  cause             String                            // RESPIRATORY|DIGESTIVE|ACCIDENT|RENAL_URINARY|MULBERRY_HEART|OTHER
+  employeeId        String?
+  estimatedWeightKg Decimal?    @db.Decimal(8, 2)
+  notes             String?
+  createdAt         DateTime    @default(now())
+
+  growingBatch      GrowingBatch @relation(fields: [growingBatchId], references: [id])
+
+  @@index([tenantId, deathDate])
+  @@map("growing_deaths")
+}
+
+model GrowingTransfer {
+  id             String      @id @default(cuid())
+  tenantId       String
+  sourceBatchId  String
+  targetBatchId  String?                             // nulo si destino es externo
+  targetSite     String?
+  transferDate   DateTime
+  count          Int
+  totalWeightKg  Decimal?    @db.Decimal(10, 3)
+  avgWeightKg    Decimal?    @db.Decimal(8, 3)
+  reason         String                              // SPACE_PRESSURE|BATCH_REBALANCING|HEALTH_ISSUE|OTHER
+  employeeId     String?
+  createdAt      DateTime    @default(now())
+
+  sourceBatch    GrowingBatch  @relation("TransferSource", fields: [sourceBatchId], references: [id])
+  targetBatch    GrowingBatch? @relation("TransferTarget", fields: [targetBatchId], references: [id])
+
+  @@index([tenantId, transferDate])
+  @@map("growing_transfers")
+}
+
+model GrowingOtherExit {
+  id                String      @id @default(cuid())
+  tenantId          String
+  growingBatchId    String
+  exitType          String                            // DISCARD|HOSPITAL|SAMPLE|DONATION|OTHER
+  exitDate          DateTime
+  count             Int
+  estimatedWeightKg Decimal?    @db.Decimal(8, 2)
+  reason            String
+  employeeId        String?
+  createdAt         DateTime    @default(now())
+
+  growingBatch      GrowingBatch @relation(fields: [growingBatchId], references: [id])
+
+  @@index([tenantId, exitDate])
+  @@map("growing_other_exits")
+}
+
+model BatchSale {
+  id             String        @id @default(cuid())
+  tenantId       String
+  nurseryBatchId String?
+  growingBatchId String?
+  saleDate       DateTime
+  animalCount    Int
+  totalWeightKg  Decimal       @db.Decimal(10, 3)
+  pricePerKg     Decimal       @db.Decimal(10, 2)
+  totalAmount    Decimal       @db.Decimal(12, 2)
+  buyerName      String?
+  transferGuide  String?       // Guía de traslado
+  employeeId     String?
+  createdAt      DateTime      @default(now())
+
+  nurseryBatch   NurseryBatch? @relation(fields: [nurseryBatchId], references: [id])
+  growingBatch   GrowingBatch? @relation(fields: [growingBatchId], references: [id])
+
+  @@index([tenantId])
+  @@map("batch_sales")
+}
+
+// ================================================================
+// MÓDULO 2: ALIMENTACIÓN (transversal a todas las fases)
+// ================================================================
+
+// Tipos de alimento: Gestación / Lactancia hembra / Pre-starter /
+// Fase 1 / Fase 2 / Engorde — configurables por granja
+model FeedType {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  phase       String   // GESTATION | LACTATION | PRE_STARTER | PHASE_1 | PHASE_2 | GROWING
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+
+  feedRecords FeedRecord[]
+  formulas    Formula[]
+  finishedStocks FinishedStock[]
+  nutritionalTargets NutritionalTarget[]
+
+  @@unique([tenantId, phase])
+  @@index([tenantId])
+  @@map("feed_types")
+}
+
+model FeedRecord {
+  id             String        @id @default(cuid())
+  tenantId       String
+  feedTypeId     String
+  farrowingId    String?       // Para cerdas en maternidad / lechones pre-starter
+  nurseryBatchId String?       // Para lotes de recría
+  growingBatchId String?       // Para lotes de engorde
+  recordDate     DateTime
+  quantityKg     Decimal       @db.Decimal(10, 3)
+  employeeId     String?
+  isSynced       Boolean       @default(true)  // false = pendiente de sync offline
+  createdAt      DateTime      @default(now())
+
+  feedType       FeedType       @relation(fields: [feedTypeId], references: [id])
+  farrowing      FarrowingEvent? @relation(fields: [farrowingId], references: [id])
+  nurseryBatch   NurseryBatch?  @relation(fields: [nurseryBatchId], references: [id])
+  growingBatch   GrowingBatch?  @relation(fields: [growingBatchId], references: [id])
+
+  @@index([tenantId, recordDate])
+  @@map("feed_records")
+}
+
+// ================================================================
+// MÓDULO 3: BALANCEADO (BAL)
+// ================================================================
+
+model RawMaterial {
+  id             String          @id @default(cuid())
+  tenantId       String
+  name           String
+  materialType   RawMaterialType
+  supplierId     String?
+  currentStockKg Decimal         @db.Decimal(12, 3) @default(0)
+  minStockKg     Decimal         @db.Decimal(12, 3) @default(0)
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  supplier             Supplier?           @relation(fields: [supplierId], references: [id])
+  lots                 RawMaterialLot[]
+  formulaIngredients   FormulaIngredient[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("raw_materials")
+}
+
+// Cada compra de materia prima registra su propia ficha técnica y análisis
+model RawMaterialLot {
+  id                       String      @id @default(cuid())
+  tenantId                 String
+  rawMaterialId            String
+  lotCode                  String
+  receivedDate             DateTime
+  quantityKg               Decimal     @db.Decimal(12, 3)
+  remainingKg              Decimal     @db.Decimal(12, 3)
+  pricePerKg               Decimal     @db.Decimal(10, 4)
+  supplierId               String?
+  invoiceNumber            String?
+  expiryDate               DateTime?
+  // Análisis nutricional — puede cargarse manual o vía lectura de PDF con IA
+  crudProteinPct           Decimal?    @db.Decimal(6, 3)
+  metabolizableEnergyKcal  Decimal?    @db.Decimal(8, 2)
+  lysinePct                Decimal?    @db.Decimal(6, 3)
+  methioninePct            Decimal?    @db.Decimal(6, 3)
+  calciumPct               Decimal?    @db.Decimal(6, 3)
+  phosphorusPct            Decimal?    @db.Decimal(6, 3)
+  moisturePct              Decimal?    @db.Decimal(6, 3)
+  mycotoxinPpb             Decimal?    @db.Decimal(10, 2)
+  techDataSheetUrl         String?     // URL del PDF en S3
+  aiExtractionNotes        String?     // Notas del proceso de extracción con IA
+  createdAt                DateTime    @default(now())
+
+  rawMaterial    RawMaterial      @relation(fields: [rawMaterialId], references: [id])
+  grnItems       GoodsReceiptItem[]
+
+  @@unique([rawMaterialId, lotCode])
+  @@index([tenantId, rawMaterialId])
+  @@map("raw_material_lots")
+}
+
+// Una fórmula por tipo de alimento, con historial de versiones
+model Formula {
+  id          String        @id @default(cuid())
+  tenantId    String
+  feedTypeId  String
+  name        String
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+
+  feedType    FeedType      @relation(fields: [feedTypeId], references: [id])
+  versions    FormulaVersion[]
+
+  @@unique([tenantId, feedTypeId])
+  @@index([tenantId])
+  @@map("formulas")
+}
+
+// REGLA CRÍTICA 1: Solo el Veterinario Jefe puede aprobar cambios de fórmula.
+// La IA sugiere pero NUNCA modifica. approvedById es obligatorio para activar.
+model FormulaVersion {
+  id                     String        @id @default(cuid())
+  tenantId               String
+  formulaId              String
+  versionNumber          Int
+  status                 FormulaStatus @default(INACTIVE)
+  // Aprobación — solo rol VET_CHIEF (id=4) puede llenar estos campos
+  approvedById           String?
+  approvedAt             DateTime?
+  approvalNotes          String?
+  // Perfil nutricional calculado automáticamente al guardar
+  totalProteinPct        Decimal?      @db.Decimal(6, 3)
+  totalEnergyKcal        Decimal?      @db.Decimal(8, 2)
+  totalLysinePct         Decimal?      @db.Decimal(6, 3)
+  totalMethioninePct     Decimal?      @db.Decimal(6, 3)
+  totalCalciumPct        Decimal?      @db.Decimal(6, 3)
+  totalPhosphorusPct     Decimal?      @db.Decimal(6, 3)
+  totalMoisturePct       Decimal?      @db.Decimal(6, 3)
+  totalMycotoxinPpb      Decimal?      @db.Decimal(10, 2)
+  aiSuggestionNotes      String?       @db.Text // Sugerencia del asistente IA
+  createdAt              DateTime      @default(now())
+
+  formula          Formula             @relation(fields: [formulaId], references: [id])
+  approvedBy       User?               @relation("ApprovedVersions", fields: [approvedById], references: [id])
+  ingredients      FormulaIngredient[]
+  productionOrders BalProductionOrder[]
+
+  @@unique([formulaId, versionNumber])
+  @@index([tenantId])
+  @@map("formula_versions")
+}
+
+model FormulaIngredient {
+  id               String         @id @default(cuid())
+  formulaVersionId String
+  rawMaterialId    String
+  inclusionPct     Decimal        @db.Decimal(6, 3) // La suma debe ser exactamente 100%
+
+  formulaVersion   FormulaVersion @relation(fields: [formulaVersionId], references: [id])
+  rawMaterial      RawMaterial    @relation(fields: [rawMaterialId], references: [id])
+
+  @@unique([formulaVersionId, rawMaterialId])
+  @@map("formula_ingredients")
+}
+
+// Metas nutricionales por fase — el sistema compara y alerta si la fórmula queda por debajo
+model NutritionalTarget {
+  id              String   @id @default(cuid())
+  tenantId        String
+  feedTypeId      String
+  minProteinPct   Decimal? @db.Decimal(6, 3)
+  minEnergyKcal   Decimal? @db.Decimal(8, 2)
+  minLysinePct    Decimal? @db.Decimal(6, 3)
+  minMethioninePct Decimal? @db.Decimal(6, 3)
+  minCalciumPct   Decimal? @db.Decimal(6, 3)
+  minPhosphorusPct Decimal? @db.Decimal(6, 3)
+  maxMycotoxinPpb Decimal? @db.Decimal(10, 2)
+  updatedAt       DateTime @updatedAt
+
+  feedType        FeedType @relation(fields: [feedTypeId], references: [id])
+
+  @@unique([tenantId, feedTypeId])
+  @@map("nutritional_targets")
+}
+
+model BalProductionOrder {
+  id               String                @id @default(cuid())
+  tenantId         String
+  formulaVersionId String
+  orderedById      String
+  confirmedById    String?
+  scheduledDate    DateTime
+  quantityKg       Decimal               @db.Decimal(12, 3)
+  status           ProductionOrderStatus @default(PENDING)
+  isAutoGenerated  Boolean               @default(false)
+  producedAt       DateTime?
+  createdAt        DateTime              @default(now())
+
+  formulaVersion     FormulaVersion @relation(fields: [formulaVersionId], references: [id])
+  finishedStockEntry FinishedStock?
+
+  @@index([tenantId, status])
+  @@map("bal_production_orders")
+}
+
+model FinishedStock {
+  id                String             @id @default(cuid())
+  tenantId          String
+  feedTypeId        String
+  productionOrderId String?            @unique
+  batchQuantityKg   Decimal            @db.Decimal(12, 3) // Producido en esta tanda
+  currentStockKg    Decimal            @db.Decimal(12, 3)
+  minStockDays      Int                @default(7)        // Umbral de alerta
+  producedAt        DateTime
+
+  feedType          FeedType           @relation(fields: [feedTypeId], references: [id])
+  productionOrder   BalProductionOrder? @relation(fields: [productionOrderId], references: [id])
+
+  @@index([tenantId, feedTypeId])
+  @@map("finished_stocks")
+}
+
+// ================================================================
+// MÓDULO 4: LOGÍSTICA
+// ================================================================
+
+model Supplier {
+  id             String   @id @default(cuid())
+  tenantId       String
+  name           String
+  ruc            String?
+  phone          String?
+  email          String?
+  address        String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  rawMaterials   RawMaterial[]
+  purchaseOrders PurchaseOrder[]
+  goodsReceipts  GoodsReceipt[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("suppliers")
+}
+
+model PurchaseOrder {
+  id              String              @id @default(cuid())
+  tenantId        String
+  supplierId      String
+  orderDate       DateTime
+  expectedDate    DateTime?
+  status          PurchaseOrderStatus @default(DRAFT)
+  isAutoGenerated Boolean             @default(false) // Generada por proyección BAL
+  totalAmount     Decimal?            @db.Decimal(12, 2)
+  notes           String?
+  createdById     String
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  supplier      Supplier            @relation(fields: [supplierId], references: [id])
+  items         PurchaseOrderItem[]
+  goodsReceipts GoodsReceipt[]
+
+  @@index([tenantId, status])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  rawMaterialId   String
+  quantityKg      Decimal       @db.Decimal(12, 3)
+  pricePerKg      Decimal?      @db.Decimal(10, 4)
+  totalAmount     Decimal?      @db.Decimal(12, 2)
+
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+
+  @@map("purchase_order_items")
+}
+
+model GoodsReceipt {
+  id              String             @id @default(cuid())
+  tenantId        String
+  purchaseOrderId String?
+  supplierId      String
+  receiptDate     DateTime
+  invoiceNumber   String?
+  status          GoodsReceiptStatus @default(COMPLETE)
+  receivedById    String
+  createdAt       DateTime           @default(now())
+
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+  supplier        Supplier       @relation(fields: [supplierId], references: [id])
+  items           GoodsReceiptItem[]
+
+  @@index([tenantId])
+  @@map("goods_receipts")
+}
+
+model GoodsReceiptItem {
+  id               String          @id @default(cuid())
+  goodsReceiptId   String
+  rawMaterialLotId String?
+  quantityKg       Decimal         @db.Decimal(12, 3)
+  pricePerKg       Decimal         @db.Decimal(10, 4)
+
+  goodsReceipt     GoodsReceipt    @relation(fields: [goodsReceiptId], references: [id])
+  rawMaterialLot   RawMaterialLot? @relation(fields: [rawMaterialLotId], references: [id])
+
+  @@map("goods_receipt_items")
+}
+
+// Traslado de producto terminado del BAL al sector porcino
+model Transfer {
+  id           String   @id @default(cuid())
+  tenantId     String
+  fromLocation String?
+  toLocation   String?
+  transferDate DateTime
+  createdById  String
+  notes        String?
+  notifiedAt   DateTime?
+  createdAt    DateTime @default(now())
+
+  items        TransferItem[]
+
+  @@index([tenantId])
+  @@map("transfers")
+}
+
+model TransferItem {
+  id         String   @id @default(cuid())
+  transferId String
+  feedTypeId String?
+  quantityKg Decimal  @db.Decimal(12, 3)
+
+  transfer   Transfer @relation(fields: [transferId], references: [id])
+
+  @@map("transfer_items")
+}
+
+// ================================================================
+// MÓDULO 5: RRHH
+// ================================================================
+
+model Employee {
+  id           String    @id @default(cuid())
+  tenantId     String
+  userId       String?   @unique
+  cedula       String?
+  name         String
+  cargo        String?
+  category     String?
+  position     String?
+  sector       String?   // gestacion | maternidad | recria | engorde | veterinario | admin | all
+  iniciales    String?
+  colorBg      String?
+  colorBorder  String?
+  colorText    String?
+  entryDate    DateTime
+  exitDate     DateTime?
+  isActive     Boolean   @default(true)
+  baseSalaryGs Decimal   @default(0) @db.Decimal(14, 0)
+  createdAt    DateTime  @default(now())
+
+  attendances  AttendanceRecord[]
+  leaves       LeaveRecord[]
+  payrolls     PayrollRecord[]
+
+  @@index([tenantId])
+  @@map("employees")
+}
+
+model AttendanceRecord {
+  id           String   @id @default(cuid())
+  tenantId     String
+  employeeId   String
+  workDate     DateTime @db.Date
+  isPresent    Boolean  @default(true)
+  hoursWorked  Decimal? @db.Decimal(4, 2)
+  notes        String?
+
+  employee     Employee @relation(fields: [employeeId], references: [id])
+
+  @@unique([employeeId, workDate])
+  @@index([tenantId])
+  @@map("attendance_records")
+}
+
+model LeaveRecord {
+  id           String   @id @default(cuid())
+  tenantId     String
+  employeeId   String
+  startDate    DateTime
+  endDate      DateTime
+  leaveType    String   // VACATION | SICK | MATERNITY | OTHER
+  approvedById String?
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  employee     Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([tenantId])
+  @@map("leave_records")
+}
+
+model PayrollRecord {
+  id            String        @id @default(cuid())
+  tenantId      String
+  employeeId    String
+  periodStart   DateTime
+  periodEnd     DateTime
+  baseSalaryGs  Decimal       @db.Decimal(14, 0)
+  bonusesGs     Decimal       @db.Decimal(14, 0) @default(0)
+  deductionsGs  Decimal       @db.Decimal(14, 0) @default(0)
+  ipsEmployee   Decimal       @db.Decimal(14, 0) @default(0) // 9% del salario
+  ipsEmployer   Decimal       @db.Decimal(14, 0) @default(0) // 16.5% del salario
+  netAmountGs   Decimal       @db.Decimal(14, 0)
+  status        PayrollStatus @default(DRAFT)
+  approvedById  String?
+  paidAt        DateTime?
+  receiptUrl    String?       // PDF en S3
+  createdAt     DateTime      @default(now())
+
+  employee      Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([tenantId])
+  @@map("payroll_records")
+}
+
+// ================================================================
+// MÓDULO 6: FINANCIERO / ADMINISTRATIVO
+// ================================================================
+
+model Sale {
+  id          String   @id @default(cuid())
+  tenantId    String
+  saleDate    DateTime
+  description String?
+  amountGs    Decimal  @db.Decimal(14, 0)
+  category    String   // PIGLET_SALE | SOW_SALE | BATCH_SALE | SLAUGHTER | OTHER
+  batchSaleId String?  @unique
+  invoiceNumber String?
+  buyerName   String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, saleDate])
+  @@map("sales")
+}
+
+model Expense {
+  id            String   @id @default(cuid())
+  tenantId      String
+  expenseDate   DateTime
+  description   String
+  amountGs      Decimal  @db.Decimal(14, 0)
+  category      String   // FEED | MEDICINE | SALARY | MAINTENANCE | INPUT | OTHER
+  supplierId    String?
+  invoiceNumber String?
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, expenseDate])
+  @@map("expenses")
+}
+
+// ================================================================
+// MÓDULO 7: SANIDAD
+// ================================================================
+
+model Medicine {
+  id               String   @id @default(cuid())
+  tenantId         String
+  name             String
+  activeIngredient String?
+  defaultDoseMl    Decimal? @db.Decimal(8, 3)
+  withdrawalDays   Int      @default(0)
+  isActive         Boolean  @default(true)
+
+  stocks             MedicineStock[]
+  curativeTreatments CurativeTreatment[]
+  withdrawalPeriods  WithdrawalPeriod[]
+  protocolTasks      HealthProtocolTask[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("medicines")
+}
+
+model MedicineStock {
+  id         String    @id @default(cuid())
+  tenantId   String
+  medicineId String
+  lotCode    String?
+  expiryDate DateTime?
+  quantityMl Decimal   @db.Decimal(10, 3)
+  currentQty Decimal   @db.Decimal(10, 3)
+  createdAt  DateTime  @default(now())
+
+  medicine   Medicine @relation(fields: [medicineId], references: [id])
+
+  @@index([tenantId])
+  @@map("medicine_stocks")
+}
+
+// Configuración global del protocolo sanitario — se define una vez por granja
+model HealthProtocolConfig {
+  id                     String  @id @default(cuid())
+  tenantId               String  @unique
+  tailDockingEnabled     Boolean @default(true)
+  tailDockingDayOfLife   Int     @default(1)
+  toothClippingEnabled   Boolean @default(true)
+  toothClippingDayOfLife Int     @default(1)
+  castrationEnabled      Boolean @default(true)
+  castrationDayOfLife    Int     @default(7)
+  ironInjectionEnabled   Boolean @default(true)
+  ironDayOfLife          Int     @default(3)
+  ironDoseMl             Decimal @db.Decimal(6, 3) @default(1.0)
+  ironMedicineId         String?
+
+  vaccinationTasks HealthProtocolTask[]
+
+  @@map("health_protocol_configs")
+}
+
+// Cada vacuna o procedimiento en el protocolo
+model HealthProtocolTask {
+  id         String           @id @default(cuid())
+  protocolId String
+  taskType   HealthTaskType   @default(VACCINATION)
+  taskName   String
+  medicineId String?
+  dayOfLife  Int              // Día de vida en que se aplica
+  doseMl     Decimal?         @db.Decimal(8, 3)
+  route      VaccinationRoute?
+  isActive   Boolean          @default(true)
+  sortOrder  Int              @default(0)
+
+  protocol   HealthProtocolConfig @relation(fields: [protocolId], references: [id])
+  medicine   Medicine?            @relation(fields: [medicineId], references: [id])
+  healthTasks HealthTask[]
+
+  @@map("health_protocol_tasks")
+}
+
+// Tarea generada automáticamente al registrar un parto
+model HealthTask {
+  id             String     @id @default(cuid())
+  tenantId       String
+  farrowingId    String
+  protocolTaskId String
+  dueDate        DateTime
+  isCompleted    Boolean    @default(false)
+  completedAt    DateTime?
+  assignedToId   String?    // Usuario responsable asignado por jefe de producción
+  createdAt      DateTime   @default(now())
+
+  farrowing    FarrowingEvent     @relation(fields: [farrowingId], references: [id])
+  protocolTask HealthProtocolTask @relation(fields: [protocolTaskId], references: [id])
+  completion   HealthTaskCompletion?
+  assignedTo   User?              @relation("AssignedHealthTasks", fields: [assignedToId], references: [id])
+
+  @@index([tenantId, isCompleted, dueDate])
+  @@index([tenantId, assignedToId])
+  @@map("health_tasks")
+}
+
+model HealthTaskCompletion {
+  id                    String   @id @default(cuid())
+  healthTaskId          String   @unique
+  applicationDate       DateTime
+  ageAtApplicationDays  Int?
+  quantityApplied       Int
+  productLot            String?
+  productExpiry         DateTime?
+  medicineStockId       String?
+  employeeId            String?
+  notes                 String?
+  createdAt             DateTime @default(now())
+
+  healthTask HealthTask @relation(fields: [healthTaskId], references: [id])
+
+  @@map("health_task_completions")
+}
+
+// Tratamiento curativo individual (Diagnóstico → medicamento → período de retiro)
+model CurativeTreatment {
+  id              String        @id @default(cuid())
+  tenantId        String
+  farrowingId     String?
+  pigletId        String?
+  diagnosisType   DiagnosisType
+  diagnosisNotes  String?
+  medicineId      String
+  doseMl          Decimal       @db.Decimal(8, 3)
+  animalsAffected Int
+  treatmentDays   Int           @default(1)
+  startDate       DateTime
+  endDate         DateTime?
+  withdrawalDays  Int           @default(0)
+  employeeId      String?
+  createdAt       DateTime      @default(now())
+
+  medicine          Medicine          @relation(fields: [medicineId], references: [id])
+  farrowing         FarrowingEvent?   @relation(fields: [farrowingId], references: [id])
+  piglet            Piglet?           @relation(fields: [pigletId], references: [id])
+  withdrawalPeriods WithdrawalPeriod[]
+
+  @@index([tenantId])
+  @@map("curative_treatments")
+}
+
+// REGLA 5: Período de retiro activo bloquea destete y venta
+model WithdrawalPeriod {
+  id             String            @id @default(cuid())
+  tenantId       String
+  pigletId       String?
+  farrowingId    String?
+  medicineId     String
+  treatmentId    String?
+  withdrawalDays Int
+  startDate      DateTime
+  endDate        DateTime          // startDate + withdrawalDays
+  isActive       Boolean           @default(true)
+
+  medicine   Medicine           @relation(fields: [medicineId], references: [id])
+  piglet     Piglet?            @relation(fields: [pigletId], references: [id])
+  treatment  CurativeTreatment? @relation(fields: [treatmentId], references: [id])
+  farrowing  FarrowingEvent?    @relation(fields: [farrowingId], references: [id])
+
+  @@index([tenantId, isActive, endDate])
+  @@map("withdrawal_periods")
+}
+
+// ================================================================
+// MÓDULO 9: BOT DE WHATSAPP
+// ================================================================
+
+// Sesión de conversación por número de teléfono
+// Timeout: 30 minutos de inactividad = sesión cancelada (Regla 6)
+model WhatsAppSession {
+  id             String                @id @default(cuid())
+  tenantId       String
+  userId         String
+  phoneNumber    String
+  status         WhatsAppSessionStatus @default(ACTIVE)
+  context        Json                  @default("{}") // Estado de la conversación en curso
+  currentStep    String?               // Paso actual del flujo ("ASK_BORN_ALIVE", etc.)
+  lastActivityAt DateTime              @default(now())
+  expiresAt      DateTime
+
+  messages       WhatsAppMessage[]
+
+  @@index([phoneNumber, status])
+  @@index([tenantId])
+  @@map("whatsapp_sessions")
+}
+
+model WhatsAppMessage {
+  id          String   @id @default(cuid())
+  sessionId   String
+  direction   String   // "IN" | "OUT"
+  messageType String   // "text" | "audio" | "image"
+  content     String   @db.Text
+  transcript  String?  @db.Text  // Transcripción si es audio (Whisper)
+  waMessageId String?             // ID del mensaje de Meta
+  createdAt   DateTime @default(now())
+
+  session     WhatsAppSession @relation(fields: [sessionId], references: [id])
+
+  @@index([sessionId])
+  @@map("whatsapp_messages")
+}
+
+// ================================================================
+// ALERTAS Y NOTIFICACIONES
+// ================================================================
+
+model Alert {
+  id          String        @id @default(cuid())
+  tenantId    String
+  alertType   AlertType
+  severity    AlertSeverity @default(WARNING)
+  title       String
+  body        String
+  entityId    String?       // ID de la entidad relacionada
+  entityType  String?       // "SOW" | "BATCH" | "FORMULA" | "HEALTH_TASK"
+  isRead      Boolean       @default(false)
+  isResolved  Boolean       @default(false)
+  resolvedAt  DateTime?
+  createdAt   DateTime      @default(now())
+
+  @@index([tenantId, isResolved, createdAt])
+  @@index([tenantId, alertType])
+  @@map("alerts")
+}
+
+model NotificationPreference {
+  id          String              @id @default(cuid())
+  userId      String              @unique
+  tenantId    String
+  channel     NotificationChannel @default(BOTH)
+  // Alertas críticas siempre se envían por ambos canales (ignorando preferences)
+  preferences Json                @default("{}") // { "PIGLETS_OVERDUE_WEANING": "PUSH", ... }
+  updatedAt   DateTime            @updatedAt
+
+  user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+model PushToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  platform  String   // "android" | "ios" | "web"
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("push_tokens")
+}
+
+// ================================================================
+// MARKETPLACE — Proveedores de insumos y medicamentos
+// ================================================================
+
+enum MarketplacePedidoEstado {
+  PENDIENTE
+  CONFIRMADO
+  ENVIADO
+  ENTREGADO
+  CANCELADO
+}
+
+enum MarketplaceCategoria {
+  VACUNA
+  MEDICAMENTO
+  INSUMO
+  ALIMENTO
+  EQUIPAMIENTO
+  OTRO
+}
+
+model MarketplaceVendor {
+  id             String    @id @default(cuid())
+  empresaNombre  String
+  ruc            String?
+  contactoNombre String?
+  email          String?
+  telefono       String?
+  direccion      String?
+  ciudad         String?
+  logoUrl        String?
+  descripcion    String?   @db.Text
+  isActive       Boolean   @default(true)
+  isApproved     Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  productos      MarketplaceProducto[]
+  pedidos        MarketplacePedido[]
+
+  @@map("marketplace_vendors")
+}
+
+model MarketplaceProducto {
+  id                 String               @id @default(cuid())
+  vendorId           String
+  categoria          MarketplaceCategoria @default(VACUNA)
+  nombreProducto     String
+  descripcion        String?              @db.Text
+  principioActivo    String?
+  enfermedadObjetivo String?
+  viaAplicacion      String?
+  dosisMl            Decimal?             @db.Decimal(8, 3)
+  presentacion       String?              // "50ml/vial", "10 dosis/caja"
+  fichaTecnicaUrl    String?
+  stockDisponible    Int                  @default(0)
+  unidadMedida       String               @default("dosis") // dosis, ml, kg, unidad
+  precioGs           Decimal              @db.Decimal(14, 0)
+  precioUsd          Decimal?             @db.Decimal(10, 2)
+  paisProcedencia    String?
+  requiereReceta     Boolean              @default(false)
+  isActive           Boolean              @default(true)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  vendor             MarketplaceVendor    @relation(fields: [vendorId], references: [id])
+  pedidoItems        MarketplacePedidoItem[]
+
+  @@index([vendorId, isActive])
+  @@index([categoria, isActive])
+  @@map("marketplace_productos")
+}
+
+model MarketplacePedido {
+  id          String                   @id @default(cuid())
+  tenantId    String                   // Tenant comprador
+  vendorId    String
+  estado      MarketplacePedidoEstado  @default(PENDIENTE)
+  totalGs     Decimal                  @db.Decimal(14, 0)
+  notas       String?
+  direccionEntrega String?
+  creadoPorId String?                  // userId del comprador
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+
+  vendor      MarketplaceVendor        @relation(fields: [vendorId], references: [id])
+  items       MarketplacePedidoItem[]
+
+  @@index([tenantId, estado])
+  @@map("marketplace_pedidos")
+}
+
+model MarketplacePedidoItem {
+  id         String              @id @default(cuid())
+  pedidoId   String
+  productoId String
+  cantidad   Int
+  precioGs   Decimal             @db.Decimal(14, 0)
+
+  pedido     MarketplacePedido   @relation(fields: [pedidoId], references: [id])
+  producto   MarketplaceProducto @relation(fields: [productoId], references: [id])
+
+  @@map("marketplace_pedido_items")
+}
+
+// ================================================================
+// MÓDULO TAREAS — Órdenes de trabajo automáticas y manuales
+// ================================================================
+
+model Task {
+  id               String    @id @default(cuid())
+  tenantId         String
+  tipo             String    // parto-esperado | diagnostico-prenez | vacuna-gestacion | vacuna-lechones
+                             // hierro-fe | destete | pesaje | cambio-fase | tratamiento-curativo
+                             // limpieza-bebederos | desinfeccion-corral | limpieza-semanal
+                             // control-temperatura | alimentacion
+  sector           String    // gestacion | maternidad | iniciacion | engorde | granja
+  alcance          String    // animal | camada | lote | sala | granja
+  titulo           String
+  descripcion      String
+  instrucciones    String?
+  prioridad        String    // urgente | hoy | programada
+  fechaVencimiento DateTime
+  fechaCompletada  DateTime?
+
+  // Target (solo uno aplica)
+  animalId         String?   // sowId
+  farrowingId      String?
+  nurseryBatchId   String?
+  growingBatchId   String?
+  targetLabel      String?   // Nombre legible del target (ej: "Cerda 4480 · Corral 14")
+
+  // Completion
+  completadaPor    String?
+  notas            String?
+  pospuestas       Int       @default(0)
+
+  // Responsable
+  responsableNombre String?  // "Dr. Erwin Segovia"
+  responsableKey    String?  // "erwin-segovia" | "bartolome-vera" | "graciela-duarte" | "alex-almada"
+
+  // Generation
+  generadaPor      String    @default("sistema") // sistema | manual
+  disparador       String?   // "parto-{farrowingId}" | "servicio-{serviceEventId}"
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([tenantId, fechaVencimiento])
+  @@index([tenantId, sector, fechaVencimiento])
+  @@index([tenantId, tipo, farrowingId])
+  @@map("tasks")
+}
+
+// ── MÓDULO SANIDAD ────────────────────────────────────────────────────────────
+
+model Vacuna {
+  id                String   @id @default(cuid())
+  tenantId          String
+  nombre            String
+  enfermedad        String
+  categoria         String   // cerda | lechon | lote | verraco | plantel
+  viaAplicacion     String   @default("IM") // IM | SC | oral | intranasal
+  dosisMl           Decimal  @default(2) @db.Decimal(6, 2)
+  intervaloRefuerzo Int?     // días hasta refuerzo
+  criticidad        String   @default("alta") // alta | media | baja
+  bloqueoServicio   Boolean  @default(false)
+  observaciones     String?
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  lotes             LoteVacuna[]
+  protocoloItems    ProtocoloItem[]
+  eventosVacunacion EventoVacunacion[]
+  aplicaciones      AplicacionVacuna[]
+  @@index([tenantId])
+  @@map("vacunas")
+}
+
+model LoteVacuna {
+  id               String   @id @default(cuid())
+  tenantId         String
+  vacunaId         String
+  numeroLote       String
+  proveedor        String?
+  fechaVencimiento DateTime
+  fechaIngreso     DateTime @default(now())
+  cantidadInicial  Int
+  cantidadActual   Int
+  abierto          Boolean  @default(false)
+  observaciones    String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  vacuna           Vacuna   @relation(fields: [vacunaId], references: [id])
+  aplicaciones     AplicacionVacuna[]
+  @@index([tenantId, vacunaId])
+  @@map("lotes_vacunas")
+}
+
+model ProtocoloSanitario {
+  id          String   @id @default(cuid())
+  tenantId    String
+  nombre      String
+  fase        String   // gestacion | maternidad | iniciacion | engorde | reproductores
+  tipoAnimal  String   // cerda | lechon | lote | plantel
+  descripcion String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  items       ProtocoloItem[]
+  @@index([tenantId])
+  @@map("protocolos_sanitarios")
+}
+
+model ProtocoloItem {
+  id              String   @id @default(cuid())
+  tenantId        String
+  protocoloId     String
+  vacunaId        String
+  diaCiclo        Int
+  disparador      String   // parto | servicio | destete | ingreso-lote
+  esObligatorio   Boolean  @default(true)
+  bloqueoServicio Boolean  @default(false)
+  descripcion     String?
+  createdAt       DateTime @default(now())
+  protocolo       ProtocoloSanitario @relation(fields: [protocoloId], references: [id])
+  vacuna          Vacuna             @relation(fields: [vacunaId], references: [id])
+  @@index([tenantId, protocoloId])
+  @@map("protocolo_items")
+}
+
+model EventoVacunacion {
+  id              String   @id @default(cuid())
+  tenantId        String
+  protocoloItemId String?
+  vacunaId        String
+  sector          String
+  fecha           DateTime
+  animalId        String?
+  farrowingId     String?
+  nurseryBatchId  String?
+  growingBatchId  String?
+  targetLabel     String?
+  dosisNecesarias Int      @default(1)
+  estado          String   @default("pendiente") // pendiente | aplicado | retrasado | omitido
+  disparador      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  vacuna          Vacuna             @relation(fields: [vacunaId], references: [id])
+  aplicaciones    AplicacionVacuna[]
+  @@index([tenantId, fecha])
+  @@index([tenantId, vacunaId, estado])
+  @@map("eventos_vacunacion")
+}
+
+model AplicacionVacuna {
+  id              String   @id @default(cuid())
+  tenantId        String
+  eventoId        String
+  loteVacunaId    String?
+  vacunaId        String
+  dosisAplicadas  Int
+  fechaAplicacion DateTime
+  responsable     String
+  observaciones   String?
+  createdAt       DateTime @default(now())
+  evento          EventoVacunacion @relation(fields: [eventoId], references: [id])
+  loteVacuna      LoteVacuna?      @relation(fields: [loteVacunaId], references: [id])
+  vacuna          Vacuna           @relation(fields: [vacunaId], references: [id])
+  @@index([tenantId, eventoId])
+  @@map("aplicaciones_vacunas")
+}

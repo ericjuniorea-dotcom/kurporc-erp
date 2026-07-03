@@ -1,0 +1,66 @@
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth/config";
+import prisma from "@/lib/db/prisma";
+
+export async function GET(_req: Request, { params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  const tenantId = session.user.tenantId;
+
+  const sow = await prisma.sow.findFirst({
+    where: { id: params.id, tenantId },
+    select: { id: true },
+  });
+  if (!sow) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+
+  const [servicios, partos] = await Promise.all([
+    prisma.serviceEvent.findMany({
+      where: { sowId: params.id, tenantId },
+      orderBy: { serviceDate: "desc" },
+      include: {
+        boar: { select: { identCode: true, erpCode: true } },
+        semenDose: { select: { doseCode: true } },
+        pregnancyChecks: {
+          orderBy: { checkDate: "desc" },
+          take: 1,
+          select: { result: true, checkDate: true, method: true },
+        },
+      },
+    }),
+    prisma.farrowingEvent.findMany({
+      where: { sowId: params.id, tenantId },
+      orderBy: { startDatetime: "desc" },
+      include: {
+        weaning: {
+          select: {
+            weaningDate: true,
+            pigletsWeaned: true,
+            avgPigletWeightKg: true,
+            lactationDays: true,
+          },
+        },
+      },
+    }),
+  ]);
+
+  const tasaConcepcion = servicios.length > 0
+    ? Math.round((partos.length / servicios.length) * 100)
+    : 0;
+
+  const nacidosVivoTotal = partos.reduce((s, p) => s + p.bornAlive, 0);
+  const nacidosVivoPromedio = partos.length > 0
+    ? Math.round((nacidosVivoTotal / partos.length) * 10) / 10
+    : 0;
+
+  return NextResponse.json({
+    kpis: {
+      totalServicios: servicios.length,
+      totalPartos: partos.length,
+      tasaConcepcion,
+      nacidosVivoPromedio,
+    },
+    servicios,
+    partos,
+  });
+}
