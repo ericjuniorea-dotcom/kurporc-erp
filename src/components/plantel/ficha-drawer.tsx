@@ -24,6 +24,7 @@ interface SowDetail {
   birthDate: string | null;
   entryDate: string;
   entryWeightKg: string | null;
+  currentWeightKg: string | null;
   sourceProvider: string | null;
   purchasePriceGs: string | null;
   damCodeOrigin: string | null;

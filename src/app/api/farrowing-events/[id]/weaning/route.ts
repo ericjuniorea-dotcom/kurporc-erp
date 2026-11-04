@@ -122,5 +122,12 @@ export async function POST(
     generarEventosNursery(tenantId, nurseryBatch.id, batchCode, weaningDate, d.pigletsWeaned).catch(() => {});
   }
 
+  // La cerda sale de "Lactante" al destetar — debe reflejarse de inmediato
+  // en Plantel Reproductivo (mismo bug de sincronización que en el parto).
+  await prisma.sow.update({
+    where: { id: farrowing.sowId },
+    data:  { plantelState: d.sowDestination === "CULL" ? "CULLED" : "EMPTY" },
+  }).catch(() => {});
+
   return NextResponse.json({ weaning, nurseryBatch, lactationDays, avgPigletWeightKg }, { status: 201 });
 }

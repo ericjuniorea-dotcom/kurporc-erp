@@ -14,6 +14,7 @@ interface SowDetail {
   birthDate: string | null;
   entryDate: string;
   entryWeightKg: string | null;
+  currentWeightKg: string | null;
   sourceProvider: string | null;
   purchasePriceGs: string | null;
   damCodeOrigin: string | null;
@@ -232,6 +233,7 @@ export function TabGeneral({ sow, canEdit, onUpdated }: Props) {
           <InfoRow label="F. Nacimiento"    value={fmtDate(sow.birthDate)} />
           <InfoRow label="F. Ingreso"       value={fmtDate(sow.entryDate)} />
           <InfoRow label="Peso al ingreso"  value={sow.entryWeightKg ? `${sow.entryWeightKg} kg` : null} />
+          <InfoRow label="Peso actual"      value={sow.currentWeightKg ? `${sow.currentWeightKg} kg` : "Sin registrar"} />
           <InfoRow label="Proveedor"        value={sow.sourceProvider} />
           <InfoRow label="Precio compra"    value={sow.purchasePriceGs ? `₲ ${Number(sow.purchasePriceGs).toLocaleString("es-PY")}` : null} />
           <InfoRow label="Ubicación"        value={[sow.galponAssigned, sow.corralAssigned && `C.${sow.corralAssigned}`].filter(Boolean).join(" · ")} />

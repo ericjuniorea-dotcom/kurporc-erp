@@ -23,30 +23,40 @@ export async function getGestacionStates(tenantId: string): Promise<SowGestacion
   const today  = new Date();
   const cutoff = new Date(today.getTime() - 120 * 86400000);
 
-  // 1. Todos los servicios de los últimos 120 días
-  const events = await prisma.serviceEvent.findMany({
-    where: { tenantId, serviceDate: { gte: cutoff }, sow: { isActive: true } },
-    include: {
-      farrowing:       { select: { id: true } },
-      pregnancyChecks: { orderBy: { checkDate: "desc" }, take: 1, select: { result: true } },
-      sow: {
-        select: {
-          id: true, identCode: true, caravanaCode: true,
-          galponAssigned: true, corralAssigned: true,
-          plantelState: true,
+  // 1 y 3 son independientes entre sí (ninguna depende del resultado de la
+  // otra) — se disparan juntas en vez de una tras otra.
+  const [events, enMaternidad] = await Promise.all([
+    // 1. Todos los servicios de los últimos 120 días
+    prisma.serviceEvent.findMany({
+      where: { tenantId, serviceDate: { gte: cutoff }, sow: { isActive: true } },
+      include: {
+        farrowing:       { select: { id: true } },
+        pregnancyChecks: { orderBy: { checkDate: "desc" }, take: 1, select: { result: true } },
+        sow: {
+          select: {
+            id: true, identCode: true, caravanaCode: true,
+            galponAssigned: true, corralAssigned: true,
+            plantelState: true,
+          },
         },
       },
-    },
-    orderBy: { serviceDate: "desc" },
-  });
+      orderBy: { serviceDate: "desc" },
+    }),
+    // 3. Sows actualmente en Maternidad — excluir de gestación sin excepción
+    prisma.farrowingEvent.findMany({
+      where:  { tenantId, weaning: null },
+      select: { sowId: true },
+    }),
+  ]);
 
   // 2. Deduplicar: solo el evento más reciente por cerda
   const latestBySow = new Map<string, typeof events[0]>();
   for (const ev of events) {
     if (!latestBySow.has(ev.sowId)) latestBySow.set(ev.sowId, ev);
   }
+  const enMaternidadIds = new Set(enMaternidad.map(f => f.sowId));
 
-  // 3. Heat repeats (repeticiones de celo registradas explícitamente)
+  // 4. Heat repeats (repeticiones de celo registradas explícitamente)
   const sowIds = Array.from(latestBySow.keys());
   const heatRepeats = sowIds.length > 0
     ? await prisma.heatRepeat.findMany({
@@ -64,7 +74,8 @@ export async function getGestacionStates(tenantId: string): Promise<SowGestacion
   const result: SowGestacionState[] = [];
 
   for (const [sowId, ev] of Array.from(latestBySow.entries())) {
-    if (ev.farrowing) continue; // ya parió → no en ciclo de gestación activo
+    if (ev.farrowing) continue;              // parió → fuera de gestación
+    if (enMaternidadIds.has(sowId)) continue; // en maternidad activa → fuera de gestación
 
     const diasDesdeServ = Math.floor((today.getTime() - ev.serviceDate.getTime()) / 86400000);
     const checkResult   = ev.pregnancyChecks[0]?.result ?? null;

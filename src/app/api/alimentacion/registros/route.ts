@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
+import { invalidateInventario } from "@/lib/cache";
 import { z } from "zod";
 
 const schema = z.object({
@@ -70,19 +71,27 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Descuento de stock de producto terminado (si hay stock registrado)
-  if (quantityKg > 0) {
-    const stockEntry = await prisma.finishedStock.findFirst({
-      where: { tenantId, feedTypeId },
-      orderBy: { producedAt: "desc" },
+  // Descuento de stock de balanceado terminado (FEFO) — si la etapa tiene producto vinculado
+  if (quantityKg > 0 && feedType.productoBalanceadoId) {
+    let restante = quantityKg;
+    const lotesDisponibles = await prisma.loteInventario.findMany({
+      where: { tenantId, vacunaId: feedType.productoBalanceadoId, cantidadActual: { gt: 0 } },
+      orderBy: { fechaVencimiento: "asc" },
     });
-    if (stockEntry && Number(stockEntry.currentStockKg) > 0) {
-      const decrementBy = Math.min(Number(stockEntry.currentStockKg), quantityKg);
-      await prisma.finishedStock.update({
-        where: { id: stockEntry.id },
-        data: { currentStockKg: { decrement: decrementBy } },
+    for (const lote of lotesDisponibles) {
+      if (restante <= 0) break;
+      const disponible = Number(lote.cantidadActual);
+      const descuento  = Math.min(disponible, restante);
+      await prisma.loteInventario.update({
+        where: { id: lote.id },
+        data: { cantidadActual: { decrement: descuento } },
       });
+      await prisma.movimientoInventario.create({
+        data: { tenantId, productoId: feedType.productoBalanceadoId, loteId: lote.id, tipo: "SALIDA", cantidad: descuento, origen: "ALIMENTACION", referenciaId: record.id },
+      });
+      restante -= descuento;
     }
+    invalidateInventario(tenantId);
   }
 
   return NextResponse.json(record, { status: existing ? 200 : 201 });

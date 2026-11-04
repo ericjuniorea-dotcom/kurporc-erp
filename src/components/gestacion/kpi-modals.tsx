@@ -1,11 +1,11 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
-import Link from "next/link";
 import {
   IconX, IconLoader2, IconSearch, IconHeartbeat, IconHeart,
   IconUser, IconFilter, IconSortAscending, IconSortDescending,
   IconAlertTriangle, IconCircleCheck, IconCalendarTime,
 } from "@tabler/icons-react";
+import { ModalAccionDisponible, type DisponibleSow } from "./modal-accion-disponible";
 
 /* ─── Types ──────────────────────────────────────────────────────── */
 
@@ -28,6 +28,9 @@ interface DisponibleDetail {
   diasDesdeDestete: number | null; ultimaFechaDestete: string | null;
   fechaRecomendadaInseminacion: string | null;
   esPostDestete: boolean;
+  currentParityCount: number;
+  entryWeightKg: number | null;
+  currentWeightKg: number | null;
 }
 
 /* ─── Shared helpers ─────────────────────────────────────────────── */
@@ -400,12 +403,25 @@ export function DisponiblesModal({ onClose }: { onClose: () => void }) {
   const [search,     setSearch]     = useState("");
   const [galponFilt, setGalponFilt] = useState("");
   const [tipoFilt,   setTipoFilt]   = useState<"" | "post_destete" | "otras">("") ;
+  const [selected,   setSelected]   = useState<DisponibleDetail | null>(null);
 
-  useEffect(() => {
+  function load() {
     fetch("/api/gestacion/disponibles-detail")
       .then(r => r.ok ? r.json() : [])
       .then(setData).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+  }
+
+  useEffect(load, []);
+
+  const selectedSow: DisponibleSow | null = selected ? {
+    id:                 selected.sowId,
+    identCode:          selected.caravana,
+    caravana:           selected.caravana,
+    ubicacion:          selected.ubicacion,
+    currentParityCount: selected.currentParityCount,
+    entryWeightKg:      selected.entryWeightKg,
+    currentWeightKg:    selected.currentWeightKg,
+  } : null;
 
   const galpones = useMemo(() =>
     Array.from(new Set(data.map(d => d.galpon).filter(Boolean))).map(g => ({ value: g, label: g })),
@@ -425,6 +441,14 @@ export function DisponiblesModal({ onClose }: { onClose: () => void }) {
 
   return (
     <ModalShell title="Cerdas disponibles para inseminación" icon={IconUser} iconColor="var(--accent)" count={filtered.length} onClose={onClose}>
+
+      {selectedSow && (
+        <ModalAccionDisponible
+          sow={selectedSow}
+          onClose={() => setSelected(null)}
+          onSuccess={load}
+        />
+      )}
 
       {postDesteteCount > 0 && (
         <div style={{
@@ -499,19 +523,18 @@ export function DisponiblesModal({ onClose }: { onClose: () => void }) {
                         : "—"}
                     </td>
                     <td>
-                      <Link
-                        href={`/gestacion/nuevo-servicio?sowId=${row.sowId}`}
+                      <button
+                        onClick={() => setSelected(row)}
                         style={{
                           fontSize: 11, padding: "4px 10px", borderRadius: "var(--radius-md)",
                           background: "var(--success-subtle)", color: "var(--success-text)",
-                          border: "0.5px solid var(--success-border)", textDecoration: "none",
+                          border: "0.5px solid var(--success-border)",
                           display: "inline-flex", alignItems: "center", gap: 4,
-                          whiteSpace: "nowrap",
+                          whiteSpace: "nowrap", cursor: "pointer",
                         }}
-                        onClick={onClose}
                       >
                         Registrar servicio
-                      </Link>
+                      </button>
                     </td>
                   </tr>
                 );

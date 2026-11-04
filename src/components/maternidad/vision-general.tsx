@@ -6,6 +6,7 @@ import {
 import {
   IconHeartPlus, IconAlertTriangle, IconLoader2, IconRefresh, IconBabyCarriage,
 } from "@tabler/icons-react";
+import { HembrasMaternidadModal } from "@/components/maternidad/kpi-modals";
 
 interface KpiData {
   hembras:         number;
@@ -23,17 +24,27 @@ interface KpiData {
 }
 
 function KpiCard({
-  label, value, sub, color,
-}: { label: string; value: string | number; sub?: string; color?: string }) {
+  label, value, sub, color, onClick,
+}: { label: string; value: string | number; sub?: string; color?: string; onClick?: () => void }) {
   return (
-    <div style={{
-      background:   "var(--bg-surface)",
-      border:       "0.5px solid var(--border-default)",
-      borderRadius: "var(--radius-lg)",
-      padding:      "16px 20px",
-      flex:         1,
-      minWidth:     0,
-    }}>
+    <div
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={onClick ? e => { if (e.key === "Enter" || e.key === " ") onClick(); } : undefined}
+      style={{
+        background:   "var(--bg-surface)",
+        border:       "0.5px solid var(--border-default)",
+        borderRadius: "var(--radius-lg)",
+        padding:      "16px 20px",
+        flex:         1,
+        minWidth:     0,
+        cursor:       onClick ? "pointer" : "default",
+        transition:   onClick ? "filter 0.1s" : undefined,
+      }}
+      onMouseEnter={onClick ? e => (e.currentTarget.style.filter = "brightness(0.96)") : undefined}
+      onMouseLeave={onClick ? e => (e.currentTarget.style.filter = "none") : undefined}
+    >
       <div style={{ fontSize: 10, fontWeight: 500, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>
         {label}
       </div>
@@ -48,8 +59,9 @@ function KpiCard({
 }
 
 export function VisionGeneralMaternidad() {
-  const [data,    setData]    = useState<KpiData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data,       setData]       = useState<KpiData | null>(null);
+  const [loading,    setLoading]    = useState(true);
+  const [showModal,  setShowModal]  = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -78,6 +90,8 @@ export function VisionGeneralMaternidad() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
+      {showModal && <HembrasMaternidadModal onClose={() => setShowModal(false)} />}
+
       {/* KPI strip */}
       <div style={{ display: "flex", gap: 12 }}>
         <KpiCard
@@ -85,6 +99,7 @@ export function VisionGeneralMaternidad() {
           value={data.hembras}
           sub="partos activos"
           color="var(--accent)"
+          onClick={() => setShowModal(true)}
         />
         <KpiCard
           label="Lechones activos"

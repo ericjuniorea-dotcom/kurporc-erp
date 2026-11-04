@@ -12,20 +12,21 @@ export async function GET() {
   const [formulaCount, pendingVersions, materials, rawMatsWithStock] = await Promise.all([
     prisma.formula.count({ where: { tenantId, isActive: true } }),
     prisma.formulaVersion.count({ where: { tenantId, status: "INACTIVE" } }),
-    prisma.rawMaterial.count({ where: { tenantId, isActive: true } }),
-    prisma.rawMaterial.findMany({
+    prisma.productoInventario.count({ where: { tenantId, isActive: true, categoria: "MATERIA_PRIMA" } }),
+    prisma.productoInventario.findMany({
       where: {
         tenantId,
         isActive: true,
-        lots: { some: { remainingKg: { gt: 0 } } },
+        categoria: "MATERIA_PRIMA",
+        lotes: { some: { cantidadActual: { gt: 0 } } },
       },
       select: {
         id:          true,
-        name:        true,
-        minStockKg:  true,
-        lots: {
-          where:  { remainingKg: { gt: 0 } },
-          select: { remainingKg: true },
+        nombre:      true,
+        stockMinimo: true,
+        lotes: {
+          where:  { cantidadActual: { gt: 0 } },
+          select: { cantidadActual: true },
         },
       },
     }),
@@ -34,9 +35,9 @@ export async function GET() {
   const lowStockMaterials = rawMatsWithStock
     .map((m) => ({
       id:             m.id,
-      name:           m.name,
-      currentStockKg: m.lots.reduce((s, l) => s + Number(l.remainingKg), 0),
-      minStockKg:     Number(m.minStockKg ?? 0),
+      name:           m.nombre,
+      currentStockKg: m.lotes.reduce((s, l) => s + Number(l.cantidadActual), 0),
+      minStockKg:     Number(m.stockMinimo ?? 0),
     }))
     .filter((m) => m.currentStockKg < m.minStockKg);
 

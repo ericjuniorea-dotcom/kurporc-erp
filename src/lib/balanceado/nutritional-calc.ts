@@ -37,21 +37,22 @@ export async function calculateNutritionalProfile(
     if (pct === 0) continue;
 
     // Usar el lote más reciente con valores nutricionales
-    const lot = await prisma.rawMaterialLot.findFirst({
-      where:   { rawMaterialId: ing.rawMaterialId, remainingKg: { gt: 0 } },
-      orderBy: { receivedDate: "desc" },
+    const lot = await prisma.loteInventario.findFirst({
+      where:   { vacunaId: ing.rawMaterialId, cantidadActual: { gt: 0 } },
+      orderBy: { fechaIngreso: "desc" },
+      include: { nutricion: true },
     });
 
-    if (!lot) continue;
+    if (!lot?.nutricion) continue;
 
-    profile.totalProteinPct    += pct * Number(lot.crudProteinPct          ?? 0);
-    profile.totalEnergyKcal    += pct * Number(lot.metabolizableEnergyKcal ?? 0);
-    profile.totalLysinePct     += pct * Number(lot.lysinePct               ?? 0);
-    profile.totalMethioninePct += pct * Number(lot.methioninePct           ?? 0);
-    profile.totalCalciumPct    += pct * Number(lot.calciumPct              ?? 0);
-    profile.totalPhosphorusPct += pct * Number(lot.phosphorusPct           ?? 0);
-    profile.totalMoisturePct   += pct * Number(lot.moisturePct             ?? 0);
-    profile.totalMycotoxinPpb  += pct * Number(lot.mycotoxinPpb            ?? 0);
+    profile.totalProteinPct    += pct * Number(lot.nutricion.crudProteinPct          ?? 0);
+    profile.totalEnergyKcal    += pct * Number(lot.nutricion.metabolizableEnergyKcal ?? 0);
+    profile.totalLysinePct     += pct * Number(lot.nutricion.lysinePct               ?? 0);
+    profile.totalMethioninePct += pct * Number(lot.nutricion.methioninePct           ?? 0);
+    profile.totalCalciumPct    += pct * Number(lot.nutricion.calciumPct              ?? 0);
+    profile.totalPhosphorusPct += pct * Number(lot.nutricion.phosphorusPct           ?? 0);
+    profile.totalMoisturePct   += pct * Number(lot.nutricion.moisturePct             ?? 0);
+    profile.totalMycotoxinPpb  += pct * Number(lot.nutricion.mycotoxinPpb            ?? 0);
   }
 
   // Redondear a 3 decimales

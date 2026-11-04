@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { generarTareasServicio } from "@/lib/tasks/generate";
+import { evaluarAlertaConcepcion } from "@/lib/gestacion/tasa-concepcion";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -49,6 +50,9 @@ export async function POST(req: NextRequest) {
       notes:      observaciones ?? null,
     },
   }).catch(() => {});
+
+  // Recalcular tasa de concepción de la granja y alertar si cayó del umbral
+  await evaluarAlertaConcepcion(tenantId).catch(() => {});
 
   // Marcar tarea de diagnóstico como completada
   const tarea = await prisma.task.findFirst({

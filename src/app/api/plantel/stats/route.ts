@@ -12,28 +12,27 @@ export async function GET() {
 
   const now = new Date();
 
-  // ── Reproducción: misma fuente que el módulo de gestación ─────────
-  const states    = await getGestacionStates(tenantId);
-  const preñadas  = states.filter(s => s.estado === "PRENADA").length;
-  const servidas  = states.filter(s => s.estado === "SERVIDA").length;
+  // ── Gestación: misma fuente que el módulo de gestación ───────────
+  const states   = await getGestacionStates(tenantId);
+  const preñadas = states.filter(s => s.estado === "PRENADA").length;
+  const servidas = states.filter(s => s.estado === "SERVIDA").length;
 
-  // ── Lactantes: excluir las ya contadas en preñadas/servidas ──
-  const preñadasServidasIds = states
-    .filter(s => s.estado === "PRENADA" || s.estado === "SERVIDA")
-    .map(s => s.sowId);
+  // ── Hembras en Maternidad: misma fuente que el módulo de Maternidad ──
+  // Partos activos sin destete registrado
+  const hembrasEnMaternidad = await prisma.farrowingEvent.count({
+    where: { tenantId, weaning: null },
+  });
 
-  const lactantes = await prisma.sow.count({
-    where: {
-      tenantId,
-      isActive: true,
-      plantelState: { in: ["LACTATING", "FARROWING"] },
-      ...(preñadasServidasIds.length > 0 ? { id: { notIn: preñadasServidasIds } } : {}),
-    },
+  // ── Cuarentena: sows activas en estado QUARANTINE ─────────────────
+  const cuarentena = await prisma.sow.count({
+    where: { tenantId, isActive: true, plantelState: "QUARANTINE" },
   });
 
   // ── Total cerdas activas ──────────────────────────────────────────
   const totalSows = await prisma.sow.count({ where: { tenantId, isActive: true } });
-  const disponibles = Math.max(0, totalSows - preñadas - servidas - lactantes);
+
+  // Disponibles = activas que no son preñadas, servidas, en maternidad ni en cuarentena
+  const disponibles = Math.max(0, totalSows - preñadas - servidas - hembrasEnMaternidad - cuarentena);
 
   // ── Reproductores activos ─────────────────────────────────────────
   const [activeBoars, semenDoses] = await Promise.all([
@@ -46,18 +45,18 @@ export async function GET() {
     }),
   ]);
 
-  // Stock total = cerdas activas + reproductores activos
-  // = disponibles + servidas + preñadas + lactantes + reproductores
-  const total = totalSows + activeBoars;
+  // Stock General = suma de todas las categorías
+  const total = disponibles + servidas + preñadas + hembrasEnMaternidad + cuarentena + activeBoars;
 
   return NextResponse.json({
     total,
-    activeSows:  totalSows,
-    disponibles,
-    servidas,
+    activeSows:          totalSows,
+    hembrasEnMaternidad,
     preñadas,
-    lactantes,
+    servidas,
+    disponibles,
     activeBoars,
-    semenDoses:  semenDoses._sum.availableDoses ?? 0,
+    cuarentena,
+    semenDoses:          semenDoses._sum.availableDoses ?? 0,
   });
 }

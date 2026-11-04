@@ -2,7 +2,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { IconPlus, IconSearch, IconAlertCircle, IconLoader2 } from "@tabler/icons-react";
 
-const GENETIC_LINES = ["TN Rexne", "TN Duroc", "PIC", "Genesus", "NAIMA CG36", "Otra"];
+interface GeneticaOption {
+  id: string; nombre: string; empresa?: string | null;
+}
 
 interface SemenLot {
   id: string;
@@ -50,6 +52,15 @@ export function SemenTab() {
     productionDate: "", expiryDate: "", totalDoses: "",
     pricePerDoseGs: "", observations: "",
   });
+
+  const [geneticaOptions, setGeneticaOptions] = useState<GeneticaOption[]>([]);
+
+  useEffect(() => {
+    fetch("/api/config/genetica?funcion=PATERNA&activas=1")
+      .then(r => r.ok ? r.json() : [])
+      .then(setGeneticaOptions)
+      .catch(() => {});
+  }, []);
 
   const loadLots = useCallback(async () => {
     setLoading(true);
@@ -187,8 +198,13 @@ export function SemenTab() {
                   <label className="kp-label">Línea genética *</label>
                   <select className="kp-input" value={form.geneticLine} onChange={e => F("geneticLine", e.target.value)} style={{ appearance: "auto" }}>
                     <option value="">Seleccionar…</option>
-                    {GENETIC_LINES.map(g => <option key={g} value={g}>{g}</option>)}
+                    {geneticaOptions.map(g => <option key={g.id} value={g.nombre}>{g.empresa ? `${g.empresa} — ${g.nombre}` : g.nombre}</option>)}
                   </select>
+                  {geneticaOptions.length === 0 && (
+                    <div style={{ fontSize: 10, color: "var(--warning)", marginTop: 4 }}>
+                      No hay genéticas paternas configuradas — cargalas en Configuración → Plantel Reproductivo → Genética.
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="kp-label">Código verraco donante *</label>

@@ -2,11 +2,11 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { MapaServicios }        from "@/components/gestacion/mapa-servicios";
+import { DisponiblesParaServicio } from "@/components/gestacion/disponibles-list";
+import { LotesView }            from "@/components/gestacion/lotes-view";
 import { CentralAnalisis }      from "@/components/gestacion/analisis";
 import { ConfirmacionPrenez }   from "@/components/gestacion/confirmacion-prenez";
 import { TareasModuloPanel }    from "@/components/shared/tareas-modulo-panel";
@@ -16,7 +16,7 @@ import {
 } from "@/components/gestacion/kpi-modals";
 import { FormAborto } from "@/components/gestacion/form-aborto";
 import {
-  IconHeart, IconHeartbeat, IconUser,
+  IconHeart, IconHeartbeat, IconUser, IconLayoutGrid,
   IconAlertTriangle, IconAlertCircle, IconLoader2,
 } from "@tabler/icons-react";
 
@@ -51,7 +51,7 @@ function fmtDate(iso: string) {
 
 type ModalType = "prenadas" | "servidas" | "disponibles" | null;
 
-function VisionGeneralGestacion() {
+function VisionGeneralGestacion({ onOpenLotes }: { onOpenLotes: () => void }) {
   const [kpis,            setKpis]            = useState<GestKpis | null>(null);
   const [inconsistencias, setInconsistencias] = useState<Inconsistencia[]>([]);
   const [distribucion,    setDistribucion]    = useState<Distribucion[]>([]);
@@ -120,8 +120,8 @@ function VisionGeneralGestacion() {
       {modal === "servidas"    && <ServidasModal    onClose={() => setModal(null)} />}
       {modal === "disponibles" && <DisponiblesModal onClose={() => setModal(null)} />}
 
-      {/* ── 3 KPI cards (clickables) ──────────────────────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+      {/* ── KPI cards (clickables) + acceso a Lotes ───────────────── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
         {kpiCards.map(c => (
           <button
             key={c.label}
@@ -150,6 +150,29 @@ function VisionGeneralGestacion() {
             </div>
           </button>
         ))}
+
+        <button
+          onClick={onOpenLotes}
+          style={{
+            background: "var(--bg-surface)", border: "0.5px solid var(--border-default)",
+            borderRadius: "var(--radius-lg)", padding: "14px 16px",
+            display: "flex", alignItems: "center", gap: 12,
+            cursor: "pointer", textAlign: "left",
+            transition: "filter 0.1s",
+          }}
+          onMouseEnter={e => (e.currentTarget.style.filter = "brightness(0.96)")}
+          onMouseLeave={e => (e.currentTarget.style.filter = "none")}
+        >
+          <IconLayoutGrid size={22} style={{ color: "var(--accent)", flexShrink: 0 }} />
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+              Lotes
+            </div>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 1 }}>
+              Ver seguimiento por lote
+            </div>
+          </div>
+        </button>
       </div>
 
       {/* ── Distribución de gestantes (CENTRAL) ───────────────────── */}
@@ -346,7 +369,8 @@ export default function GestacionPage() {
       />
 
       <div style={{ padding: "16px 20px" }}>
-        {tab === "vision" && <VisionGeneralGestacion />}
+        {tab === "vision" && <VisionGeneralGestacion onOpenLotes={() => setTab("lotes")} />}
+        {tab === "lotes"  && <LotesView onBack={() => setTab("vision")} />}
 
         {tab === "ingreso" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -368,15 +392,10 @@ export default function GestacionPage() {
                 </button>
               ))}
               <div style={{ flex: 1 }} />
-              {ingresoTab === "servicios" && (
-                <Link href="/gestacion/nuevo-servicio" className="btn btn-primary" style={{ textDecoration: "none", fontSize: 11, marginBottom: 2 }}>
-                  + Registrar servicio
-                </Link>
-              )}
             </div>
 
             {ingresoTab === "servicios" && (
-              <MapaServicios tenantId={session.user.tenantId} />
+              <DisponiblesParaServicio />
             )}
             {ingresoTab === "diagnostico" && (
               <ConfirmacionPrenez />

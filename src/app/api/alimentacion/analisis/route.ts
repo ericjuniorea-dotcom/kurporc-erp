@@ -27,14 +27,17 @@ export async function GET(req: NextRequest) {
   const to   = hasta ? new Date(hasta) : new Date();
   to.setHours(23, 59, 59, 999);
 
-  const [records, feedTypes, stocks, growingBatches] = await Promise.all([
+  const [records, feedTypes, lotes, growingBatches] = await Promise.all([
     prisma.feedRecord.findMany({
       where: { tenantId, recordDate: { gte: from, lte: to } },
       include: { feedType: { select: { name: true, phase: true } } },
       orderBy: { recordDate: "asc" },
     }),
     prisma.feedType.findMany({ where: { tenantId, isActive: true }, orderBy: { sortOrder: "asc" } }),
-    prisma.finishedStock.findMany({ where: { tenantId }, orderBy: { producedAt: "desc" } }),
+    prisma.loteInventario.findMany({
+      where: { tenantId, vacuna: { categoria: "BALANCEADO" } },
+      select: { vacunaId: true, cantidadActual: true },
+    }),
     prisma.growingBatch.findMany({ where: { tenantId, isActive: true, status: "ACTIVE" } }),
   ]);
 
@@ -85,9 +88,9 @@ export async function GET(req: NextRequest) {
     });
 
   // ── 4. Proyección de stock 30 días ────────────────────────────────────────
-  const latestStock = new Map<string, typeof stocks[0]>();
-  for (const s of stocks) {
-    if (!latestStock.has(s.feedTypeId)) latestStock.set(s.feedTypeId, s);
+  const stockPorProducto = new Map<string, number>();
+  for (const l of lotes) {
+    stockPorProducto.set(l.vacunaId, (stockPorProducto.get(l.vacunaId) ?? 0) + Number(l.cantidadActual));
   }
   const last7 = addDays(new Date(), -7);
   const consumo7 = new Map<string, number>();
@@ -96,8 +99,7 @@ export async function GET(req: NextRequest) {
   }
 
   const proyeccion = feedTypes.map(ft => {
-    const stock   = latestStock.get(ft.id);
-    const stockKg = stock ? Number(stock.currentStockKg) : 0;
+    const stockKg = ft.productoBalanceadoId ? (stockPorProducto.get(ft.productoBalanceadoId) ?? 0) : 0;
     const c7      = consumo7.get(ft.id) ?? 0;
     const cDay    = +(c7 / 7).toFixed(1);
     const dias    = cDay > 0 ? Math.floor(stockKg / cDay) : (stockKg > 0 ? 999 : 0);

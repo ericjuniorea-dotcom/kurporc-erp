@@ -138,10 +138,12 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Incrementar contador de partos de la cerda
+    // Incrementar contador de partos y pasar la cerda a "Lactante" —
+    // debe reflejarse de inmediato en Plantel Reproductivo (bug: quedaba
+    // en "Gestante" porque nada actualizaba plantelState al parir).
     await tx.sow.update({
       where: { id: d.sowId },
-      data:  { currentParityCount: { increment: 1 } },
+      data:  { currentParityCount: { increment: 1 }, plantelState: "LACTATING" },
     });
 
     return f;

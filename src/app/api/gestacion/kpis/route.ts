@@ -13,49 +13,46 @@ export async function GET(req: NextRequest) {
   const today    = new Date();
   const cutoff30 = addDays(today, -30);
 
-  // ── Estado de cada cerda con servicio activo ──────────────────────
-  const states = await getGestacionStates(tenantId);
+  // Ninguna de estas 5 consultas depende del resultado de otra — se disparan
+  // todas juntas en vez de una tras otra (cada una paga ~200ms de red sola).
+  const [states, hembrasEnMaternidad, cuarentena, totalActivas, recentWeanings] = await Promise.all([
+    // ── Estado de cada cerda con servicio activo ──────────────────────
+    getGestacionStates(tenantId),
+    // Maternidad: partos activos sin destete (misma fuente que el módulo de Maternidad)
+    prisma.farrowingEvent.count({ where: { tenantId, weaning: null } }),
+    // Cuarentena: sows activas en estado QUARANTINE
+    prisma.sow.count({ where: { tenantId, isActive: true, plantelState: "QUARANTINE" } }),
+    // ── Total activas (base para disponibles) ─────────────────────────
+    prisma.sow.count({ where: { tenantId, isActive: true } }),
+    // ── Cerdas destetadas que aún no fueron servidas (para badge urgencia) ───
+    prisma.weaningEvent.findMany({
+      where: {
+        farrowing:      { tenantId },
+        weaningDate:    { gte: cutoff30 },
+        sowDestination: "GESTATION",
+      },
+      include: {
+        farrowing: {
+          select: {
+            sowId: true,
+            sow:   { select: { identCode: true } },
+          },
+        },
+      },
+      orderBy: { weaningDate: "desc" },
+    }),
+  ]);
 
   const preñadas = states.filter(s => s.estado === "PRENADA").length;
   const servidas  = states.filter(s => s.estado === "SERVIDA").length;
 
-  // ── Lactantes: solo las que NO están ya en preñadas/servidas (evita doble resta) ──
+  // ── Excluir sows ya clasificadas para evitar doble-resta ─────────
   const preñadasServidasIds = states
     .filter(s => s.estado === "PRENADA" || s.estado === "SERVIDA")
     .map(s => s.sowId);
 
-  const lactantes = await prisma.sow.count({
-    where: {
-      tenantId,
-      isActive: true,
-      plantelState: { in: ["LACTATING", "FARROWING"] },
-      ...(preñadasServidasIds.length > 0 ? { id: { notIn: preñadasServidasIds } } : {}),
-    },
-  });
-
-  // ── Total activas (base para disponibles) ─────────────────────────
-  const totalActivas = await prisma.sow.count({ where: { tenantId, isActive: true } });
-
-  // disponibles = todo lo que no es preñada, servida, ni lactante
-  const disponibles = Math.max(0, totalActivas - preñadas - servidas - lactantes);
-
-  // ── Cerdas destetadas que aún no fueron servidas (para badge urgencia) ───
-  const recentWeanings = await prisma.weaningEvent.findMany({
-    where: {
-      farrowing:      { tenantId },
-      weaningDate:    { gte: cutoff30 },
-      sowDestination: "GESTATION",
-    },
-    include: {
-      farrowing: {
-        select: {
-          sowId: true,
-          sow:   { select: { identCode: true } },
-        },
-      },
-    },
-    orderBy: { weaningDate: "desc" },
-  });
+  // disponibles = activas que no son preñadas, servidas, en maternidad ni en cuarentena
+  const disponibles = Math.max(0, totalActivas - preñadas - servidas - hembrasEnMaternidad - cuarentena);
 
   const weaningBySow = new Map<string, { weaningDate: Date; identCode: string }>();
   for (const w of recentWeanings) {
@@ -112,7 +109,6 @@ export async function GET(req: NextRequest) {
     preñadas,
     servidas,
     disponibles,
-    lactantes,
     porServir,
     alertasServicio: porServir.filter(s => s.urgente).length,
   });

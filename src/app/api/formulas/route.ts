@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
         take:    1,
         include: {
           ingredients: {
-            include: { rawMaterial: { select: { name: true, materialType: true } } },
+            include: { rawMaterial: { select: { nombre: true, materialType: true } } },
           },
         },
       },
@@ -26,7 +26,18 @@ export async function GET(req: NextRequest) {
     orderBy: { feedType: { sortOrder: "asc" } },
   });
 
-  return NextResponse.json(formulas);
+  const result = formulas.map(f => ({
+    ...f,
+    versions: f.versions.map(v => ({
+      ...v,
+      ingredients: v.ingredients.map(i => ({
+        ...i,
+        rawMaterial: { name: i.rawMaterial.nombre, materialType: i.rawMaterial.materialType },
+      })),
+    })),
+  }));
+
+  return NextResponse.json(result);
 }
 
 // Crear nueva versión de fórmula (INACTIVA hasta que el Vet Jefe la apruebe — Regla 1)
@@ -45,6 +56,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
   const { formulaId, ingredients, aiSuggestionNotes } = parsed.data;
+  const preview: boolean = body.preview === true;
   const tenantId = session.user.tenantId;
 
   const formula = await prisma.formula.findFirst({
@@ -58,6 +70,12 @@ export async function POST(req: NextRequest) {
   // Calcular perfil nutricional automáticamente
   const profile  = await calculateNutritionalProfile(ingredients);
   const targets  = await checkNutritionalTargets(tenantId, formula.feedTypeId, profile);
+
+  // El editor llama este mismo endpoint en cada tecla para previsualizar el
+  // perfil nutricional — con preview:true no persistimos ninguna versión real.
+  if (preview) {
+    return NextResponse.json({ version: profile, profile, nutritionalWarnings: targets.warnings });
+  }
 
   const version = await prisma.$transaction(async (tx) => {
     const v = await tx.formulaVersion.create({
@@ -84,12 +102,17 @@ export async function POST(req: NextRequest) {
       },
       include: {
         ingredients: {
-          include: { rawMaterial: { select: { name: true } } },
+          include: { rawMaterial: { select: { nombre: true } } },
         },
       },
     });
     return v;
   });
 
-  return NextResponse.json({ version, profile, nutritionalWarnings: targets.warnings }, { status: 201 });
+  const versionOut = {
+    ...version,
+    ingredients: version.ingredients.map(i => ({ ...i, rawMaterial: { name: i.rawMaterial.nombre } })),
+  };
+
+  return NextResponse.json({ version: versionOut, profile, nutritionalWarnings: targets.warnings }, { status: 201 });
 }

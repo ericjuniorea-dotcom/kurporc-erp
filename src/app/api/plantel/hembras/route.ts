@@ -11,21 +11,35 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const state  = searchParams.get("state");
   const search = searchParams.get("search");
+  const galpon = searchParams.get("galpon");
 
-  const where: any = { tenantId };
+  const where: any = { tenantId, AND: [] as any[] };
   if (state) {
     where.plantelState = state;
   } else {
-    // Por defecto excluir animales descartados/muertos — van a la pestaña Descartados
-    where.plantelState = { notIn: ["CULLED", "DEAD"] };
+    // Por defecto excluir animales descartados/muertos — van a la pestaña Descartados.
+    // OJO: "notIn" no matchea filas con plantelState NULL (semántica SQL), así que
+    // hay que incluirlas explícitamente para no perder hembras legacy sin estado asignado.
+    where.AND.push({
+      OR: [
+        { plantelState: { notIn: ["CULLED", "DEAD"] } },
+        { plantelState: null },
+      ],
+    });
   }
   if (search) {
-    where.OR = [
-      { erpCode:     { contains: search, mode: "insensitive" } },
-      { caravanaCode: { contains: search, mode: "insensitive" } },
-      { identCode:   { contains: search, mode: "insensitive" } },
-    ];
+    where.AND.push({
+      OR: [
+        { erpCode:     { contains: search, mode: "insensitive" } },
+        { caravanaCode: { contains: search, mode: "insensitive" } },
+        { identCode:   { contains: search, mode: "insensitive" } },
+      ],
+    });
   }
+  if (galpon) {
+    where.galponAssigned = galpon;
+  }
+  if (where.AND.length === 0) delete where.AND;
 
   const sows = await prisma.sow.findMany({
     where,

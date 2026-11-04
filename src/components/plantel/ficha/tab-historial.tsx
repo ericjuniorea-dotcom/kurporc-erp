@@ -39,6 +39,11 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   HEALTH_ALERT:      "Alerta sanitaria",
   OBSERVATION:       "Observación",
   QUARANTINE_RELEASE:"Alta de cuarentena",
+  HEAT_OBSERVED:     "Celo observado",
+  ELIGIBILITY_OVERRIDE: "Inseminación forzada",
+  MATERNIDAD_PROCEDIMIENTO: "Procedimiento de maternidad",
+  TRATAMIENTO_CLINICO:      "Tratamiento clínico",
+  NECROPSIA:                "Necropsia",
 };
 
 export function TabHistorial({ sowId }: { sowId: string }) {

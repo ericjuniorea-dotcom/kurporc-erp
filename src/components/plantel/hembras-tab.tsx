@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   IconPlus, IconSearch, IconSkull, IconAlertTriangle,
   IconLoader2, IconChevronDown, IconX,
@@ -18,8 +18,9 @@ const SOW_STATES = [
   { value: "EMPTY", label: "Vacía" },
 ];
 
-const GENETIC_LINES = ["TN Rexne", "TN Duroc", "PIC", "Genesus", "NAIMA CG36", "Otra"];
-const BREEDS = ["Yorkshire", "Landrace", "Duroc", "Hampshire", "Pietrain", "Híbrido", "Otra"];
+interface GeneticaOption {
+  id: string; nombre: string; empresa?: string | null;
+}
 
 const CATEGORIAS_DESCARTE = [
   "Reproductiva", "Sanitaria", "Productiva", "Genética",
@@ -166,6 +167,7 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
   const [loading, setLoading]       = useState(true);
   const [search, setSearch]         = useState("");
   const [stateFilter, setStateFilter] = useState("");
+  const [galponFilter, setGalponFilter] = useState("");
   const [showForm, setShowForm]     = useState(false);
   const [saving, setSaving]         = useState(false);
 
@@ -183,11 +185,20 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
   const [loadingRepro, setLoadingRepro]     = useState(false);
 
   const [form, setForm] = useState({
-    caravanaCode: "", tattooCode: "", rfidChip: "", breed: "", geneticLine: "",
+    caravanaCode: "", tattooCode: "", rfidChip: "", geneticaId: "",
     birthDate: "", entryWeightKg: "", sourceProvider: "", purchasePriceGs: "",
     damCodeOrigin: "", sireCodeOrigin: "", galponAssigned: "", corralAssigned: "",
     plantelNotes: "", initialDestination: "QUARANTINE",
   });
+
+  const [geneticaOptions, setGeneticaOptions] = useState<GeneticaOption[]>([]);
+
+  useEffect(() => {
+    fetch("/api/config/genetica?funcion=MATERNA&activas=1")
+      .then(r => r.ok ? r.json() : [])
+      .then(setGeneticaOptions)
+      .catch(() => {});
+  }, []);
 
   const loadSows = useCallback(async () => {
     setLoading(true);
@@ -195,7 +206,7 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
       const [sowsRes, cfgRes] = await Promise.all([
         fetch(`/api/plantel/hembras?${new URLSearchParams([
           ...(stateFilter ? [["state", stateFilter]] : []),
-          ...(search ? [["search", search]] : []),
+          ...(search      ? [["search", search]]     : []),
         ] as string[][])}`),
         fetch("/api/config/procesos?modulo=PLANTEL"),
       ]);
@@ -217,21 +228,32 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
     return () => clearTimeout(t);
   }, [loadSows]);
 
+  const galponOptions = useMemo(() =>
+    Array.from(new Set(sows.map(s => s.galponAssigned).filter((g): g is string => !!g))).sort(),
+    [sows],
+  );
+
+  const displaySows = useMemo(() =>
+    galponFilter ? sows.filter(s => s.galponAssigned === galponFilter) : sows,
+    [sows, galponFilter],
+  );
+
   async function handleSubmit() {
-    if (!form.caravanaCode || !form.birthDate || !form.entryWeightKg || !form.sourceProvider || !form.geneticLine) {
-      alert("Completá los campos obligatorios: Caravana, F. Nacimiento, Peso, Proveedor, Línea genética");
+    if (!form.caravanaCode || !form.birthDate || !form.entryWeightKg || !form.sourceProvider || !form.geneticaId) {
+      alert("Completá los campos obligatorios: Caravana, F. Nacimiento, Peso, Proveedor, Genética");
       return;
     }
+    const genetica = geneticaOptions.find(g => g.id === form.geneticaId);
     setSaving(true);
     try {
       const res = await fetch("/api/plantel/hembras", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, breed: genetica?.nombre ?? "", geneticLine: genetica?.nombre ?? "" }),
       });
       if (res.ok) {
         setShowForm(false);
-        setForm({ caravanaCode: "", tattooCode: "", rfidChip: "", breed: "", geneticLine: "",
+        setForm({ caravanaCode: "", tattooCode: "", rfidChip: "", geneticaId: "",
           birthDate: "", entryWeightKg: "", sourceProvider: "", purchasePriceGs: "",
           damCodeOrigin: "", sireCodeOrigin: "", galponAssigned: "", corralAssigned: "",
           plantelNotes: "", initialDestination: "QUARANTINE" });
@@ -340,6 +362,17 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
             {SOW_STATES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
         </div>
+        <div style={{ position: "relative" }}>
+          <select
+            className="kp-input"
+            value={galponFilter}
+            onChange={e => setGalponFilter(e.target.value)}
+            style={{ appearance: "auto", paddingRight: 28, minWidth: 160 }}
+          >
+            <option value="">Todos los galpones</option>
+            {galponOptions.map(g => <option key={g} value={g}>{g}</option>)}
+          </select>
+        </div>
         <button className="btn btn-primary" onClick={() => setShowForm(true)}>
           <IconPlus size={13} aria-hidden /> Registrar hembra
         </button>
@@ -351,7 +384,7 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
           <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>
             <IconLoader2 size={18} style={{ animation: "spin 1s linear infinite" }} />
           </div>
-        ) : sows.length === 0 ? (
+        ) : displaySows.length === 0 ? (
           <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
             No se encontraron hembras con los filtros actuales.
           </div>
@@ -371,7 +404,7 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
               </tr>
             </thead>
             <tbody>
-              {sows.map(sow => {
+              {displaySows.map(sow => {
                 const lastEv = sow.animalEvents[0];
                 const isSelected = selectedSowId === sow.id;
                 return (
@@ -493,21 +526,19 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
                   <input className="kp-input" value={form.tattooCode} onChange={e => F("tattooCode", e.target.value)} placeholder="Opcional" />
                 </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label className="kp-label">Raza</label>
-                  <select className="kp-input" value={form.breed} onChange={e => F("breed", e.target.value)} style={{ appearance: "auto" }}>
-                    <option value="">Seleccionar…</option>
-                    {BREEDS.map(b => <option key={b} value={b}>{b}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="kp-label">Línea genética *</label>
-                  <select className="kp-input" value={form.geneticLine} onChange={e => F("geneticLine", e.target.value)} style={{ appearance: "auto" }}>
-                    <option value="">Seleccionar…</option>
-                    {GENETIC_LINES.map(g => <option key={g} value={g}>{g}</option>)}
-                  </select>
-                </div>
+              <div>
+                <label className="kp-label">Genética *</label>
+                <select className="kp-input" value={form.geneticaId} onChange={e => F("geneticaId", e.target.value)} style={{ appearance: "auto" }}>
+                  <option value="">Seleccionar…</option>
+                  {geneticaOptions.map(g => (
+                    <option key={g.id} value={g.id}>{g.empresa ? `${g.empresa} — ${g.nombre}` : g.nombre}</option>
+                  ))}
+                </select>
+                {geneticaOptions.length === 0 && (
+                  <div style={{ fontSize: 10, color: "var(--warning)", marginTop: 4 }}>
+                    No hay genéticas maternas configuradas — cargalas en Configuración → Plantel Reproductivo → Genética.
+                  </div>
+                )}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>

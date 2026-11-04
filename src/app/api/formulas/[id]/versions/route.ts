@@ -23,7 +23,7 @@ export async function GET(
     include: {
       ingredients: {
         include: {
-          rawMaterial: { select: { name: true, materialType: true } },
+          rawMaterial: { select: { nombre: true, materialType: true } },
         },
       },
       approvedBy: { select: { name: true } },
@@ -31,5 +31,13 @@ export async function GET(
     orderBy: { versionNumber: "desc" },
   });
 
-  return NextResponse.json(versions);
+  const result = versions.map(v => ({
+    ...v,
+    ingredients: v.ingredients.map(i => ({
+      ...i,
+      rawMaterial: { name: i.rawMaterial.nombre, materialType: i.rawMaterial.materialType },
+    })),
+  }));
+
+  return NextResponse.json(result);
 }

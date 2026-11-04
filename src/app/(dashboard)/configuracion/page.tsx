@@ -7,30 +7,9 @@ import {
   IconHeart, IconHeartPlus, IconBuildingWarehouse, IconChartLine,
   IconDna, IconFlask, IconSettings, IconCheck, IconPlus,
   IconLoader2, IconToggleLeft, IconToggleRight, IconTrash, IconEdit,
-  IconFileText, IconAlertCircle, IconPackage,
+  IconPackage,
 } from "@tabler/icons-react";
-
-/* ─── Momentos de aplicación estandarizados ────────────────────── */
-
-const MOMENTO_LABELS: Record<string, string> = {
-  PRE_SERVICIO_7:    "7d pre-servicio",
-  PRE_SERVICIO_21:   "21d pre-servicio",
-  PRE_SERVICIO_42:   "42d pre-servicio",
-  PRE_PARTO_30:      "30d pre-parto",
-  PRE_PARTO_14:      "14d pre-parto",
-  POST_PARTO_1:      "Día 1 post-parto",
-  POST_PARTO_7:      "Día 7 post-parto",
-  POST_PARTO_14:     "Día 14 post-parto",
-  LECHON_3D:         "Día 3 lechón",
-  LECHON_7D:         "Día 7 lechón",
-  LECHON_14D:        "Día 14 lechón",
-  LECHON_21D:        "Día 21 lechón",
-  AL_DESTETE:        "Al destete",
-  INGRESO_LOTE_7:    "7d post-ingreso lote",
-  INGRESO_LOTE_14:   "14d post-ingreso lote",
-  REFUERZO_6M:       "Refuerzo 6 meses",
-  REFUERZO_ANUAL:    "Refuerzo anual",
-};
+import VacunasTab from "@/components/configuracion/vacunas-tab";
 
 /* ─── Constantes de módulo ─────────────────────────────────────── */
 
@@ -39,12 +18,12 @@ const MODULES = [
   { key: "MATERNIDAD", label: "Maternidad",  icon: IconHeartPlus,         iconColor: "var(--info)" },
   { key: "RECRIA",     label: "Iniciación",  icon: IconBuildingWarehouse, iconColor: "var(--warning)" },
   { key: "ENGORDE",    label: "Engorde",     icon: IconChartLine,         iconColor: "var(--danger)" },
-  { key: "PLANTEL",    label: "Plantel",     icon: IconDna,               iconColor: "var(--accent)" },
+  { key: "PLANTEL",    label: "Plantel Reproductivo", icon: IconDna,  iconColor: "var(--accent)" },
   { key: "BALANCEADO", label: "Balanceado",  icon: IconFlask,             iconColor: "var(--text-muted)" },
 ] as const;
 type ModuleKey = typeof MODULES[number]["key"];
 
-const CONFIG_TABS = ["Metas", "Razas", "Vacunas", "Procesos", "Alertas"] as const;
+const CONFIG_TABS = ["Metas", "Genética", "Vacunas", "Procesos", "Alertas"] as const;
 type ConfigTab = typeof CONFIG_TABS[number];
 
 /* ─── Labels humanos para KPIs ─────────────────────────────────── */
@@ -82,18 +61,27 @@ const ALERTA_LABELS: Record<string, string> = {
   atraso_peso_faena:            "Atraso en peso de faena",
 };
 
+// Unidad del umbral de cada alerta — el número solo no dice si es %, días,
+// repeticiones, etc.
+const ALERTA_UNITS: Record<string, string> = {
+  mortalidad_alta:              "%",
+  bajo_nacidos_vivos:           "lechones",
+  baja_concepcion:              "%",
+  dias_open_excedidos:          "días",
+  repeticiones_celo_descarte:   "repeticiones",
+  baja_gmd:                     "g/día",
+  atraso_peso_faena:            "kg",
+};
+
 /* ─── Tipos ─────────────────────────────────────────────────────── */
 
 interface ConfigMeta { id: string; modulo: string; kpiKey: string; valor: string; }
-interface ConfigRaza {
-  id: string; nombre: string; tipoLinea: string; usoPrincipal: string;
-  nacidosVivosMeta?: number; diasGestacion?: number; activa: boolean;
-}
-interface ConfigVacuna {
-  id: string; modulo: string; nombreVacuna: string; marcaComercial: string;
-  laboratorio: string; viaAplicacion: string; dosisMl: string;
-  momentoAplicacion: string; obligatoria: boolean; activa: boolean;
-  fechaVencimientoLote?: string; stockDosis?: number; stockMinimoAlerta?: number;
+type TipoGenetico = "RAZA_PURA" | "HIBRIDA_F1" | "SINTETICA" | "CRUZA_INTERNA";
+type FuncionGenetica = "MATERNA" | "PATERNA";
+interface Genetica {
+  id: string; nombre: string; empresa?: string | null; tipoGenetico: TipoGenetico;
+  funcion: FuncionGenetica; composicionRacial?: string | null;
+  metaNacidosVivos?: number | null; activa: boolean;
 }
 interface ConfigAlerta {
   id: string; modulo: string; eventoKey: string; umbral?: string;
@@ -208,49 +196,67 @@ function MetasTab({ modulo }: { modulo: ModuleKey }) {
   );
 }
 
-function RazasTab() {
-  const [razas, setRazas] = useState<ConfigRaza[]>([]);
+const TIPO_GENETICO_LABELS: Record<TipoGenetico, string> = {
+  RAZA_PURA: "Raza pura", HIBRIDA_F1: "Híbrida F1", SINTETICA: "Sintética", CRUZA_INTERNA: "Cruza interna",
+};
+const FUNCION_GENETICA_LABELS: Record<FuncionGenetica, string> = {
+  MATERNA: "Materna", PATERNA: "Paterna",
+};
+
+const EMPTY_GENETICA_FORM = {
+  nombre: "", empresa: "", tipoGenetico: "HIBRIDA_F1" as TipoGenetico, funcion: "MATERNA" as FuncionGenetica,
+  composicionRacial: "", metaNacidosVivos: "",
+};
+
+function GeneticaTab() {
+  const [genetica, setGenetica] = useState<Genetica[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ nombre: "", tipoLinea: "MATERNA", usoPrincipal: "", nacidosVivosMeta: "", diasGestacion: "" });
+  const [form, setForm] = useState({ ...EMPTY_GENETICA_FORM });
 
   const load = useCallback(async () => {
     setLoading(true);
-    const r = await fetch("/api/config/razas");
-    if (r.ok) setRazas(await r.json());
+    const r = await fetch("/api/config/genetica");
+    if (r.ok) setGenetica(await r.json());
     setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  async function toggleActiva(raza: ConfigRaza) {
-    await fetch(`/api/config/razas/${raza.id}`, {
+  async function toggleActiva(g: Genetica) {
+    await fetch(`/api/config/genetica/${g.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ activa: !raza.activa }),
+      body: JSON.stringify({ activa: !g.activa }),
     });
     load();
   }
 
   async function handleAdd() {
-    if (!form.nombre || !form.tipoLinea || !form.usoPrincipal) { alert("Nombre, tipo de línea y uso principal son requeridos"); return; }
+    if (!form.nombre || !form.tipoGenetico || !form.funcion || !form.composicionRacial) {
+      alert("Nombre, tipo genético, función y composición racial son requeridos");
+      return;
+    }
     setSaving(true);
-    const r = await fetch("/api/config/razas", {
+    const r = await fetch("/api/config/genetica", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
-        nacidosVivosMeta: form.nacidosVivosMeta ? Number(form.nacidosVivosMeta) : undefined,
-        diasGestacion: form.diasGestacion ? Number(form.diasGestacion) : undefined,
+        empresa: form.empresa || null,
+        metaNacidosVivos: form.funcion === "MATERNA" && form.metaNacidosVivos ? Number(form.metaNacidosVivos) : null,
       }),
     });
     setSaving(false);
-    if (r.ok) { setShowForm(false); setForm({ nombre: "", tipoLinea: "MATERNA", usoPrincipal: "", nacidosVivosMeta: "", diasGestacion: "" }); load(); }
+    if (r.ok) { setShowForm(false); setForm({ ...EMPTY_GENETICA_FORM }); load(); }
     else { const e = await r.json(); alert(e.error ?? "Error al guardar"); }
   }
 
-  const F = (k: keyof typeof form, v: string) => setForm(p => ({ ...p, [k]: v }));
+  const F = (k: keyof typeof form, v: string) => setForm(p => ({
+    ...p, [k]: v,
+    ...(k === "funcion" && v === "PATERNA" ? { metaNacidosVivos: "" } : {}),
+  }));
 
   if (loading) return <div style={{ padding: 32, color: "var(--text-muted)" }}><Spinner /></div>;
 
@@ -258,35 +264,38 @@ function RazasTab() {
     <div>
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
         <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-          <IconPlus size={13} /> Agregar raza
+          <IconPlus size={13} /> Agregar genética
         </button>
       </div>
       <table className="kp-table">
         <thead>
           <tr>
             <th>Nombre</th>
-            <th>Tipo línea</th>
-            <th>Uso principal</th>
-            <th>Nacidos vivos meta</th>
-            <th>Días gestación</th>
-            <th>Activa</th>
+            <th>Tipo</th>
+            <th>Función</th>
+            <th>Composición</th>
+            <th>Meta NV</th>
+            <th>Estado</th>
           </tr>
         </thead>
         <tbody>
-          {razas.map(r => (
-            <tr key={r.id} style={{ opacity: r.activa ? 1 : 0.5 }}>
-              <td style={{ fontWeight: 500 }}>{r.nombre}</td>
-              <td><span className={`badge ${r.tipoLinea === "MATERNA" ? "badge-ok" : r.tipoLinea === "PATERNA" ? "badge-info" : "badge-warn"}`}>{r.tipoLinea}</span></td>
-              <td style={{ fontSize: 11, color: "var(--text-secondary)" }}>{r.usoPrincipal}</td>
-              <td style={{ textAlign: "center" }}>{r.nacidosVivosMeta ?? "—"}</td>
-              <td style={{ textAlign: "center" }}>{r.diasGestacion ?? "—"}</td>
+          {genetica.map(g => (
+            <tr key={g.id} style={{ opacity: g.activa ? 1 : 0.5 }}>
+              <td>
+                <div style={{ fontWeight: 500 }}>{g.nombre}</div>
+                {g.empresa && <div style={{ fontSize: 10, color: "var(--text-muted)" }}>{g.empresa}</div>}
+              </td>
+              <td><span className="badge badge-mat">{TIPO_GENETICO_LABELS[g.tipoGenetico]}</span></td>
+              <td><span className={`badge ${g.funcion === "MATERNA" ? "badge-ok" : "badge-info"}`}>{FUNCION_GENETICA_LABELS[g.funcion]}</span></td>
+              <td style={{ fontSize: 11, color: "var(--text-secondary)" }}>{g.composicionRacial ?? "—"}</td>
+              <td style={{ textAlign: "center" }}>{g.funcion === "PATERNA" ? "—" : g.metaNacidosVivos ?? "—"}</td>
               <td>
                 <button
-                  onClick={() => toggleActiva(r)}
-                  style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, color: r.activa ? "var(--success)" : "var(--text-muted)", padding: 0 }}
+                  onClick={() => toggleActiva(g)}
+                  style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, color: g.activa ? "var(--success)" : "var(--text-muted)", padding: 0 }}
                 >
-                  {r.activa ? <IconToggleRight size={20} /> : <IconToggleLeft size={20} />}
-                  <span style={{ fontSize: 11 }}>{r.activa ? "Activa" : "Inactiva"}</span>
+                  {g.activa ? <IconToggleRight size={20} /> : <IconToggleLeft size={20} />}
+                  <span style={{ fontSize: 11 }}>{g.activa ? "Activa" : "Inactiva"}</span>
                 </button>
               </td>
             </tr>
@@ -298,387 +307,57 @@ function RazasTab() {
         <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setShowForm(false)}>
           <div style={{ background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-xl)", width: 480 }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: "14px 20px", borderBottom: "0.5px solid var(--border-default)" }}>
-              <h2 style={{ fontSize: 14, fontWeight: 500, margin: 0, color: "var(--text-primary)" }}>Agregar raza / línea genética</h2>
+              <h2 style={{ fontSize: 14, fontWeight: 500, margin: 0, color: "var(--text-primary)" }}>Agregar genética</h2>
             </div>
             <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
-              <div>
-                <label className="kp-label">Nombre *</label>
-                <input className="kp-input" value={form.nombre} onChange={e => F("nombre", e.target.value)} placeholder="Ej: Landrace, Large White, Duroc…" />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label className="kp-label">Nombre *</label>
+                  <input className="kp-input" value={form.nombre} onChange={e => F("nombre", e.target.value)} placeholder="Ej: TN70, Naïma CG36…" />
+                </div>
+                <div>
+                  <label className="kp-label">Empresa</label>
+                  <input className="kp-input" value={form.empresa} onChange={e => F("empresa", e.target.value)} placeholder="Ej: Topigs Norsvin, Nucleus, DanBred…" />
+                </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <label className="kp-label">Tipo de línea *</label>
-                  <select className="kp-input" value={form.tipoLinea} onChange={e => F("tipoLinea", e.target.value)} style={{ appearance: "auto" }}>
-                    <option value="MATERNA">Materna</option>
-                    <option value="PATERNA">Paterna</option>
-                    <option value="HIBRIDA">Híbrida</option>
+                  <label className="kp-label">Tipo genético *</label>
+                  <select className="kp-input" value={form.tipoGenetico} onChange={e => F("tipoGenetico", e.target.value)} style={{ appearance: "auto" }}>
+                    {(Object.keys(TIPO_GENETICO_LABELS) as TipoGenetico[]).map(t => (
+                      <option key={t} value={t}>{TIPO_GENETICO_LABELS[t]}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
-                  <label className="kp-label">Nacidos vivos meta</label>
-                  <input className="kp-input" type="number" step="0.1" value={form.nacidosVivosMeta} onChange={e => F("nacidosVivosMeta", e.target.value)} placeholder="Ej: 13.5" />
+                  <label className="kp-label">Función *</label>
+                  <select className="kp-input" value={form.funcion} onChange={e => F("funcion", e.target.value)} style={{ appearance: "auto" }}>
+                    {(Object.keys(FUNCION_GENETICA_LABELS) as FuncionGenetica[]).map(f => (
+                      <option key={f} value={f}>{FUNCION_GENETICA_LABELS[f]}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
               <div>
-                <label className="kp-label">Uso principal *</label>
-                <input className="kp-input" value={form.usoPrincipal} onChange={e => F("usoPrincipal", e.target.value)} placeholder="Ej: Línea materna — alta prolificidad" />
+                <label className="kp-label">Composición racial *</label>
+                <input className="kp-input" value={form.composicionRacial} onChange={e => F("composicionRacial", e.target.value)} placeholder="Ej: Landrace × Large White" />
               </div>
               <div>
-                <label className="kp-label">Días de gestación referencia</label>
-                <input className="kp-input" type="number" value={form.diasGestacion} onChange={e => F("diasGestacion", e.target.value)} placeholder="Ej: 114" />
+                <label className="kp-label">Meta nacidos vivos{form.funcion === "PATERNA" ? " (no aplica a genética paterna)" : ""}</label>
+                <input
+                  className="kp-input" type="number" step="0.1"
+                  value={form.metaNacidosVivos}
+                  disabled={form.funcion === "PATERNA"}
+                  onChange={e => F("metaNacidosVivos", e.target.value)}
+                  placeholder="Ej: 14"
+                  style={form.funcion === "PATERNA" ? { opacity: 0.5 } : undefined}
+                />
               </div>
             </div>
             <div style={{ padding: "12px 20px", borderTop: "0.5px solid var(--border-default)", display: "flex", justifyContent: "flex-end", gap: 8 }}>
               <button className="btn" onClick={() => setShowForm(false)}>Cancelar</button>
               <button className="btn btn-primary" onClick={handleAdd} disabled={saving}>
-                {saving ? <Spinner /> : "Agregar raza"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-const EMPTY_VACUNA_FORM = {
-  nombreVacuna: "", marcaComercial: "", laboratorio: "", principioActivo: "",
-  enfermedadObjetivo: "", viaAplicacion: "IM", dosisMl: "", momentoAplicacion: "",
-  refuerzoDias: "", paisProcedencia: "", tempConservacion: "", diasAlertaVto: "30",
-  stockDosis: "", stockMinimoAlerta: "", fichaTecnicaUrl: "",
-  obligatoria: false, diasEsperaServicio: "0", notas: "",
-};
-
-function VacunasTab({ modulo }: { modulo: ModuleKey }) {
-  const [vacunas, setVacunas] = useState<ConfigVacuna[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [seeding, setSeeding] = useState(false);
-  const [form, setForm] = useState({ ...EMPTY_VACUNA_FORM });
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const r = await fetch(`/api/config/vacunas?modulo=${modulo}`);
-    if (r.ok) setVacunas(await r.json());
-    setLoading(false);
-  }, [modulo]);
-
-  useEffect(() => { load(); }, [load]);
-
-  async function toggleActiva(v: ConfigVacuna) {
-    await fetch(`/api/config/vacunas/${v.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ activa: !v.activa }),
-    });
-    load();
-  }
-
-  async function handleSeed() {
-    setSeeding(true);
-    await fetch("/api/config/seed", { method: "POST" });
-    setSeeding(false);
-    load();
-  }
-
-  async function handleAdd() {
-    const { nombreVacuna, marcaComercial, laboratorio, principioActivo, viaAplicacion, dosisMl, momentoAplicacion, paisProcedencia, tempConservacion } = form;
-    if (!nombreVacuna || !marcaComercial || !laboratorio || !principioActivo || !viaAplicacion || !dosisMl || !momentoAplicacion || !paisProcedencia || !tempConservacion) {
-      alert("Completá todos los campos obligatorios (*)");
-      return;
-    }
-    setSaving(true);
-    const r = await fetch("/api/config/vacunas", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        modulo,
-        ...form,
-        dosisMl: Number(form.dosisMl),
-        refuerzoDias: form.refuerzoDias ? Number(form.refuerzoDias) : null,
-        diasAlertaVto: Number(form.diasAlertaVto) || 30,
-        stockDosis: form.stockDosis ? Number(form.stockDosis) : null,
-        stockMinimoAlerta: form.stockMinimoAlerta ? Number(form.stockMinimoAlerta) : null,
-        fichaTecnicaUrl: form.fichaTecnicaUrl || null,
-        enfermedadObjetivo: form.enfermedadObjetivo || null,
-        diasEsperaServicio: Number(form.diasEsperaServicio) || 0,
-      }),
-    });
-    setSaving(false);
-    if (r.ok) { setShowForm(false); setForm({ ...EMPTY_VACUNA_FORM }); load(); }
-    else { const e = await r.json(); alert(e.error ?? "Error al guardar"); }
-  }
-
-  const F = (k: keyof typeof form, v: string | boolean) => setForm(p => ({ ...p, [k]: v }));
-
-  if (loading) return <div style={{ padding: 32, color: "var(--text-muted)" }}><Spinner /></div>;
-
-  return (
-    <div>
-      {/* Toolbar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
-        <button className="btn" onClick={handleSeed} disabled={seeding} style={{ fontSize: 12 }}>
-          {seeding ? <Spinner /> : vacunas.length === 0 ? "Cargar protocolo por defecto" : "Recargar defaults"}
-        </button>
-        <div style={{ flex: 1 }} />
-        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
-          {vacunas.length} vacuna{vacunas.length !== 1 ? "s" : ""} — módulo {modulo}
-        </span>
-        <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-          <IconPlus size={13} /> Agregar vacuna
-        </button>
-      </div>
-
-      {vacunas.length === 0 ? (
-        <div className="kp-alert kp-alert-info" style={{ fontSize: 12 }}>
-          No hay vacunas registradas aún. Podés cargar el protocolo por defecto o agregar una manualmente.
-        </div>
-      ) : (
-        <table className="kp-table">
-          <thead>
-            <tr>
-              <th>Vacuna</th>
-              <th>Marca / Lab.</th>
-              <th>Contra enfermedad</th>
-              <th>Vía</th>
-              <th>Dosis</th>
-              <th>Momento aplicación</th>
-              <th style={{ textAlign: "center" }}>Stock</th>
-              <th>Obligatoria</th>
-              <th style={{ textAlign: "center" }}>Ficha</th>
-              <th>Activa</th>
-            </tr>
-          </thead>
-          <tbody>
-            {vacunas.map(v => {
-              const stockBajo = v.stockDosis != null && v.stockMinimoAlerta != null && v.stockDosis <= v.stockMinimoAlerta;
-              return (
-                <tr key={v.id} style={{ opacity: v.activa ? 1 : 0.5 }}>
-                  <td style={{ fontWeight: 500, fontSize: 12 }}>{v.nombreVacuna}</td>
-                  <td style={{ fontSize: 11, color: "var(--text-secondary)" }}>
-                    {v.marcaComercial}<br />
-                    <span style={{ color: "var(--text-muted)" }}>{v.laboratorio}</span>
-                  </td>
-                  <td style={{ fontSize: 11, color: "var(--text-secondary)", maxWidth: 160 }}>
-                    {(v as unknown as { enfermedadObjetivo?: string }).enfermedadObjetivo ?? <span style={{ color: "var(--text-muted)" }}>—</span>}
-                  </td>
-                  <td><span className="badge badge-mat">{v.viaAplicacion}</span></td>
-                  <td style={{ textAlign: "center" }}>{v.dosisMl} ml</td>
-                  <td style={{ fontSize: 11, color: "var(--text-secondary)" }}>{MOMENTO_LABELS[v.momentoAplicacion] ?? v.momentoAplicacion}</td>
-                  <td style={{ textAlign: "center" }}>
-                    {v.stockDosis != null ? (
-                      <span style={{ fontWeight: 500, color: stockBajo ? "var(--danger)" : "var(--text-primary)", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
-                        {stockBajo && <IconAlertCircle size={11} />}
-                        {v.stockDosis}
-                        {v.stockMinimoAlerta != null && <span style={{ fontSize: 10, color: "var(--text-muted)" }}>/ mín {v.stockMinimoAlerta}</span>}
-                      </span>
-                    ) : <span style={{ color: "var(--text-muted)" }}>—</span>}
-                  </td>
-                  <td style={{ textAlign: "center" }}>
-                    {v.obligatoria ? <span className="badge badge-danger">Obligatoria</span> : <span className="badge">Opcional</span>}
-                  </td>
-                  <td style={{ textAlign: "center" }}>
-                    {(v as unknown as { fichaTecnicaUrl?: string }).fichaTecnicaUrl ? (
-                      <a
-                        href={(v as unknown as { fichaTecnicaUrl: string }).fichaTecnicaUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Ver ficha técnica"
-                        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: "var(--radius-md)", border: "0.5px solid var(--border-default)", color: "var(--accent)", textDecoration: "none" }}
-                      >
-                        <IconFileText size={13} />
-                      </a>
-                    ) : <span style={{ color: "var(--text-muted)", fontSize: 11 }}>—</span>}
-                  </td>
-                  <td>
-                    <button
-                      onClick={() => toggleActiva(v)}
-                      style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, color: v.activa ? "var(--success)" : "var(--text-muted)", padding: 0 }}
-                    >
-                      {v.activa ? <IconToggleRight size={20} /> : <IconToggleLeft size={20} />}
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
-
-      {/* Modal agregar vacuna */}
-      {showForm && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setShowForm(false)}>
-          <div style={{ background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-xl)", width: 580, maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
-            <div style={{ padding: "14px 20px", borderBottom: "0.5px solid var(--border-default)" }}>
-              <h2 style={{ fontSize: 14, fontWeight: 500, margin: 0, color: "var(--text-primary)" }}>
-                Agregar vacuna — módulo {modulo}
-              </h2>
-            </div>
-            <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 13 }}>
-
-              <div>
-                <label className="kp-label">Nombre de la vacuna *</label>
-                <input className="kp-input" value={form.nombreVacuna} onChange={e => F("nombreVacuna", e.target.value)} placeholder="Ej: Parvovirus + Leptospira" />
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label className="kp-label">Marca comercial *</label>
-                  <input className="kp-input" value={form.marcaComercial} onChange={e => F("marcaComercial", e.target.value)} placeholder="Ej: Farrowsure Gold B" />
-                </div>
-                <div>
-                  <label className="kp-label">Laboratorio *</label>
-                  <input className="kp-input" value={form.laboratorio} onChange={e => F("laboratorio", e.target.value)} placeholder="Ej: Zoetis, MSD, Boehringer" />
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label className="kp-label">Principio activo *</label>
-                  <input className="kp-input" value={form.principioActivo} onChange={e => F("principioActivo", e.target.value)} placeholder="Ej: Parvovirus porcino + Leptospira spp." />
-                </div>
-                <div>
-                  <label className="kp-label">Contra qué enfermedad actúa</label>
-                  <input className="kp-input" value={form.enfermedadObjetivo} onChange={e => F("enfermedadObjetivo", e.target.value)} placeholder="Ej: Parvovirus, Leptospirosis, PCV2…" />
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-                <div>
-                  <label className="kp-label">Vía de aplicación *</label>
-                  <select className="kp-input" value={form.viaAplicacion} onChange={e => F("viaAplicacion", e.target.value)} style={{ appearance: "auto" }}>
-                    <option value="IM">IM — Intramuscular</option>
-                    <option value="SC">SC — Subcutánea</option>
-                    <option value="IV">IV — Intravenosa</option>
-                    <option value="ORAL">ORAL</option>
-                    <option value="INTRANASAL">Intranasal</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="kp-label">Dosis (ml) *</label>
-                  <input className="kp-input" type="number" step="0.1" min="0" value={form.dosisMl} onChange={e => F("dosisMl", e.target.value)} placeholder="Ej: 2" />
-                </div>
-                <div>
-                  <label className="kp-label">Refuerzo (días)</label>
-                  <input className="kp-input" type="number" min="0" value={form.refuerzoDias} onChange={e => F("refuerzoDias", e.target.value)} placeholder="Ej: 180" />
-                </div>
-              </div>
-
-              <div>
-                <label className="kp-label">Momento de aplicación *</label>
-                <select className="kp-input" style={{ appearance: "auto" }} value={form.momentoAplicacion} onChange={e => F("momentoAplicacion", e.target.value)}>
-                  <option value="">— Seleccionar momento —</option>
-                  <optgroup label="Pre-Servicio (gestación)">
-                    <option value="PRE_SERVICIO_7">7 días pre-servicio</option>
-                    <option value="PRE_SERVICIO_21">21 días pre-servicio</option>
-                    <option value="PRE_SERVICIO_42">42 días pre-servicio</option>
-                  </optgroup>
-                  <optgroup label="Pre/Post Parto (cerda)">
-                    <option value="PRE_PARTO_30">30 días pre-parto</option>
-                    <option value="PRE_PARTO_14">14 días pre-parto</option>
-                    <option value="POST_PARTO_1">Día 1 post-parto</option>
-                    <option value="POST_PARTO_7">Día 7 post-parto</option>
-                    <option value="POST_PARTO_14">Día 14 post-parto</option>
-                  </optgroup>
-                  <optgroup label="Lechones">
-                    <option value="LECHON_3D">Día 3 de vida del lechón</option>
-                    <option value="LECHON_7D">Día 7 de vida del lechón</option>
-                    <option value="LECHON_14D">Día 14 de vida del lechón</option>
-                    <option value="LECHON_21D">Día 21 de vida (al destete)</option>
-                  </optgroup>
-                  <optgroup label="Lotes recría/engorde">
-                    <option value="AL_DESTETE">Al destete / ingreso al lote</option>
-                    <option value="INGRESO_LOTE_7">7 días post-ingreso a lote</option>
-                    <option value="INGRESO_LOTE_14">14 días post-ingreso a lote</option>
-                  </optgroup>
-                  <optgroup label="Refuerzo periódico">
-                    <option value="REFUERZO_6M">Refuerzo semestral (180 días)</option>
-                    <option value="REFUERZO_ANUAL">Refuerzo anual (365 días)</option>
-                  </optgroup>
-                </select>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label className="kp-label">País procedencia *</label>
-                  <input className="kp-input" value={form.paisProcedencia} onChange={e => F("paisProcedencia", e.target.value)} placeholder="Ej: USA, DEU, BRA" />
-                </div>
-                <div>
-                  <label className="kp-label">Temperatura de conservación *</label>
-                  <input className="kp-input" value={form.tempConservacion} onChange={e => F("tempConservacion", e.target.value)} placeholder="Ej: 2–8 °C" />
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-                <div>
-                  <label className="kp-label">Stock actual (dosis)</label>
-                  <input className="kp-input" type="number" min="0" value={form.stockDosis} onChange={e => F("stockDosis", e.target.value)} placeholder="Ej: 100" />
-                </div>
-                <div>
-                  <label className="kp-label">Stock mínimo alerta</label>
-                  <input className="kp-input" type="number" min="0" value={form.stockMinimoAlerta} onChange={e => F("stockMinimoAlerta", e.target.value)} placeholder="Ej: 20" />
-                </div>
-                <div>
-                  <label className="kp-label">Días alerta vencimiento</label>
-                  <input className="kp-input" type="number" min="1" value={form.diasAlertaVto} onChange={e => F("diasAlertaVto", e.target.value)} placeholder="30" />
-                </div>
-              </div>
-
-              <div>
-                <label className="kp-label">URL Ficha Técnica</label>
-                <input className="kp-input" type="url" value={form.fichaTecnicaUrl} onChange={e => F("fichaTecnicaUrl", e.target.value)} placeholder="https://… (PDF o página del fabricante)" />
-              </div>
-
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <input
-                  id="vac-obligatoria"
-                  type="checkbox"
-                  checked={form.obligatoria}
-                  onChange={e => F("obligatoria", e.target.checked)}
-                  style={{ width: 15, height: 15, cursor: "pointer" }}
-                />
-                <label htmlFor="vac-obligatoria" style={{ fontSize: 12, color: "var(--text-secondary)", cursor: "pointer" }}>
-                  Vacuna obligatoria del protocolo
-                </label>
-              </div>
-
-              {form.obligatoria && (
-                <div style={{ background: "var(--warning-subtle, rgba(234,179,8,.08))", border: "0.5px solid var(--warning-border, rgba(234,179,8,.3))", borderRadius: "var(--radius-md)", padding: "10px 14px" }}>
-                  <label className="kp-label" style={{ color: "var(--warning-text, #854d0e)" }}>
-                    ⏱ Días de espera post-vacuna para autorizar servicio
-                  </label>
-                  <input
-                    className="kp-input"
-                    type="number"
-                    min="0"
-                    value={form.diasEsperaServicio}
-                    onChange={e => F("diasEsperaServicio", e.target.value)}
-                    placeholder="Ej: 21"
-                    style={{ maxWidth: 120 }}
-                  />
-                  <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>
-                    Días mínimos desde la aplicación antes de permitir el servicio a esta cerda. 0 = sin espera.
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label className="kp-label">Notas / Observaciones</label>
-                <textarea
-                  className="kp-input"
-                  rows={2}
-                  value={form.notas}
-                  onChange={e => F("notas", e.target.value)}
-                  placeholder="Contraindicaciones, observaciones de uso, etc."
-                  style={{ height: "auto", paddingTop: 8, resize: "vertical" }}
-                />
-              </div>
-            </div>
-            <div style={{ padding: "12px 20px", borderTop: "0.5px solid var(--border-default)", display: "flex", justifyContent: "flex-end", gap: 8 }}>
-              <button className="btn" onClick={() => { setShowForm(false); setForm({ ...EMPTY_VACUNA_FORM }); }}>Cancelar</button>
-              <button className="btn btn-primary" onClick={handleAdd} disabled={saving}>
-                {saving ? <Spinner /> : "Guardar vacuna"}
+                {saving ? <Spinner /> : "Agregar genética"}
               </button>
             </div>
           </div>
@@ -772,6 +451,9 @@ function AlertasTab({ modulo }: { modulo: ModuleKey }) {
                     onChange={e => setEditingUmbral(p => ({ ...p, [a.eventoKey]: e.target.value }))}
                     style={{ height: 28, width: 90, fontSize: 12 }}
                   />
+                  {ALERTA_UNITS[a.eventoKey] && (
+                    <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{ALERTA_UNITS[a.eventoKey]}</span>
+                  )}
                   {isDirty && (
                     <button
                       className="btn btn-primary"
@@ -1192,7 +874,7 @@ export default function ConfiguracionPage() {
             <span style={{ fontSize: 12, fontWeight: 500, color: "var(--text-primary)" }}>Configuración</span>
           </div>
           <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "3px 0 0" }}>
-            Metas, razas, vacunas y alertas por módulo
+            Metas, genética, vacunas y alertas por módulo
           </p>
         </div>
         <nav style={{ flex: 1, padding: "8px 0" }}>
@@ -1252,7 +934,7 @@ export default function ConfiguracionPage() {
         {/* Tab content */}
         <div style={{ flex: 1, padding: "16px 24px" }}>
           {tab === "Metas"    && <MetasTab    modulo={modulo} />}
-          {tab === "Razas"    && <RazasTab />}
+          {tab === "Genética" && <GeneticaTab />}
           {tab === "Vacunas"  && <VacunasTab  modulo={modulo} />}
           {tab === "Procesos" && <ProcesosTab modulo={modulo} />}
           {tab === "Alertas"  && <AlertasTab  modulo={modulo} />}

@@ -5,7 +5,6 @@ import prisma from "@/lib/db/prisma";
 
 export type EligibilityBlockerType =
   | "QUARANTINE"
-  | "PESO_INSUFICIENTE"
   | "DIAS_INSUFICIENTES"
   | "VACUNAS_FALTANTES";
 
@@ -34,7 +33,6 @@ export async function GET(req: NextRequest) {
       select: {
         identCode: true,
         plantelState: true,
-        entryWeightKg: true,
         entryDate: true,
         birthDate: true,
       },
@@ -48,11 +46,15 @@ export async function GET(req: NextRequest) {
         },
       },
     }),
+    // diaGestacion: null excluye las vacunas de protocolo de gestación (Rhiniseng,
+    // Suiseng, Porcilis Glässer, etc.) — se aplican durante una preñez ya en curso
+    // (día 60-95), nunca antes de un servicio nuevo, así que no pueden bloquearlo.
     prisma.configVacuna.findMany({
       where: {
         tenantId,
         obligatoria: true,
         activa: true,
+        diaGestacion: null,
         modulo: { in: ["GESTACION", "ALL"] },
       },
       select: { id: true, nombreVacuna: true },
@@ -73,17 +75,9 @@ export async function GET(req: NextRequest) {
 
   const reqValor = (requisitosConfig?.valor as Record<string, unknown>) ?? {};
 
-  // 2. Peso mínimo
-  const pesoMinimo = Number(reqValor.peso_minimo_kg ?? 0);
-  if (pesoMinimo > 0 && sow.entryWeightKg !== null && sow.entryWeightKg !== undefined) {
-    const pesoActual = Number(sow.entryWeightKg);
-    if (pesoActual < pesoMinimo) {
-      blockers.push({
-        tipo: "PESO_INSUFICIENTE",
-        mensaje: `Peso insuficiente: ${pesoActual} kg (mínimo requerido: ${pesoMinimo} kg).`,
-      });
-    }
-  }
+  // El peso ya no se chequea acá: se pide y valida en vivo en el propio
+  // formulario de inseminación (siempre con el dato fresco, no con
+  // entryWeightKg que queda desactualizado apenas la cerda engorda).
 
   // 3. Días mínimos desde ingreso
   const diasMinimos = Number(reqValor.dias_minimos_previo_servicio ?? 0);

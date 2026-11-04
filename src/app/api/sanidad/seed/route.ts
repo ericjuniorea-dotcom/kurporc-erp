@@ -6,16 +6,16 @@ import { prisma } from "@/lib/db/prisma";
 
 // Protocolo sanitario KurPorc por defecto
 const VACUNAS_DEFAULT = [
-  { nombre: "Vacuna E. coli",               enfermedad: "Colibacilosis",               categoria: "lechon",  viaAplicacion: "IM",   dosisMl: 2,   criticidad: "alta",  bloqueoServicio: false },
-  { nombre: "Hierro Dextrán 200mg",          enfermedad: "Anemia ferropénica",           categoria: "lechon",  viaAplicacion: "IM",   dosisMl: 2,   criticidad: "alta",  bloqueoServicio: false },
-  { nombre: "Vacuna Circovirus PCV2",        enfermedad: "Circovirus porcino tipo 2",    categoria: "lechon",  viaAplicacion: "IM",   dosisMl: 2,   criticidad: "alta",  bloqueoServicio: false },
-  { nombre: "Vacuna Mycoplasma hyopneumoniae", enfermedad: "Neumonía enzoótica",         categoria: "lote",    viaAplicacion: "IM",   dosisMl: 2,   criticidad: "alta",  bloqueoServicio: false },
-  { nombre: "Vacuna Influenza porcina H1N1", enfermedad: "Influenza porcina",            categoria: "lote",    viaAplicacion: "IM",   dosisMl: 2,   criticidad: "alta",  bloqueoServicio: false },
-  { nombre: "Parvovirus + Erisipela",        enfermedad: "Parvovirosis / Mal rojo",      categoria: "cerda",   viaAplicacion: "IM",   dosisMl: 2,   criticidad: "alta",  bloqueoServicio: true,
+  { nombre: "Vacuna E. coli",               enfermedad: "Colibacilosis",               sectorDestino: "lechon",  viaAplicacion: "IM",   dosisMl: 2,   criticidad: "alta",  bloqueoServicio: false },
+  { nombre: "Hierro Dextrán 200mg",          enfermedad: "Anemia ferropénica",           sectorDestino: "lechon",  viaAplicacion: "IM",   dosisMl: 2,   criticidad: "alta",  bloqueoServicio: false, categoria: "SUPLEMENTO" },
+  { nombre: "Vacuna Circovirus PCV2",        enfermedad: "Circovirus porcino tipo 2",    sectorDestino: "lechon",  viaAplicacion: "IM",   dosisMl: 2,   criticidad: "alta",  bloqueoServicio: false },
+  { nombre: "Vacuna Mycoplasma hyopneumoniae", enfermedad: "Neumonía enzoótica",         sectorDestino: "lote",    viaAplicacion: "IM",   dosisMl: 2,   criticidad: "alta",  bloqueoServicio: false },
+  { nombre: "Vacuna Influenza porcina H1N1", enfermedad: "Influenza porcina",            sectorDestino: "lote",    viaAplicacion: "IM",   dosisMl: 2,   criticidad: "alta",  bloqueoServicio: false },
+  { nombre: "Parvovirus + Erisipela",        enfermedad: "Parvovirosis / Mal rojo",      sectorDestino: "cerda",   viaAplicacion: "IM",   dosisMl: 2,   criticidad: "alta",  bloqueoServicio: true,
     observaciones: "Obligatoria antes del primer servicio. Bloquea monta si no está al día." },
-  { nombre: "Vacuna PRRS",                   enfermedad: "Síndrome reproductivo y respiratorio", categoria: "plantel", viaAplicacion: "IM", dosisMl: 2, criticidad: "alta",  bloqueoServicio: false },
-  { nombre: "Vacuna Leptospirosis",          enfermedad: "Leptospirosis",                categoria: "cerda",   viaAplicacion: "IM",   dosisMl: 2,   criticidad: "media", bloqueoServicio: false, intervaloRefuerzo: 180 },
-  { nombre: "Vacuna Aujeszky (Pseudo-rabia)", enfermedad: "Enfermedad de Aujeszky",      categoria: "plantel", viaAplicacion: "IM",   dosisMl: 2,   criticidad: "alta",  bloqueoServicio: false, intervaloRefuerzo: 180 },
+  { nombre: "Vacuna PRRS",                   enfermedad: "Síndrome reproductivo y respiratorio", sectorDestino: "plantel", viaAplicacion: "IM", dosisMl: 2, criticidad: "alta",  bloqueoServicio: false },
+  { nombre: "Vacuna Leptospirosis",          enfermedad: "Leptospirosis",                sectorDestino: "cerda",   viaAplicacion: "IM",   dosisMl: 2,   criticidad: "media", bloqueoServicio: false, intervaloRefuerzo: 180 },
+  { nombre: "Vacuna Aujeszky (Pseudo-rabia)", enfermedad: "Enfermedad de Aujeszky",      sectorDestino: "plantel", viaAplicacion: "IM",   dosisMl: 2,   criticidad: "alta",  bloqueoServicio: false, intervaloRefuerzo: 180 },
 ];
 
 const PROTOCOLOS_DEFAULT = [
@@ -59,16 +59,22 @@ export async function POST(req: NextRequest) {
   const { tenantId } = session.user;
 
   // Check existing
-  const existingCount = await prisma.vacuna.count({ where: { tenantId } });
+  const existingCount = await prisma.productoInventario.count({ where: { tenantId } });
   if (existingCount > 0) {
     return NextResponse.json({ message: "Ya inicializado", vacunas: existingCount });
   }
 
-  // Create vacunas
+  // Create vacunas (código V-XXX / S-XXX correlativo por categoría)
+  const PREFIJO: Record<string, string> = { VACUNA: "V", SUPLEMENTO: "S", MEDICAMENTO: "M" };
+  const seq: Record<string, number> = {};
   const vacunasCreadas: string[] = [];
   for (const v of VACUNAS_DEFAULT) {
-    const created = await prisma.vacuna.create({
-      data: { ...v, tenantId, dosisMl: v.dosisMl, intervaloRefuerzo: (v as { intervaloRefuerzo?: number }).intervaloRefuerzo ?? null },
+    const categoria = (v as { categoria?: string }).categoria ?? "VACUNA";
+    const prefijo = PREFIJO[categoria] ?? "V";
+    seq[prefijo] = (seq[prefijo] ?? 0) + 1;
+    const codigo = `${prefijo}-${String(seq[prefijo]).padStart(3, "0")}`;
+    const created = await prisma.productoInventario.create({
+      data: { ...v, categoria: categoria as never, tenantId, codigo, dosisMl: v.dosisMl, intervaloRefuerzo: (v as { intervaloRefuerzo?: number }).intervaloRefuerzo ?? null },
     });
     vacunasCreadas.push(created.id);
   }

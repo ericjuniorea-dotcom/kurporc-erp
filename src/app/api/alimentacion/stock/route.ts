@@ -13,9 +13,12 @@ export async function GET(_req: NextRequest) {
   const since = new Date();
   since.setDate(since.getDate() - 7);
 
-  const [feedTypes, stocks, recentRecords] = await Promise.all([
+  const [feedTypes, lotes, recentRecords] = await Promise.all([
     prisma.feedType.findMany({ where: { tenantId, isActive: true }, orderBy: { sortOrder: "asc" } }),
-    prisma.finishedStock.findMany({ where: { tenantId }, orderBy: { producedAt: "desc" } }),
+    prisma.loteInventario.findMany({
+      where: { tenantId, vacuna: { categoria: "BALANCEADO" } },
+      select: { vacunaId: true, cantidadActual: true },
+    }),
     prisma.feedRecord.groupBy({
       by: ["feedTypeId"],
       where: { tenantId, recordDate: { gte: since } },
@@ -28,15 +31,14 @@ export async function GET(_req: NextRequest) {
     recentRecords.map(r => [r.feedTypeId, Number(r._sum.quantityKg ?? 0) / 7])
   );
 
-  // Latest stock per feedType
-  const latestStock = new Map<string, typeof stocks[0]>();
-  for (const s of stocks) {
-    if (!latestStock.has(s.feedTypeId)) latestStock.set(s.feedTypeId, s);
+  // Stock actual = suma de todos los lotes del producto Balanceado vinculado a cada etapa
+  const stockPorProducto = new Map<string, number>();
+  for (const l of lotes) {
+    stockPorProducto.set(l.vacunaId, (stockPorProducto.get(l.vacunaId) ?? 0) + Number(l.cantidadActual));
   }
 
   const resultado = feedTypes.map(ft => {
-    const stock    = latestStock.get(ft.id);
-    const stockKg  = stock ? Number(stock.currentStockKg) : 0;
+    const stockKg  = ft.productoBalanceadoId ? (stockPorProducto.get(ft.productoBalanceadoId) ?? 0) : 0;
     const consDay  = consumoDiario[ft.id] ?? 0;
     const dias     = consDay > 0 ? Math.floor(stockKg / consDay) : (stockKg > 0 ? 999 : 0);
     const estado   = dias >= 7 ? "OK" : dias >= 5 ? "Bajo" : "Crítico";

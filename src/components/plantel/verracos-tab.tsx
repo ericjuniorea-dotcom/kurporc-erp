@@ -12,8 +12,9 @@ const BOAR_STATES = [
   { value: "DEAD", label: "Muerto" },
 ];
 
-const GENETIC_LINES = ["TN Rexne", "TN Duroc", "PIC", "Genesus", "NAIMA CG36", "Otra"];
-const BREEDS = ["Yorkshire", "Landrace", "Duroc", "Hampshire", "Pietrain", "Híbrido", "Otra"];
+interface GeneticaOption {
+  id: string; nombre: string; empresa?: string | null;
+}
 
 interface Boar {
   id: string;
@@ -53,10 +54,19 @@ export function VerracosTab() {
   const [actionNotes, setActionNotes] = useState("");
 
   const [form, setForm] = useState({
-    caravanaCode: "", tattooCode: "", rfidChip: "", breed: "", geneticLine: "",
+    caravanaCode: "", tattooCode: "", rfidChip: "", geneticaId: "",
     birthDate: "", entryWeightKg: "", sourceProvider: "", purchasePriceGs: "",
     galponAssigned: "", corralAssigned: "", plantelNotes: "", initialDestination: "QUARANTINE",
   });
+
+  const [geneticaOptions, setGeneticaOptions] = useState<GeneticaOption[]>([]);
+
+  useEffect(() => {
+    fetch("/api/config/genetica?funcion=PATERNA&activas=1")
+      .then(r => r.ok ? r.json() : [])
+      .then(setGeneticaOptions)
+      .catch(() => {});
+  }, []);
 
   const loadBoars = useCallback(async () => {
     setLoading(true);
@@ -77,20 +87,21 @@ export function VerracosTab() {
   }, [loadBoars]);
 
   async function handleSubmit() {
-    if (!form.caravanaCode || !form.birthDate || !form.entryWeightKg || !form.sourceProvider || !form.geneticLine) {
-      alert("Completá los campos obligatorios: Caravana, F. Nacimiento, Peso, Proveedor, Línea genética");
+    if (!form.caravanaCode || !form.birthDate || !form.entryWeightKg || !form.sourceProvider || !form.geneticaId) {
+      alert("Completá los campos obligatorios: Caravana, F. Nacimiento, Peso, Proveedor, Genética");
       return;
     }
+    const genetica = geneticaOptions.find(g => g.id === form.geneticaId);
     setSaving(true);
     try {
       const res = await fetch("/api/plantel/verracos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, breed: genetica?.nombre ?? "", geneticLine: genetica?.nombre ?? "" }),
       });
       if (res.ok) {
         setShowForm(false);
-        setForm({ caravanaCode: "", tattooCode: "", rfidChip: "", breed: "", geneticLine: "",
+        setForm({ caravanaCode: "", tattooCode: "", rfidChip: "", geneticaId: "",
           birthDate: "", entryWeightKg: "", sourceProvider: "", purchasePriceGs: "",
           galponAssigned: "", corralAssigned: "", plantelNotes: "", initialDestination: "QUARANTINE" });
         loadBoars();
@@ -240,21 +251,19 @@ export function VerracosTab() {
                 <div><label className="kp-label">Caravana *</label><input className="kp-input" value={form.caravanaCode} onChange={e => F("caravanaCode", e.target.value)} /></div>
                 <div><label className="kp-label">Tatuaje</label><input className="kp-input" value={form.tattooCode} onChange={e => F("tattooCode", e.target.value)} /></div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label className="kp-label">Raza</label>
-                  <select className="kp-input" value={form.breed} onChange={e => F("breed", e.target.value)} style={{ appearance: "auto" }}>
-                    <option value="">Seleccionar…</option>
-                    {BREEDS.map(b => <option key={b} value={b}>{b}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="kp-label">Línea genética *</label>
-                  <select className="kp-input" value={form.geneticLine} onChange={e => F("geneticLine", e.target.value)} style={{ appearance: "auto" }}>
-                    <option value="">Seleccionar…</option>
-                    {GENETIC_LINES.map(g => <option key={g} value={g}>{g}</option>)}
-                  </select>
-                </div>
+              <div>
+                <label className="kp-label">Genética *</label>
+                <select className="kp-input" value={form.geneticaId} onChange={e => F("geneticaId", e.target.value)} style={{ appearance: "auto" }}>
+                  <option value="">Seleccionar…</option>
+                  {geneticaOptions.map(g => (
+                    <option key={g.id} value={g.id}>{g.empresa ? `${g.empresa} — ${g.nombre}` : g.nombre}</option>
+                  ))}
+                </select>
+                {geneticaOptions.length === 0 && (
+                  <div style={{ fontSize: 10, color: "var(--warning)", marginTop: 4 }}>
+                    No hay genéticas paternas configuradas — cargalas en Configuración → Plantel Reproductivo → Genética.
+                  </div>
+                )}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div><label className="kp-label">Fecha de nacimiento *</label><input className="kp-input" type="date" value={form.birthDate} onChange={e => F("birthDate", e.target.value)} /></div>

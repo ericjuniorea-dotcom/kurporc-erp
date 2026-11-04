@@ -7,8 +7,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ================================================================
@@ -28,8 +29,8 @@ enum Language {
 }
 
 enum ServiceType {
-  AI             // Inseminación artificial
-  NATURAL_MOUNT  // Monta natural
+  AI // Inseminación artificial
+  NATURAL_MOUNT // Monta natural
 }
 
 enum PregnancyCheckMethod {
@@ -160,6 +161,21 @@ enum DiagnosisType {
   OTHER
 }
 
+enum EstadoTratamiento {
+  ACTIVO
+  EN_SEGUIMIENTO
+  FINALIZADO
+  ABANDONADO
+}
+
+enum ProcedimientoMaternidadTipo {
+  DESCOLMILLADO
+  CORTE_COLA
+  CORTE_OMBLIGO
+  HIERRO
+  CASTRACION
+}
+
 enum AlertSeverity {
   INFO
   WARNING
@@ -180,6 +196,7 @@ enum AlertType {
   PEAK_FARROWINGS_PROJECTED
   SEMEN_DOSE_EXPIRED
   HEAT_REPEAT_DISCARD
+  LOW_CONCEPTION_RATE
   // Recría / Engorde
   BATCH_REACHED_TRANSFER_WEIGHT
   PEN_OVER_CAPACITY
@@ -266,10 +283,10 @@ model Tenant {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   config      Json     @default("{}")
-  phoneNumber String?  // Número principal de la granja (para identificar tenant en WhatsApp)
+  phoneNumber String? // Número principal de la granja (para identificar tenant en WhatsApp)
   isActive    Boolean  @default(true)
 
-  users       User[]
+  users User[]
 
   @@map("tenants")
 }
@@ -277,37 +294,37 @@ model Tenant {
 // Roles fijos del sistema — se inicializan en seed
 // ID 1–14 mapeados 1:1 con la especificación del documento
 model Role {
-  id          Int        @id
-  name        String     @unique  // slug en inglés: "farm_admin"
-  nameEs      String              // Nombre en español: "Admin de granja"
+  id          Int    @id
+  name        String @unique // slug en inglés: "farm_admin"
+  nameEs      String // Nombre en español: "Admin de granja"
   level       Int
   description String
 
-  userRoles   UserRole[]
+  userRoles UserRole[]
 
   @@map("roles")
 }
 
 model User {
-  id           String    @id @default(cuid())
+  id           String   @id @default(cuid())
   tenantId     String
-  email        String    @unique
+  email        String   @unique
   passwordHash String
   name         String
-  phone        String?   // Número WhatsApp del usuario/operario
-  language     Language  @default(ES)
-  isActive     Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  phone        String? // Número WhatsApp del usuario/operario
+  language     Language @default(ES)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  tenant       Tenant    @relation(fields: [tenantId], references: [id])
-  userRoles    UserRole[]
-  accounts     Account[]
-  sessions     Session[]
-  pushTokens   PushToken[]
-  notificationPref NotificationPreference?
-  approvedVersions FormulaVersion[] @relation("ApprovedVersions")
-  assignedHealthTasks HealthTask[]  @relation("AssignedHealthTasks")
+  tenant              Tenant                  @relation(fields: [tenantId], references: [id])
+  userRoles           UserRole[]
+  accounts            Account[]
+  sessions            Session[]
+  pushTokens          PushToken[]
+  notificationPref    NotificationPreference?
+  approvedVersions    FormulaVersion[]        @relation("ApprovedVersions")
+  assignedHealthTasks HealthTask[]            @relation("AssignedHealthTasks")
 
   @@index([tenantId])
   @@map("users")
@@ -319,8 +336,8 @@ model UserRole {
   grantedAt DateTime @default(now())
   grantedBy String?
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role      Role     @relation(fields: [roleId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id])
 
   @@id([userId, roleId])
   @@map("user_roles")
@@ -341,7 +358,7 @@ model Account {
   id_token          String? @db.Text
   session_state     String?
 
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@map("accounts")
@@ -353,7 +370,7 @@ model Session {
   userId       String
   expires      DateTime
 
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
 }
@@ -372,13 +389,13 @@ model VerificationToken {
 // ================================================================
 
 model FarmLocation {
-  id          String       @id @default(cuid())
-  tenantId    String
-  name        String       // "Calle 6", "Galpón A", "Sala Maternidad 1"
+  id           String       @id @default(cuid())
+  tenantId     String
+  name         String // "Calle 6", "Galpón A", "Sala Maternidad 1"
   locationType LocationType
-  isActive    Boolean      @default(true)
+  isActive     Boolean      @default(true)
 
-  pens        Pen[]
+  pens Pen[]
 
   @@unique([tenantId, name])
   @@index([tenantId])
@@ -386,17 +403,17 @@ model FarmLocation {
 }
 
 model Pen {
-  id          String       @id @default(cuid())
-  tenantId    String
-  locationId  String
-  number      String       // "8", "A3" — único dentro de la ubicación
-  capacity    Int
-  isActive    Boolean      @default(true)
+  id         String  @id @default(cuid())
+  tenantId   String
+  locationId String
+  number     String // "8", "A3" — único dentro de la ubicación
+  capacity   Int
+  isActive   Boolean @default(true)
 
-  location    FarmLocation @relation(fields: [locationId], references: [id])
+  location       FarmLocation     @relation(fields: [locationId], references: [id])
   nurseryBatches NurseryBatch[]
   growingBatches GrowingBatch[]
-  farrowings  FarrowingEvent[]
+  farrowings     FarrowingEvent[]
 
   @@unique([tenantId, locationId, number])
   @@index([tenantId])
@@ -410,7 +427,7 @@ model Pen {
 model Sow {
   id                 String           @id @default(cuid())
   tenantId           String
-  identCode          String           // Tatuaje o número único (campo original)
+  identCode          String // Tatuaje o número único (campo original)
   breed              String?
   birthDate          DateTime?
   entryDate          DateTime         @default(now())
@@ -419,13 +436,14 @@ model Sow {
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   // Plantel Reproductivo — nullable para compat. con registros existentes
-  erpCode            String?          // HEM-GRN-NNNN generado automáticamente
+  erpCode            String? // HEM-GRN-NNNN generado automáticamente
   caravanaCode       String?
   tattooCode         String?
   rfidChip           String?
   photoUrl           String?
   geneticLine        String?
   entryWeightKg      Decimal?         @db.Decimal(8, 2)
+  currentWeightKg    Decimal?         @db.Decimal(8, 2) // último peso registrado (ej. al inseminar) — entryWeightKg no se actualiza
   sourceProvider     String?
   purchasePriceGs    Decimal?         @db.Decimal(14, 0)
   damCodeOrigin      String?
@@ -443,6 +461,9 @@ model Sow {
   farrowings         FarrowingEvent[]
   stockAdjustments   StockAdjustmentRequest[]
   animalEvents       AnimalEvent[]
+  curativeTreatments CurativeTreatment[]
+  withdrawalPeriods  WithdrawalPeriod[]
+  necropsias         Necropsia[]
 
   @@unique([tenantId, identCode])
   @@unique([tenantId, erpCode])
@@ -453,12 +474,12 @@ model Sow {
 model Boar {
   id              String            @id @default(cuid())
   tenantId        String
-  identCode       String            // Código original "R-204"
+  identCode       String // Código original "R-204"
   breed           String?
   isActive        Boolean           @default(true)
   createdAt       DateTime          @default(now())
   // Plantel Reproductivo — nullable para compat. con registros existentes
-  erpCode         String?           // REP-GRN-NNNN generado automáticamente
+  erpCode         String? // REP-GRN-NNNN generado automáticamente
   caravanaCode    String?
   tattooCode      String?
   rfidChip        String?
@@ -477,6 +498,7 @@ model Boar {
   semenDoses    SemenDose[]
   serviceEvents ServiceEvent[]
   animalEvents  AnimalEvent[]
+  necropsias    Necropsia[]
 
   @@unique([tenantId, identCode])
   @@unique([tenantId, erpCode])
@@ -494,8 +516,8 @@ model SemenDose {
   isUsed          Boolean  @default(false)
   createdAt       DateTime @default(now())
 
-  boar            Boar?    @relation(fields: [boarId], references: [id])
-  serviceEvents   ServiceEvent[]
+  boar          Boar?          @relation(fields: [boarId], references: [id])
+  serviceEvents ServiceEvent[]
 
   @@index([tenantId])
   @@map("semen_doses")
@@ -509,8 +531,8 @@ model SemenDose {
 model ConfigMeta {
   id        String   @id @default(cuid())
   tenantId  String
-  modulo    String   // MATERNIDAD | GESTACION | RECRIA | ENGORDE | BAL
-  kpiKey    String   // nacidos_vivos_meta | mortalidad_pct | etc.
+  modulo    String // MATERNIDAD | GESTACION | RECRIA | ENGORDE | BAL
+  kpiKey    String // nacidos_vivos_meta | mortalidad_pct | etc.
   valor     Decimal  @db.Decimal(10, 3)
   updatedBy String?
   updatedAt DateTime @updatedAt
@@ -520,60 +542,88 @@ model ConfigMeta {
   @@map("config_metas")
 }
 
-// Catálogo de razas por tenant
-model ConfigRaza {
-  id                String   @id @default(cuid())
+// Catálogo de genética por tenant — separa "qué es" (tipoGenetico) de
+// "para qué se usa" (funcion), para poder filtrar selects dependientes
+// (alta de hembra → solo MATERNA, alta de reproductor → solo PATERNA).
+model Genetica {
+  id                String          @id @default(cuid())
   tenantId          String
   nombre            String
-  tipoLinea         String   // LINEA_MATERNA | LINEA_PATERNA | SINTETICA | CRUCE_COMERCIAL
-  usoPrincipal      String   // REPRODUCCION | CRUZAMIENTO | COMERCIAL
-  proveedorGenetico String?
-  nacidosVivosMeta  Decimal? @db.Decimal(6, 2)
-  pesoNacimientoKg  Decimal? @db.Decimal(6, 3)
-  pesoDesteteMeta   Decimal? @db.Decimal(6, 2)
-  mortalidadRefPct  Decimal? @db.Decimal(5, 2)
-  diasGestacion     Int?
-  activa            Boolean  @default(true)
+  empresa           String? // Topigs Norsvin, Nucleus, DanBred…
+  tipoGenetico      TipoGenetico
+  funcion           FuncionGenetica
+  composicionRacial String? // "Landrace × Large White"
+  metaNacidosVivos  Decimal?        @db.Decimal(6, 2) // solo aplica si funcion = MATERNA
+  activa            Boolean         @default(true)
   notas             String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
   @@unique([tenantId, nombre])
   @@index([tenantId])
-  @@map("config_razas")
+  @@map("config_genetica")
+}
+
+enum TipoGenetico {
+  RAZA_PURA
+  HIBRIDA_F1
+  SINTETICA
+  CRUZA_INTERNA
+}
+
+enum FuncionGenetica {
+  MATERNA
+  PATERNA
 }
 
 // Protocolo de vacunas configurable (17 campos completos según v3)
 model ConfigVacuna {
-  id                   String    @id @default(cuid())
+  id                   String            @id @default(cuid())
   tenantId             String
-  modulo               String    // MATERNIDAD | GESTACION | RECRIA | ENGORDE | ALL
+  modulo               String // MATERNIDAD | GESTACION | RECRIA | ENGORDE | ALL
   nombreVacuna         String
   marcaComercial       String
   laboratorio          String
   principioActivo      String
-  enfermedadObjetivo   String?   // Contra qué enfermedad actúa
-  viaAplicacion        String    // IM | SC | IV | ORAL | INTRANASAL
-  dosisMl              Decimal   @db.Decimal(8, 3)
+  enfermedadObjetivo   String? // Contra qué enfermedad actúa
+  viaAplicacion        String // IM | SC | IV | ORAL | INTRANASAL
+  dosisMl              Decimal           @db.Decimal(8, 3)
   momentoAplicacion    String
   refuerzoDias         Int?
   paisProcedencia      String
   tempConservacion     String
-  diasAlertaVto        Int       @default(30)
+  diasAlertaVto        Int               @default(30)
   loteActual           String?
   fechaVencimientoLote DateTime?
   stockDosis           Int?
   stockMinimoAlerta    Int?
-  fichaTecnicaUrl      String?   // URL a la ficha técnica del producto
-  obligatoria          Boolean   @default(false)
-  diasEsperaServicio   Int       @default(0)   // días post-vacuna obligatoria para autorizar servicio
+  fichaTecnicaUrl      String? // URL a la ficha técnica del producto
+  obligatoria          Boolean           @default(false)
+  diasEsperaServicio   Int               @default(0) // días post-vacuna obligatoria para autorizar servicio
   notas                String?
-  activa               Boolean   @default(true)
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  activa               Boolean           @default(true)
+  paridad              Paridad           @default(AMBAS) // a qué cerdas aplica este esquema de dosis
+  diaGestacion         Int? // día exacto de gestación de esta dosis (alimenta alertas por fecha de servicio)
+  ordenDosis           Int               @default(1) // número de dosis dentro del esquema de esta marca
+  grupoMezclaId        String? // agrupa productos que se aplican mezclados el mismo día
+  sujeto               SujetoAplicacion? // a quién se aplica (Maternidad: lechón o hembra en lactación)
+  diaReferencia        Int? // día de vida (lechón) o día post-parto (hembra) — no confundir con diaGestacion
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
 
   @@index([tenantId, modulo])
   @@map("config_vacunas")
+}
+
+enum Paridad {
+  NULIPARA
+  MULTIPARA
+  AMBAS
+}
+
+enum SujetoAplicacion {
+  LECHON
+  HEMBRA
 }
 
 // Configuración de procesos operativos por módulo (valor flexible JSON)
@@ -593,15 +643,15 @@ model ConfigProceso {
 
 // Umbrales de alertas por módulo
 model ConfigAlerta {
-  id         String   @id @default(cuid())
-  tenantId   String
-  modulo     String
-  eventoKey  String
-  umbral     Decimal? @db.Decimal(10, 3)
-  canales    String[] // PUSH | WHATSAPP | EMAIL
-  activa     Boolean  @default(true)
-  gravedad   String   @default("WARNING") // INFO | WARNING | CRITICAL
-  updatedAt  DateTime @updatedAt
+  id        String   @id @default(cuid())
+  tenantId  String
+  modulo    String
+  eventoKey String
+  umbral    Decimal? @db.Decimal(10, 3)
+  canales   String[] // PUSH | WHATSAPP | EMAIL
+  activa    Boolean  @default(true)
+  gravedad  String   @default("WARNING") // INFO | WARNING | CRITICAL
+  updatedAt DateTime @updatedAt
 
   @@unique([tenantId, modulo, eventoKey])
   @@index([tenantId])
@@ -618,17 +668,17 @@ model AnimalEvent {
   tenantId      String
   sowId         String?
   boarId        String?
-  eventType     String   // ENTRY | STATE_CHANGE | DEATH | DISCARD | SERVICE | FARROWING | WEANING | etc.
+  eventType     String // ENTRY | STATE_CHANGE | DEATH | DISCARD | SERVICE | FARROWING | WEANING | etc.
   eventDate     DateTime
   description   String?
   previousState String?
   newState      String?
-  moduleSource  String?  // PLANTEL | GESTACION | MATERNIDAD | SANIDAD
+  moduleSource  String? // PLANTEL | GESTACION | MATERNIDAD | SANIDAD
   userId        String?
   metadata      Json?
   createdAt     DateTime @default(now())
 
-  sow  Sow?  @relation(fields: [sowId],  references: [id])
+  sow  Sow?  @relation(fields: [sowId], references: [id])
   boar Boar? @relation(fields: [boarId], references: [id])
 
   @@index([tenantId, sowId])
@@ -638,22 +688,22 @@ model AnimalEvent {
 
 // Lotes de semen externo (identidad genética + stock físico)
 model ExternalSemenLot {
-  id              String   @id @default(cuid())
-  tenantId        String
-  lotCode         String   // IN-GRN-NNNN generado automáticamente
-  geneticLine     String
-  donorBoarCode   String   // Código del verraco en establecimiento de origen
-  originFarm      String   // Granja/Laboratorio de origen
-  productionDate  DateTime
-  expiryDate      DateTime
-  totalDoses      Int
-  availableDoses  Int
-  pricePerDoseGs  Decimal  @db.Decimal(14, 0)
-  certUrl         String?
-  observations    String?
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String   @id @default(cuid())
+  tenantId       String
+  lotCode        String // IN-GRN-NNNN generado automáticamente
+  geneticLine    String
+  donorBoarCode  String // Código del verraco en establecimiento de origen
+  originFarm     String // Granja/Laboratorio de origen
+  productionDate DateTime
+  expiryDate     DateTime
+  totalDoses     Int
+  availableDoses Int
+  pricePerDoseGs Decimal  @db.Decimal(14, 0)
+  certUrl        String?
+  observations   String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@unique([tenantId, lotCode])
   @@index([tenantId])
@@ -668,12 +718,14 @@ model ExternalSemenLot {
 model ServiceBatch {
   id        String   @id @default(cuid())
   tenantId  String
-  weekLabel String   // Formato "2026-W25"
+  weekLabel String // Formato "2026-W25"
+  code      String? // Código/nombre de lote explícito (null = agrupado automático por semana)
+  notes     String?
   createdAt DateTime @default(now())
 
   serviceEvents ServiceEvent[]
 
-  @@unique([tenantId, weekLabel])
+  @@index([tenantId, weekLabel])
   @@index([tenantId])
   @@map("service_batches")
 }
@@ -692,10 +744,10 @@ model ServiceEvent {
   notes           String?
   createdAt       DateTime    @default(now())
 
-  sow             Sow          @relation(fields: [sowId], references: [id])
-  boar            Boar?        @relation(fields: [boarId], references: [id])
-  semenDose       SemenDose?   @relation(fields: [semenDoseId], references: [id])
-  serviceBatch    ServiceBatch @relation(fields: [serviceBatchId], references: [id])
+  sow             Sow              @relation(fields: [sowId], references: [id])
+  boar            Boar?            @relation(fields: [boarId], references: [id])
+  semenDose       SemenDose?       @relation(fields: [semenDoseId], references: [id])
+  serviceBatch    ServiceBatch     @relation(fields: [serviceBatchId], references: [id])
   pregnancyChecks PregnancyCheck[]
   farrowing       FarrowingEvent?
 
@@ -716,8 +768,8 @@ model PregnancyCheck {
   notes          String?
   createdAt      DateTime             @default(now())
 
-  sow            Sow          @relation(fields: [sowId], references: [id])
-  serviceEvent   ServiceEvent @relation(fields: [serviceEventId], references: [id])
+  sow          Sow          @relation(fields: [sowId], references: [id])
+  serviceEvent ServiceEvent @relation(fields: [serviceEventId], references: [id])
 
   @@index([tenantId])
   @@map("pregnancy_checks")
@@ -733,7 +785,7 @@ model HeatRepeat {
   employeeId     String?
   createdAt      DateTime @default(now())
 
-  sow            Sow @relation(fields: [sowId], references: [id])
+  sow Sow @relation(fields: [sowId], references: [id])
 
   @@index([tenantId])
   @@map("heat_repeats")
@@ -750,7 +802,7 @@ model AbortionEvent {
   employeeId     String?
   createdAt      DateTime @default(now())
 
-  sow            Sow @relation(fields: [sowId], references: [id])
+  sow Sow @relation(fields: [sowId], references: [id])
 
   @@index([tenantId])
   @@map("abortion_events")
@@ -768,35 +820,35 @@ model SowDiscard {
   updatedAt   DateTime @updatedAt
 
   // Categorización extendida
-  categoria             String?
-  motivosEspecificos    String[]
-  motivoPrincipal       String?
-  tipoDescarte          String?
+  categoria          String?
+  motivosEspecificos String[]
+  motivoPrincipal    String?
+  tipoDescarte       String?
 
   // Estado al momento del descarte
-  pesoKg                Decimal?  @db.Decimal(8, 2)
-  condicionCorporal     Int?
-  estadoSanitario       String?
-  estadoReproductivo    String?
-  estadoProductivo      String?
+  pesoKg             Decimal? @db.Decimal(8, 2)
+  condicionCorporal  Int?
+  estadoSanitario    String?
+  estadoReproductivo String?
+  estadoProductivo   String?
 
   // Info reproductiva
-  numeroParto           Int?
-  diasUltimoParto       Int?
-  diasUltimoServicio    Int?
-  numeroServicios       Int?
-  lechonesDestetados    Int?
+  numeroParto        Int?
+  diasUltimoParto    Int?
+  diasUltimoServicio Int?
+  numeroServicios    Int?
+  lechonesDestetados Int?
 
   // Info sanitaria
   diagnostico           String?
   veterinario           String?
-  observacionesClinicas String?  @db.Text
+  observacionesClinicas String? @db.Text
 
   // General
-  observaciones         String?  @db.Text
-  responsableAutoriza   String?
+  observaciones       String? @db.Text
+  responsableAutoriza String?
 
-  sow         Sow @relation(fields: [sowId], references: [id])
+  sow Sow @relation(fields: [sowId], references: [id])
 
   @@index([tenantId])
   @@map("sow_discards")
@@ -815,12 +867,12 @@ model FarrowingEvent {
   startDatetime       DateTime
   endDatetime         DateTime?
   // Campos calculados automáticamente al guardar
-  gestationDays       Int?          // fecha_parto - fecha_servicio
-  durationMinutes     Int?          // end - start
+  gestationDays       Int? // fecha_parto - fecha_servicio
+  durationMinutes     Int? // end - start
   bornAlive           Int
   bornDead            Int           @default(0)
   mummified           Int           @default(0)
-  totalBorn           Int           // = bornAlive + bornDead + mummified
+  totalBorn           Int // = bornAlive + bornDead + mummified
   femalesBornAlive    Int?
   malesBornAlive      Int?
   lowViabilityCount   Int           @default(0)
@@ -837,21 +889,23 @@ model FarrowingEvent {
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 
-  sow                  Sow              @relation(fields: [sowId], references: [id])
-  serviceEvent         ServiceEvent?    @relation(fields: [serviceEventId], references: [id])
-  pen                  Pen?             @relation(fields: [penId], references: [id])
-  piglets              Piglet[]
-  deaths               PigletDeath[]
-  movementsAsOrigin    PigletMovement[] @relation("MovementOrigin")
-  movementsAsDestination PigletMovement[] @relation("MovementDestination")
-  fosterAsReceiver     FosterEvent[]    @relation("FosterReceiver")
-  fosterDonations      FosterDonation[] @relation("FarrowingAsDonor")
-  weaning              WeaningEvent?
-  healthTasks          HealthTask[]
-  stockAdjustments     StockAdjustmentRequest[]
-  feedRecords          FeedRecord[]
-  curativeTreatments   CurativeTreatment[]
-  withdrawalPeriods    WithdrawalPeriod[]
+  sow                      Sow                       @relation(fields: [sowId], references: [id])
+  serviceEvent             ServiceEvent?             @relation(fields: [serviceEventId], references: [id])
+  pen                      Pen?                      @relation(fields: [penId], references: [id])
+  piglets                  Piglet[]
+  deaths                   PigletDeath[]
+  movementsAsOrigin        PigletMovement[]          @relation("MovementOrigin")
+  movementsAsDestination   PigletMovement[]          @relation("MovementDestination")
+  fosterAsReceiver         FosterEvent[]             @relation("FosterReceiver")
+  fosterDonations          FosterDonation[]          @relation("FarrowingAsDonor")
+  weaning                  WeaningEvent?
+  healthTasks              HealthTask[]
+  stockAdjustments         StockAdjustmentRequest[]
+  feedRecords              FeedRecord[]
+  curativeTreatments       CurativeTreatment[]
+  withdrawalPeriods        WithdrawalPeriod[]
+  procedimientosMaternidad ProcedimientoMaternidad[]
+  necropsias               Necropsia[]
 
   @@index([tenantId, sowId])
   @@index([tenantId, startDatetime])
@@ -859,22 +913,23 @@ model FarrowingEvent {
 }
 
 model Piglet {
-  id          String          @id @default(cuid())
+  id          String           @id @default(cuid())
   tenantId    String
   farrowingId String
-  identCode   String?         // Tatuaje o número de caravana
+  identCode   String? // Tatuaje o número de caravana
   identType   PigletIdentType?
   sex         PigletSex?
-  weightKg    Decimal?        @db.Decimal(6, 3)
-  status      PigletStatus    @default(VIABLE)
+  weightKg    Decimal?         @db.Decimal(6, 3)
+  status      PigletStatus     @default(VIABLE)
   birthDate   DateTime
-  isAlive     Boolean         @default(true)
-  createdAt   DateTime        @default(now())
+  isAlive     Boolean          @default(true)
+  createdAt   DateTime         @default(now())
 
-  farrowing       FarrowingEvent    @relation(fields: [farrowingId], references: [id])
-  deaths          PigletDeath[]
-  treatments      CurativeTreatment[]
-  withdrawals     WithdrawalPeriod[]
+  farrowing   FarrowingEvent      @relation(fields: [farrowingId], references: [id])
+  deaths      PigletDeath[]
+  treatments  CurativeTreatment[]
+  withdrawals WithdrawalPeriod[]
+  necropsias  Necropsia[]
 
   @@unique([tenantId, identCode])
   @@index([tenantId, farrowingId])
@@ -885,17 +940,17 @@ model PigletDeath {
   id             String           @id @default(cuid())
   tenantId       String
   farrowingId    String
-  pigletId       String?          // Si se identificó individualmente
+  pigletId       String? // Si se identificó individualmente
   deathDatetime  DateTime
   quantity       Int              @default(1)
-  ageAtDeathDays Int?             // Calculado automáticamente
+  ageAtDeathDays Int? // Calculado automáticamente
   cause          PigletDeathCause
   employeeId     String?
-  evidenceUrl    String?          // Foto/auditoría (S3)
+  evidenceUrl    String? // Foto/auditoría (S3)
   createdAt      DateTime         @default(now())
 
-  farrowing      FarrowingEvent   @relation(fields: [farrowingId], references: [id])
-  piglet         Piglet?          @relation(fields: [pigletId], references: [id])
+  farrowing FarrowingEvent @relation(fields: [farrowingId], references: [id])
+  piglet    Piglet?        @relation(fields: [pigletId], references: [id])
 
   @@index([tenantId, farrowingId])
   @@map("piglet_deaths")
@@ -903,17 +958,17 @@ model PigletDeath {
 
 // Adopción: mueve lechones de una cerda donadora a una receptora
 model PigletMovement {
-  id            String         @id @default(cuid())
+  id            String   @id @default(cuid())
   tenantId      String
-  originId      String         // Cerda donadora
-  destinationId String         // Cerda receptora
+  originId      String // Cerda donadora
+  destinationId String // Cerda receptora
   movementDate  DateTime
   quantity      Int
   employeeId    String?
-  createdAt     DateTime       @default(now())
+  createdAt     DateTime @default(now())
 
-  origin        FarrowingEvent @relation("MovementOrigin", fields: [originId], references: [id])
-  destination   FarrowingEvent @relation("MovementDestination", fields: [destinationId], references: [id])
+  origin      FarrowingEvent @relation("MovementOrigin", fields: [originId], references: [id])
+  destination FarrowingEvent @relation("MovementDestination", fields: [destinationId], references: [id])
 
   @@index([tenantId])
   @@map("piglet_movements")
@@ -921,30 +976,30 @@ model PigletMovement {
 
 // Nodriza: cerda que recibe lechones de múltiples donadoras
 model FosterEvent {
-  id              String         @id @default(cuid())
-  tenantId        String
-  receiverId      String         // Cerda nodriza receptora
-  penLocation     String?
-  receiveDate     DateTime
-  avgAgeAtFosterDays Decimal?   @db.Decimal(5, 1)
-  createdAt       DateTime       @default(now())
+  id                 String   @id @default(cuid())
+  tenantId           String
+  receiverId         String // Cerda nodriza receptora
+  penLocation        String?
+  receiveDate        DateTime
+  avgAgeAtFosterDays Decimal? @db.Decimal(5, 1)
+  createdAt          DateTime @default(now())
 
-  receiver        FarrowingEvent @relation("FosterReceiver", fields: [receiverId], references: [id])
-  donations       FosterDonation[]
+  receiver  FarrowingEvent   @relation("FosterReceiver", fields: [receiverId], references: [id])
+  donations FosterDonation[]
 
   @@index([tenantId])
   @@map("foster_events")
 }
 
 model FosterDonation {
-  id            String         @id @default(cuid())
+  id            String @id @default(cuid())
   fosterEventId String
-  donorId       String         // Cerda donadora
+  donorId       String // Cerda donadora
   quantity      Int
-  pigletAgeDays Int            // Edad de los lechones al momento del traslado
+  pigletAgeDays Int // Edad de los lechones al momento del traslado
 
-  fosterEvent   FosterEvent    @relation(fields: [fosterEventId], references: [id])
-  donor         FarrowingEvent @relation("FarrowingAsDonor", fields: [donorId], references: [id])
+  fosterEvent FosterEvent    @relation(fields: [fosterEventId], references: [id])
+  donor       FarrowingEvent @relation("FarrowingAsDonor", fields: [donorId], references: [id])
 
   @@map("foster_donations")
 }
@@ -954,12 +1009,12 @@ model WeaningEvent {
   tenantId            String
   farrowingId         String                 @unique
   weaningDate         DateTime
-  lactationDays       Int                    // Calculado: weaningDate - startDatetime
-  pigletsAvailable    Int                    // Stock calculado antes del destete
+  lactationDays       Int // Calculado: weaningDate - startDatetime
+  pigletsAvailable    Int // Stock calculado antes del destete
   lastMinuteDeaths    Int                    @default(0)
   lastMinuteReceived  Int                    @default(0)
   lastMinuteDonated   Int                    @default(0)
-  pigletsWeaned       Int                    // <= pigletsAvailable
+  pigletsWeaned       Int // <= pigletsAvailable
   totalLitterWeightKg Decimal                @db.Decimal(8, 3)
   avgPigletWeightKg   Decimal                @db.Decimal(8, 3) // Calculado
   nurseryBatchId      String?
@@ -994,8 +1049,8 @@ model StockAdjustmentRequest {
   reviewNotes   String?
   createdAt     DateTime              @default(now())
 
-  farrowing     FarrowingEvent @relation(fields: [farrowingId], references: [id])
-  sow           Sow            @relation(fields: [sowId], references: [id])
+  farrowing FarrowingEvent @relation(fields: [farrowingId], references: [id])
+  sow       Sow            @relation(fields: [sowId], references: [id])
 
   @@index([tenantId, status])
   @@map("stock_adjustment_requests")
@@ -1008,7 +1063,7 @@ model StockAdjustmentRequest {
 model NurseryBatch {
   id              String       @id @default(cuid())
   tenantId        String
-  batchCode       String       // Código generado: "R-2026-W26-001"
+  batchCode       String // Código generado: "R-2026-W26-001"
   phase           NurseryPhase @default(PHASE_1)
   entryDate       DateTime
   currentCount    Int
@@ -1019,13 +1074,13 @@ model NurseryBatch {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
-  pen           Pen?           @relation(fields: [penId], references: [id])
-  weanings      WeaningEvent[]
-  weightRecords WeightRecord[]
-  phaseChanges  PhaseChange[]
-  feedRecords   FeedRecord[]
+  pen            Pen?           @relation(fields: [penId], references: [id])
+  weanings       WeaningEvent[]
+  weightRecords  WeightRecord[]
+  phaseChanges   PhaseChange[]
+  feedRecords    FeedRecord[]
   growingBatches GrowingBatch[]
-  sales         BatchSale[]
+  sales          BatchSale[]
 
   @@unique([tenantId, batchCode])
   @@index([tenantId])
@@ -1033,77 +1088,77 @@ model NurseryBatch {
 }
 
 model WeightRecord {
-  id             String        @id @default(cuid())
+  id             String   @id @default(cuid())
   tenantId       String
   nurseryBatchId String?
   growingBatchId String?
   recordDate     DateTime
-  totalWeightKg  Decimal       @db.Decimal(10, 3)
+  totalWeightKg  Decimal  @db.Decimal(10, 3)
   animalCount    Int
-  avgWeightKg    Decimal       @db.Decimal(8, 3)    // Calculado
-  dailyGainKg    Decimal?      @db.Decimal(6, 3)    // GDP vs pesaje anterior
+  avgWeightKg    Decimal  @db.Decimal(8, 3) // Calculado
+  dailyGainKg    Decimal? @db.Decimal(6, 3) // GDP vs pesaje anterior
   employeeId     String?
-  createdAt      DateTime      @default(now())
+  createdAt      DateTime @default(now())
 
-  nurseryBatch   NurseryBatch? @relation(fields: [nurseryBatchId], references: [id])
-  growingBatch   GrowingBatch? @relation(fields: [growingBatchId], references: [id])
+  nurseryBatch NurseryBatch? @relation(fields: [nurseryBatchId], references: [id])
+  growingBatch GrowingBatch? @relation(fields: [growingBatchId], references: [id])
 
   @@index([tenantId])
   @@map("weight_records")
 }
 
 model PhaseChange {
-  id             String            @id @default(cuid())
-  tenantId       String
-  nurseryBatchId String
-  fromPhase      NurseryPhase
-  toPhase        NurseryPhase
-  changeDate     DateTime
-  reason         PhaseChangeReason
-  triggerWeightKg Decimal?         @db.Decimal(8, 3)
-  employeeId     String?
-  notes          String?
-  createdAt      DateTime          @default(now())
+  id              String            @id @default(cuid())
+  tenantId        String
+  nurseryBatchId  String
+  fromPhase       NurseryPhase
+  toPhase         NurseryPhase
+  changeDate      DateTime
+  reason          PhaseChangeReason
+  triggerWeightKg Decimal?          @db.Decimal(8, 3)
+  employeeId      String?
+  notes           String?
+  createdAt       DateTime          @default(now())
 
-  nurseryBatch   NurseryBatch @relation(fields: [nurseryBatchId], references: [id])
+  nurseryBatch NurseryBatch @relation(fields: [nurseryBatchId], references: [id])
 
   @@index([tenantId])
   @@map("phase_changes")
 }
 
 model GrowingBatch {
-  id                  String        @id @default(cuid())
-  tenantId            String
-  batchCode           String
-  nurseryBatchId      String?
-  entryDate           DateTime
-  entryWeightKg       Decimal       @db.Decimal(10, 3)   // Peso total al ingreso
-  currentCount        Int
-  penId               String?
-  isActive            Boolean       @default(true)
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
+  id             String   @id @default(cuid())
+  tenantId       String
+  batchCode      String
+  nurseryBatchId String?
+  entryDate      DateTime
+  entryWeightKg  Decimal  @db.Decimal(10, 3) // Peso total al ingreso
+  currentCount   Int
+  penId          String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   // Campos Engorde extendidos
-  sitio               String?                             // Sitio / ubicación
-  procedencia         String        @default("RECRIA_PROPIA") // RECRIA_PROPIA | COMPRA_EXTERNA
-  avgAgeAtEntryDays   Int?                                // Edad media al ingreso (días)
-  targetWeightKg      Decimal?      @db.Decimal(8, 2)    // Peso objetivo de salida (default 120)
-  employeeId          String?                             // Responsable
-  observations        String?
-  status              String        @default("ACTIVE")   // ACTIVE | CLOSED
-  closedAt            DateTime?
-  closedReason        String?
+  sitio             String? // Sitio / ubicación
+  procedencia       String    @default("RECRIA_PROPIA") // RECRIA_PROPIA | COMPRA_EXTERNA
+  avgAgeAtEntryDays Int? // Edad media al ingreso (días)
+  targetWeightKg    Decimal?  @db.Decimal(8, 2) // Peso objetivo de salida (default 120)
+  employeeId        String? // Responsable
+  observations      String?
+  status            String    @default("ACTIVE") // ACTIVE | CLOSED
+  closedAt          DateTime?
+  closedReason      String?
 
-  nurseryBatch        NurseryBatch?       @relation(fields: [nurseryBatchId], references: [id])
-  pen                 Pen?                @relation(fields: [penId], references: [id])
-  weightRecords       WeightRecord[]
-  feedRecords         FeedRecord[]
-  sales               BatchSale[]
-  deaths              GrowingDeath[]
-  outgoingTransfers   GrowingTransfer[]   @relation("TransferSource")
-  incomingTransfers   GrowingTransfer[]   @relation("TransferTarget")
-  otherExits          GrowingOtherExit[]
+  nurseryBatch      NurseryBatch?      @relation(fields: [nurseryBatchId], references: [id])
+  pen               Pen?               @relation(fields: [penId], references: [id])
+  weightRecords     WeightRecord[]
+  feedRecords       FeedRecord[]
+  sales             BatchSale[]
+  deaths            GrowingDeath[]
+  outgoingTransfers GrowingTransfer[]  @relation("TransferSource")
+  incomingTransfers GrowingTransfer[]  @relation("TransferTarget")
+  otherExits        GrowingOtherExit[]
 
   @@unique([tenantId, batchCode])
   @@index([tenantId])
@@ -1111,80 +1166,80 @@ model GrowingBatch {
 }
 
 model GrowingDeath {
-  id                String      @id @default(cuid())
+  id                String   @id @default(cuid())
   tenantId          String
   growingBatchId    String
   deathDate         DateTime
-  deathTime         String?                           // "HH:MM"
-  count             Int         @default(1)
-  cause             String                            // RESPIRATORY|DIGESTIVE|ACCIDENT|RENAL_URINARY|MULBERRY_HEART|OTHER
+  deathTime         String? // "HH:MM"
+  count             Int      @default(1)
+  cause             String // RESPIRATORY|DIGESTIVE|ACCIDENT|RENAL_URINARY|MULBERRY_HEART|OTHER
   employeeId        String?
-  estimatedWeightKg Decimal?    @db.Decimal(8, 2)
+  estimatedWeightKg Decimal? @db.Decimal(8, 2)
   notes             String?
-  createdAt         DateTime    @default(now())
+  createdAt         DateTime @default(now())
 
-  growingBatch      GrowingBatch @relation(fields: [growingBatchId], references: [id])
+  growingBatch GrowingBatch @relation(fields: [growingBatchId], references: [id])
 
   @@index([tenantId, deathDate])
   @@map("growing_deaths")
 }
 
 model GrowingTransfer {
-  id             String      @id @default(cuid())
-  tenantId       String
-  sourceBatchId  String
-  targetBatchId  String?                             // nulo si destino es externo
-  targetSite     String?
-  transferDate   DateTime
-  count          Int
-  totalWeightKg  Decimal?    @db.Decimal(10, 3)
-  avgWeightKg    Decimal?    @db.Decimal(8, 3)
-  reason         String                              // SPACE_PRESSURE|BATCH_REBALANCING|HEALTH_ISSUE|OTHER
-  employeeId     String?
-  createdAt      DateTime    @default(now())
+  id            String   @id @default(cuid())
+  tenantId      String
+  sourceBatchId String
+  targetBatchId String? // nulo si destino es externo
+  targetSite    String?
+  transferDate  DateTime
+  count         Int
+  totalWeightKg Decimal? @db.Decimal(10, 3)
+  avgWeightKg   Decimal? @db.Decimal(8, 3)
+  reason        String // SPACE_PRESSURE|BATCH_REBALANCING|HEALTH_ISSUE|OTHER
+  employeeId    String?
+  createdAt     DateTime @default(now())
 
-  sourceBatch    GrowingBatch  @relation("TransferSource", fields: [sourceBatchId], references: [id])
-  targetBatch    GrowingBatch? @relation("TransferTarget", fields: [targetBatchId], references: [id])
+  sourceBatch GrowingBatch  @relation("TransferSource", fields: [sourceBatchId], references: [id])
+  targetBatch GrowingBatch? @relation("TransferTarget", fields: [targetBatchId], references: [id])
 
   @@index([tenantId, transferDate])
   @@map("growing_transfers")
 }
 
 model GrowingOtherExit {
-  id                String      @id @default(cuid())
+  id                String   @id @default(cuid())
   tenantId          String
   growingBatchId    String
-  exitType          String                            // DISCARD|HOSPITAL|SAMPLE|DONATION|OTHER
+  exitType          String // DISCARD|HOSPITAL|SAMPLE|DONATION|OTHER
   exitDate          DateTime
   count             Int
-  estimatedWeightKg Decimal?    @db.Decimal(8, 2)
+  estimatedWeightKg Decimal? @db.Decimal(8, 2)
   reason            String
   employeeId        String?
-  createdAt         DateTime    @default(now())
+  createdAt         DateTime @default(now())
 
-  growingBatch      GrowingBatch @relation(fields: [growingBatchId], references: [id])
+  growingBatch GrowingBatch @relation(fields: [growingBatchId], references: [id])
 
   @@index([tenantId, exitDate])
   @@map("growing_other_exits")
 }
 
 model BatchSale {
-  id             String        @id @default(cuid())
+  id             String   @id @default(cuid())
   tenantId       String
   nurseryBatchId String?
   growingBatchId String?
   saleDate       DateTime
   animalCount    Int
-  totalWeightKg  Decimal       @db.Decimal(10, 3)
-  pricePerKg     Decimal       @db.Decimal(10, 2)
-  totalAmount    Decimal       @db.Decimal(12, 2)
+  totalWeightKg  Decimal  @db.Decimal(10, 3)
+  pricePerKg     Decimal  @db.Decimal(10, 2)
+  totalAmount    Decimal  @db.Decimal(12, 2)
   buyerName      String?
-  transferGuide  String?       // Guía de traslado
+  transferGuide  String? // Guía de traslado
   employeeId     String?
-  createdAt      DateTime      @default(now())
+  createdAt      DateTime @default(now())
 
-  nurseryBatch   NurseryBatch? @relation(fields: [nurseryBatchId], references: [id])
-  growingBatch   GrowingBatch? @relation(fields: [growingBatchId], references: [id])
+  nurseryBatch NurseryBatch? @relation(fields: [nurseryBatchId], references: [id])
+  growingBatch GrowingBatch? @relation(fields: [growingBatchId], references: [id])
 
   @@index([tenantId])
   @@map("batch_sales")
@@ -1197,17 +1252,19 @@ model BatchSale {
 // Tipos de alimento: Gestación / Lactancia hembra / Pre-starter /
 // Fase 1 / Fase 2 / Engorde — configurables por granja
 model FeedType {
-  id          String   @id @default(cuid())
-  tenantId    String
-  name        String
-  phase       String   // GESTATION | LACTATION | PRE_STARTER | PHASE_1 | PHASE_2 | GROWING
-  sortOrder   Int      @default(0)
-  isActive    Boolean  @default(true)
+  id        String  @id @default(cuid())
+  tenantId  String
+  name      String
+  phase     String // GESTATION | LACTATION | PRE_STARTER | PHASE_1 | PHASE_2 | GROWING
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
 
-  feedRecords FeedRecord[]
-  formulas    Formula[]
-  finishedStocks FinishedStock[]
+  productoBalanceadoId String? // FK a ProductoInventario (categoria=BALANCEADO) — fuente única de stock de esta etapa
+
+  feedRecords        FeedRecord[]
+  formulas           Formula[]
   nutritionalTargets NutritionalTarget[]
+  productoBalanceado ProductoInventario? @relation(fields: [productoBalanceadoId], references: [id])
 
   @@unique([tenantId, phase])
   @@index([tenantId])
@@ -1215,22 +1272,22 @@ model FeedType {
 }
 
 model FeedRecord {
-  id             String        @id @default(cuid())
+  id             String   @id @default(cuid())
   tenantId       String
   feedTypeId     String
-  farrowingId    String?       // Para cerdas en maternidad / lechones pre-starter
-  nurseryBatchId String?       // Para lotes de recría
-  growingBatchId String?       // Para lotes de engorde
+  farrowingId    String? // Para cerdas en maternidad / lechones pre-starter
+  nurseryBatchId String? // Para lotes de recría
+  growingBatchId String? // Para lotes de engorde
   recordDate     DateTime
-  quantityKg     Decimal       @db.Decimal(10, 3)
+  quantityKg     Decimal  @db.Decimal(10, 3)
   employeeId     String?
-  isSynced       Boolean       @default(true)  // false = pendiente de sync offline
-  createdAt      DateTime      @default(now())
+  isSynced       Boolean  @default(true) // false = pendiente de sync offline
+  createdAt      DateTime @default(now())
 
-  feedType       FeedType       @relation(fields: [feedTypeId], references: [id])
-  farrowing      FarrowingEvent? @relation(fields: [farrowingId], references: [id])
-  nurseryBatch   NurseryBatch?  @relation(fields: [nurseryBatchId], references: [id])
-  growingBatch   GrowingBatch?  @relation(fields: [growingBatchId], references: [id])
+  feedType     FeedType        @relation(fields: [feedTypeId], references: [id])
+  farrowing    FarrowingEvent? @relation(fields: [farrowingId], references: [id])
+  nurseryBatch NurseryBatch?   @relation(fields: [nurseryBatchId], references: [id])
+  growingBatch GrowingBatch?   @relation(fields: [growingBatchId], references: [id])
 
   @@index([tenantId, recordDate])
   @@map("feed_records")
@@ -1240,72 +1297,44 @@ model FeedRecord {
 // MÓDULO 3: BALANCEADO (BAL)
 // ================================================================
 
-model RawMaterial {
-  id             String          @id @default(cuid())
-  tenantId       String
-  name           String
-  materialType   RawMaterialType
-  supplierId     String?
-  currentStockKg Decimal         @db.Decimal(12, 3) @default(0)
-  minStockKg     Decimal         @db.Decimal(12, 3) @default(0)
-  isActive       Boolean         @default(true)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+// Detalle de análisis nutricional/comercial de un lote de materia prima —
+// LoteInventario (catálogo único) sigue siendo la única fuente de verdad de
+// cantidad/vencimiento; esta tabla solo agrega los campos que no aplican a
+// lotes de vacunas/suplementos/medicamentos (ver decisión de arquitectura).
+model LoteInventarioNutricion {
+  id                      String   @id @default(cuid())
+  loteId                  String   @unique
+  supplierId              String?
+  pricePerKg              Decimal? @db.Decimal(10, 4)
+  invoiceNumber           String?
+  techDataSheetUrl        String? // URL del PDF en S3
+  aiExtractionNotes       String? // Notas del proceso de extracción con IA
+  crudProteinPct          Decimal? @db.Decimal(6, 3)
+  metabolizableEnergyKcal Decimal? @db.Decimal(8, 2)
+  lysinePct               Decimal? @db.Decimal(6, 3)
+  methioninePct           Decimal? @db.Decimal(6, 3)
+  calciumPct              Decimal? @db.Decimal(6, 3)
+  phosphorusPct           Decimal? @db.Decimal(6, 3)
+  moisturePct             Decimal? @db.Decimal(6, 3)
+  mycotoxinPpb            Decimal? @db.Decimal(10, 2)
 
-  supplier             Supplier?           @relation(fields: [supplierId], references: [id])
-  lots                 RawMaterialLot[]
-  formulaIngredients   FormulaIngredient[]
+  lote     LoteInventario @relation(fields: [loteId], references: [id])
+  supplier Supplier?      @relation(fields: [supplierId], references: [id])
 
-  @@unique([tenantId, name])
-  @@index([tenantId])
-  @@map("raw_materials")
-}
-
-// Cada compra de materia prima registra su propia ficha técnica y análisis
-model RawMaterialLot {
-  id                       String      @id @default(cuid())
-  tenantId                 String
-  rawMaterialId            String
-  lotCode                  String
-  receivedDate             DateTime
-  quantityKg               Decimal     @db.Decimal(12, 3)
-  remainingKg              Decimal     @db.Decimal(12, 3)
-  pricePerKg               Decimal     @db.Decimal(10, 4)
-  supplierId               String?
-  invoiceNumber            String?
-  expiryDate               DateTime?
-  // Análisis nutricional — puede cargarse manual o vía lectura de PDF con IA
-  crudProteinPct           Decimal?    @db.Decimal(6, 3)
-  metabolizableEnergyKcal  Decimal?    @db.Decimal(8, 2)
-  lysinePct                Decimal?    @db.Decimal(6, 3)
-  methioninePct            Decimal?    @db.Decimal(6, 3)
-  calciumPct               Decimal?    @db.Decimal(6, 3)
-  phosphorusPct            Decimal?    @db.Decimal(6, 3)
-  moisturePct              Decimal?    @db.Decimal(6, 3)
-  mycotoxinPpb             Decimal?    @db.Decimal(10, 2)
-  techDataSheetUrl         String?     // URL del PDF en S3
-  aiExtractionNotes        String?     // Notas del proceso de extracción con IA
-  createdAt                DateTime    @default(now())
-
-  rawMaterial    RawMaterial      @relation(fields: [rawMaterialId], references: [id])
-  grnItems       GoodsReceiptItem[]
-
-  @@unique([rawMaterialId, lotCode])
-  @@index([tenantId, rawMaterialId])
-  @@map("raw_material_lots")
+  @@map("lotes_inventario_nutricion")
 }
 
 // Una fórmula por tipo de alimento, con historial de versiones
 model Formula {
-  id          String        @id @default(cuid())
-  tenantId    String
-  feedTypeId  String
-  name        String
-  isActive    Boolean       @default(true)
-  createdAt   DateTime      @default(now())
+  id         String   @id @default(cuid())
+  tenantId   String
+  feedTypeId String
+  name       String
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
 
-  feedType    FeedType      @relation(fields: [feedTypeId], references: [id])
-  versions    FormulaVersion[]
+  feedType FeedType         @relation(fields: [feedTypeId], references: [id])
+  versions FormulaVersion[]
 
   @@unique([tenantId, feedTypeId])
   @@index([tenantId])
@@ -1315,29 +1344,29 @@ model Formula {
 // REGLA CRÍTICA 1: Solo el Veterinario Jefe puede aprobar cambios de fórmula.
 // La IA sugiere pero NUNCA modifica. approvedById es obligatorio para activar.
 model FormulaVersion {
-  id                     String        @id @default(cuid())
-  tenantId               String
-  formulaId              String
-  versionNumber          Int
-  status                 FormulaStatus @default(INACTIVE)
+  id                 String        @id @default(cuid())
+  tenantId           String
+  formulaId          String
+  versionNumber      Int
+  status             FormulaStatus @default(INACTIVE)
   // Aprobación — solo rol VET_CHIEF (id=4) puede llenar estos campos
-  approvedById           String?
-  approvedAt             DateTime?
-  approvalNotes          String?
+  approvedById       String?
+  approvedAt         DateTime?
+  approvalNotes      String?
   // Perfil nutricional calculado automáticamente al guardar
-  totalProteinPct        Decimal?      @db.Decimal(6, 3)
-  totalEnergyKcal        Decimal?      @db.Decimal(8, 2)
-  totalLysinePct         Decimal?      @db.Decimal(6, 3)
-  totalMethioninePct     Decimal?      @db.Decimal(6, 3)
-  totalCalciumPct        Decimal?      @db.Decimal(6, 3)
-  totalPhosphorusPct     Decimal?      @db.Decimal(6, 3)
-  totalMoisturePct       Decimal?      @db.Decimal(6, 3)
-  totalMycotoxinPpb      Decimal?      @db.Decimal(10, 2)
-  aiSuggestionNotes      String?       @db.Text // Sugerencia del asistente IA
-  createdAt              DateTime      @default(now())
+  totalProteinPct    Decimal?      @db.Decimal(6, 3)
+  totalEnergyKcal    Decimal?      @db.Decimal(8, 2)
+  totalLysinePct     Decimal?      @db.Decimal(6, 3)
+  totalMethioninePct Decimal?      @db.Decimal(6, 3)
+  totalCalciumPct    Decimal?      @db.Decimal(6, 3)
+  totalPhosphorusPct Decimal?      @db.Decimal(6, 3)
+  totalMoisturePct   Decimal?      @db.Decimal(6, 3)
+  totalMycotoxinPpb  Decimal?      @db.Decimal(10, 2)
+  aiSuggestionNotes  String?       @db.Text // Sugerencia del asistente IA
+  createdAt          DateTime      @default(now())
 
-  formula          Formula             @relation(fields: [formulaId], references: [id])
-  approvedBy       User?               @relation("ApprovedVersions", fields: [approvedById], references: [id])
+  formula          Formula              @relation(fields: [formulaId], references: [id])
+  approvedBy       User?                @relation("ApprovedVersions", fields: [approvedById], references: [id])
   ingredients      FormulaIngredient[]
   productionOrders BalProductionOrder[]
 
@@ -1347,13 +1376,13 @@ model FormulaVersion {
 }
 
 model FormulaIngredient {
-  id               String         @id @default(cuid())
+  id               String  @id @default(cuid())
   formulaVersionId String
-  rawMaterialId    String
-  inclusionPct     Decimal        @db.Decimal(6, 3) // La suma debe ser exactamente 100%
+  rawMaterialId    String // FK a ProductoInventario (categoria=MATERIA_PRIMA)
+  inclusionPct     Decimal @db.Decimal(6, 3) // La suma debe ser exactamente 100%
 
-  formulaVersion   FormulaVersion @relation(fields: [formulaVersionId], references: [id])
-  rawMaterial      RawMaterial    @relation(fields: [rawMaterialId], references: [id])
+  formulaVersion FormulaVersion     @relation(fields: [formulaVersionId], references: [id])
+  rawMaterial    ProductoInventario @relation(fields: [rawMaterialId], references: [id])
 
   @@unique([formulaVersionId, rawMaterialId])
   @@map("formula_ingredients")
@@ -1361,19 +1390,19 @@ model FormulaIngredient {
 
 // Metas nutricionales por fase — el sistema compara y alerta si la fórmula queda por debajo
 model NutritionalTarget {
-  id              String   @id @default(cuid())
-  tenantId        String
-  feedTypeId      String
-  minProteinPct   Decimal? @db.Decimal(6, 3)
-  minEnergyKcal   Decimal? @db.Decimal(8, 2)
-  minLysinePct    Decimal? @db.Decimal(6, 3)
+  id               String   @id @default(cuid())
+  tenantId         String
+  feedTypeId       String
+  minProteinPct    Decimal? @db.Decimal(6, 3)
+  minEnergyKcal    Decimal? @db.Decimal(8, 2)
+  minLysinePct     Decimal? @db.Decimal(6, 3)
   minMethioninePct Decimal? @db.Decimal(6, 3)
-  minCalciumPct   Decimal? @db.Decimal(6, 3)
+  minCalciumPct    Decimal? @db.Decimal(6, 3)
   minPhosphorusPct Decimal? @db.Decimal(6, 3)
-  maxMycotoxinPpb Decimal? @db.Decimal(10, 2)
-  updatedAt       DateTime @updatedAt
+  maxMycotoxinPpb  Decimal? @db.Decimal(10, 2)
+  updatedAt        DateTime @updatedAt
 
-  feedType        FeedType @relation(fields: [feedTypeId], references: [id])
+  feedType FeedType @relation(fields: [feedTypeId], references: [id])
 
   @@unique([tenantId, feedTypeId])
   @@map("nutritional_targets")
@@ -1392,28 +1421,13 @@ model BalProductionOrder {
   producedAt       DateTime?
   createdAt        DateTime              @default(now())
 
-  formulaVersion     FormulaVersion @relation(fields: [formulaVersionId], references: [id])
-  finishedStockEntry FinishedStock?
+  loteInventarioId String? @unique // lote de LoteInventario (categoria=BALANCEADO) generado al producir
+
+  formulaVersion FormulaVersion  @relation(fields: [formulaVersionId], references: [id])
+  loteInventario LoteInventario? @relation(fields: [loteInventarioId], references: [id])
 
   @@index([tenantId, status])
   @@map("bal_production_orders")
-}
-
-model FinishedStock {
-  id                String             @id @default(cuid())
-  tenantId          String
-  feedTypeId        String
-  productionOrderId String?            @unique
-  batchQuantityKg   Decimal            @db.Decimal(12, 3) // Producido en esta tanda
-  currentStockKg    Decimal            @db.Decimal(12, 3)
-  minStockDays      Int                @default(7)        // Umbral de alerta
-  producedAt        DateTime
-
-  feedType          FeedType           @relation(fields: [feedTypeId], references: [id])
-  productionOrder   BalProductionOrder? @relation(fields: [productionOrderId], references: [id])
-
-  @@index([tenantId, feedTypeId])
-  @@map("finished_stocks")
 }
 
 // ================================================================
@@ -1421,17 +1435,17 @@ model FinishedStock {
 // ================================================================
 
 model Supplier {
-  id             String   @id @default(cuid())
-  tenantId       String
-  name           String
-  ruc            String?
-  phone          String?
-  email          String?
-  address        String?
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  ruc       String?
+  phone     String?
+  email     String?
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
 
-  rawMaterials   RawMaterial[]
+  lotesNutricion LoteInventarioNutricion[]
   purchaseOrders PurchaseOrder[]
   goodsReceipts  GoodsReceipt[]
 
@@ -1463,14 +1477,14 @@ model PurchaseOrder {
 }
 
 model PurchaseOrderItem {
-  id              String        @id @default(cuid())
+  id              String   @id @default(cuid())
   purchaseOrderId String
-  rawMaterialId   String
-  quantityKg      Decimal       @db.Decimal(12, 3)
-  pricePerKg      Decimal?      @db.Decimal(10, 4)
-  totalAmount     Decimal?      @db.Decimal(12, 2)
+  productoId      String // FK lógica a ProductoInventario — sin @relation, módulo sin implementar aún
+  quantityKg      Decimal  @db.Decimal(12, 3)
+  pricePerKg      Decimal? @db.Decimal(10, 4)
+  totalAmount     Decimal? @db.Decimal(12, 2)
 
-  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
 
   @@map("purchase_order_items")
 }
@@ -1486,30 +1500,29 @@ model GoodsReceipt {
   receivedById    String
   createdAt       DateTime           @default(now())
 
-  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
-  supplier        Supplier       @relation(fields: [supplierId], references: [id])
-  items           GoodsReceiptItem[]
+  purchaseOrder PurchaseOrder?     @relation(fields: [purchaseOrderId], references: [id])
+  supplier      Supplier           @relation(fields: [supplierId], references: [id])
+  items         GoodsReceiptItem[]
 
   @@index([tenantId])
   @@map("goods_receipts")
 }
 
 model GoodsReceiptItem {
-  id               String          @id @default(cuid())
+  id               String  @id @default(cuid())
   goodsReceiptId   String
-  rawMaterialLotId String?
-  quantityKg       Decimal         @db.Decimal(12, 3)
-  pricePerKg       Decimal         @db.Decimal(10, 4)
+  loteInventarioId String? // FK lógica a LoteInventario — sin @relation, módulo sin implementar aún
+  quantityKg       Decimal @db.Decimal(12, 3)
+  pricePerKg       Decimal @db.Decimal(10, 4)
 
-  goodsReceipt     GoodsReceipt    @relation(fields: [goodsReceiptId], references: [id])
-  rawMaterialLot   RawMaterialLot? @relation(fields: [rawMaterialLotId], references: [id])
+  goodsReceipt GoodsReceipt @relation(fields: [goodsReceiptId], references: [id])
 
   @@map("goods_receipt_items")
 }
 
 // Traslado de producto terminado del BAL al sector porcino
 model Transfer {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   tenantId     String
   fromLocation String?
   toLocation   String?
@@ -1517,21 +1530,21 @@ model Transfer {
   createdById  String
   notes        String?
   notifiedAt   DateTime?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
 
-  items        TransferItem[]
+  items TransferItem[]
 
   @@index([tenantId])
   @@map("transfers")
 }
 
 model TransferItem {
-  id         String   @id @default(cuid())
+  id         String  @id @default(cuid())
   transferId String
   feedTypeId String?
-  quantityKg Decimal  @db.Decimal(12, 3)
+  quantityKg Decimal @db.Decimal(12, 3)
 
-  transfer   Transfer @relation(fields: [transferId], references: [id])
+  transfer Transfer @relation(fields: [transferId], references: [id])
 
   @@map("transfer_items")
 }
@@ -1549,7 +1562,7 @@ model Employee {
   cargo        String?
   category     String?
   position     String?
-  sector       String?   // gestacion | maternidad | recria | engorde | veterinario | admin | all
+  sector       String? // gestacion | maternidad | recria | engorde | veterinario | admin | all
   iniciales    String?
   colorBg      String?
   colorBorder  String?
@@ -1560,24 +1573,24 @@ model Employee {
   baseSalaryGs Decimal   @default(0) @db.Decimal(14, 0)
   createdAt    DateTime  @default(now())
 
-  attendances  AttendanceRecord[]
-  leaves       LeaveRecord[]
-  payrolls     PayrollRecord[]
+  attendances AttendanceRecord[]
+  leaves      LeaveRecord[]
+  payrolls    PayrollRecord[]
 
   @@index([tenantId])
   @@map("employees")
 }
 
 model AttendanceRecord {
-  id           String   @id @default(cuid())
-  tenantId     String
-  employeeId   String
-  workDate     DateTime @db.Date
-  isPresent    Boolean  @default(true)
-  hoursWorked  Decimal? @db.Decimal(4, 2)
-  notes        String?
+  id          String   @id @default(cuid())
+  tenantId    String
+  employeeId  String
+  workDate    DateTime @db.Date
+  isPresent   Boolean  @default(true)
+  hoursWorked Decimal? @db.Decimal(4, 2)
+  notes       String?
 
-  employee     Employee @relation(fields: [employeeId], references: [id])
+  employee Employee @relation(fields: [employeeId], references: [id])
 
   @@unique([employeeId, workDate])
   @@index([tenantId])
@@ -1590,36 +1603,36 @@ model LeaveRecord {
   employeeId   String
   startDate    DateTime
   endDate      DateTime
-  leaveType    String   // VACATION | SICK | MATERNITY | OTHER
+  leaveType    String // VACATION | SICK | MATERNITY | OTHER
   approvedById String?
   notes        String?
   createdAt    DateTime @default(now())
 
-  employee     Employee @relation(fields: [employeeId], references: [id])
+  employee Employee @relation(fields: [employeeId], references: [id])
 
   @@index([tenantId])
   @@map("leave_records")
 }
 
 model PayrollRecord {
-  id            String        @id @default(cuid())
-  tenantId      String
-  employeeId    String
-  periodStart   DateTime
-  periodEnd     DateTime
-  baseSalaryGs  Decimal       @db.Decimal(14, 0)
-  bonusesGs     Decimal       @db.Decimal(14, 0) @default(0)
-  deductionsGs  Decimal       @db.Decimal(14, 0) @default(0)
-  ipsEmployee   Decimal       @db.Decimal(14, 0) @default(0) // 9% del salario
-  ipsEmployer   Decimal       @db.Decimal(14, 0) @default(0) // 16.5% del salario
-  netAmountGs   Decimal       @db.Decimal(14, 0)
-  status        PayrollStatus @default(DRAFT)
-  approvedById  String?
-  paidAt        DateTime?
-  receiptUrl    String?       // PDF en S3
-  createdAt     DateTime      @default(now())
+  id           String        @id @default(cuid())
+  tenantId     String
+  employeeId   String
+  periodStart  DateTime
+  periodEnd    DateTime
+  baseSalaryGs Decimal       @db.Decimal(14, 0)
+  bonusesGs    Decimal       @default(0) @db.Decimal(14, 0)
+  deductionsGs Decimal       @default(0) @db.Decimal(14, 0)
+  ipsEmployee  Decimal       @default(0) @db.Decimal(14, 0) // 9% del salario
+  ipsEmployer  Decimal       @default(0) @db.Decimal(14, 0) // 16.5% del salario
+  netAmountGs  Decimal       @db.Decimal(14, 0)
+  status       PayrollStatus @default(DRAFT)
+  approvedById String?
+  paidAt       DateTime?
+  receiptUrl   String? // PDF en S3
+  createdAt    DateTime      @default(now())
 
-  employee      Employee @relation(fields: [employeeId], references: [id])
+  employee Employee @relation(fields: [employeeId], references: [id])
 
   @@index([tenantId])
   @@map("payroll_records")
@@ -1630,17 +1643,17 @@ model PayrollRecord {
 // ================================================================
 
 model Sale {
-  id          String   @id @default(cuid())
-  tenantId    String
-  saleDate    DateTime
-  description String?
-  amountGs    Decimal  @db.Decimal(14, 0)
-  category    String   // PIGLET_SALE | SOW_SALE | BATCH_SALE | SLAUGHTER | OTHER
-  batchSaleId String?  @unique
+  id            String   @id @default(cuid())
+  tenantId      String
+  saleDate      DateTime
+  description   String?
+  amountGs      Decimal  @db.Decimal(14, 0)
+  category      String // PIGLET_SALE | SOW_SALE | BATCH_SALE | SLAUGHTER | OTHER
+  batchSaleId   String?  @unique
   invoiceNumber String?
-  buyerName   String?
-  notes       String?
-  createdAt   DateTime @default(now())
+  buyerName     String?
+  notes         String?
+  createdAt     DateTime @default(now())
 
   @@index([tenantId, saleDate])
   @@map("sales")
@@ -1652,7 +1665,7 @@ model Expense {
   expenseDate   DateTime
   description   String
   amountGs      Decimal  @db.Decimal(14, 0)
-  category      String   // FEED | MEDICINE | SALARY | MAINTENANCE | INPUT | OTHER
+  category      String // FEED | MEDICINE | SALARY | MAINTENANCE | INPUT | OTHER
   supplierId    String?
   invoiceNumber String?
   notes         String?
@@ -1695,7 +1708,7 @@ model MedicineStock {
   currentQty Decimal   @db.Decimal(10, 3)
   createdAt  DateTime  @default(now())
 
-  medicine   Medicine @relation(fields: [medicineId], references: [id])
+  medicine Medicine @relation(fields: [medicineId], references: [id])
 
   @@index([tenantId])
   @@map("medicine_stocks")
@@ -1713,7 +1726,7 @@ model HealthProtocolConfig {
   castrationDayOfLife    Int     @default(7)
   ironInjectionEnabled   Boolean @default(true)
   ironDayOfLife          Int     @default(3)
-  ironDoseMl             Decimal @db.Decimal(6, 3) @default(1.0)
+  ironDoseMl             Decimal @default(1.0) @db.Decimal(6, 3)
   ironMedicineId         String?
 
   vaccinationTasks HealthProtocolTask[]
@@ -1723,19 +1736,19 @@ model HealthProtocolConfig {
 
 // Cada vacuna o procedimiento en el protocolo
 model HealthProtocolTask {
-  id         String           @id @default(cuid())
+  id         String            @id @default(cuid())
   protocolId String
-  taskType   HealthTaskType   @default(VACCINATION)
+  taskType   HealthTaskType    @default(VACCINATION)
   taskName   String
   medicineId String?
-  dayOfLife  Int              // Día de vida en que se aplica
-  doseMl     Decimal?         @db.Decimal(8, 3)
+  dayOfLife  Int // Día de vida en que se aplica
+  doseMl     Decimal?          @db.Decimal(8, 3)
   route      VaccinationRoute?
-  isActive   Boolean          @default(true)
-  sortOrder  Int              @default(0)
+  isActive   Boolean           @default(true)
+  sortOrder  Int               @default(0)
 
-  protocol   HealthProtocolConfig @relation(fields: [protocolId], references: [id])
-  medicine   Medicine?            @relation(fields: [medicineId], references: [id])
+  protocol    HealthProtocolConfig @relation(fields: [protocolId], references: [id])
+  medicine    Medicine?            @relation(fields: [medicineId], references: [id])
   healthTasks HealthTask[]
 
   @@map("health_protocol_tasks")
@@ -1743,20 +1756,20 @@ model HealthProtocolTask {
 
 // Tarea generada automáticamente al registrar un parto
 model HealthTask {
-  id             String     @id @default(cuid())
+  id             String    @id @default(cuid())
   tenantId       String
   farrowingId    String
   protocolTaskId String
   dueDate        DateTime
-  isCompleted    Boolean    @default(false)
+  isCompleted    Boolean   @default(false)
   completedAt    DateTime?
-  assignedToId   String?    // Usuario responsable asignado por jefe de producción
-  createdAt      DateTime   @default(now())
+  assignedToId   String? // Usuario responsable asignado por jefe de producción
+  createdAt      DateTime  @default(now())
 
-  farrowing    FarrowingEvent     @relation(fields: [farrowingId], references: [id])
-  protocolTask HealthProtocolTask @relation(fields: [protocolTaskId], references: [id])
+  farrowing    FarrowingEvent        @relation(fields: [farrowingId], references: [id])
+  protocolTask HealthProtocolTask    @relation(fields: [protocolTaskId], references: [id])
   completion   HealthTaskCompletion?
-  assignedTo   User?              @relation("AssignedHealthTasks", fields: [assignedToId], references: [id])
+  assignedTo   User?                 @relation("AssignedHealthTasks", fields: [assignedToId], references: [id])
 
   @@index([tenantId, isCompleted, dueDate])
   @@index([tenantId, assignedToId])
@@ -1764,17 +1777,17 @@ model HealthTask {
 }
 
 model HealthTaskCompletion {
-  id                    String   @id @default(cuid())
-  healthTaskId          String   @unique
-  applicationDate       DateTime
-  ageAtApplicationDays  Int?
-  quantityApplied       Int
-  productLot            String?
-  productExpiry         DateTime?
-  medicineStockId       String?
-  employeeId            String?
-  notes                 String?
-  createdAt             DateTime @default(now())
+  id                   String    @id @default(cuid())
+  healthTaskId         String    @unique
+  applicationDate      DateTime
+  ageAtApplicationDays Int?
+  quantityApplied      Int
+  productLot           String?
+  productExpiry        DateTime?
+  medicineStockId      String?
+  employeeId           String?
+  notes                String?
+  createdAt            DateTime  @default(now())
 
   healthTask HealthTask @relation(fields: [healthTaskId], references: [id])
 
@@ -1782,26 +1795,34 @@ model HealthTaskCompletion {
 }
 
 // Tratamiento curativo individual (Diagnóstico → medicamento → período de retiro)
+// sowId agregado para cubrir también cerdas adultas (antes solo lechones/camadas)
+// — mismo modelo, misma lógica de retiro, sin duplicar en un modelo paralelo.
 model CurativeTreatment {
-  id              String        @id @default(cuid())
-  tenantId        String
-  farrowingId     String?
-  pigletId        String?
-  diagnosisType   DiagnosisType
-  diagnosisNotes  String?
-  medicineId      String
-  doseMl          Decimal       @db.Decimal(8, 3)
-  animalsAffected Int
-  treatmentDays   Int           @default(1)
-  startDate       DateTime
-  endDate         DateTime?
-  withdrawalDays  Int           @default(0)
-  employeeId      String?
-  createdAt       DateTime      @default(now())
+  id                   String            @id @default(cuid())
+  tenantId             String
+  farrowingId          String?
+  pigletId             String?
+  sowId                String?
+  diagnosisType        DiagnosisType
+  diagnosisNotes       String?
+  motivoClinico        String? // texto libre, complementa diagnosisType para cerdas adultas
+  medicineId           String
+  doseMl               Decimal           @db.Decimal(8, 3)
+  animalsAffected      Int
+  treatmentDays        Int               @default(1)
+  startDate            DateTime
+  endDate              DateTime?
+  withdrawalDays       Int               @default(0)
+  estado               EstadoTratamiento @default(ACTIVO)
+  fechaSeguimiento     DateTime? // dispara recordatorio si estado = EN_SEGUIMIENTO
+  respuestaSeguimiento String?
+  employeeId           String?
+  createdAt            DateTime          @default(now())
 
-  medicine          Medicine          @relation(fields: [medicineId], references: [id])
-  farrowing         FarrowingEvent?   @relation(fields: [farrowingId], references: [id])
-  piglet            Piglet?           @relation(fields: [pigletId], references: [id])
+  medicine          Medicine           @relation(fields: [medicineId], references: [id])
+  farrowing         FarrowingEvent?    @relation(fields: [farrowingId], references: [id])
+  piglet            Piglet?            @relation(fields: [pigletId], references: [id])
+  sow               Sow?               @relation(fields: [sowId], references: [id])
   withdrawalPeriods WithdrawalPeriod[]
 
   @@index([tenantId])
@@ -1810,24 +1831,77 @@ model CurativeTreatment {
 
 // REGLA 5: Período de retiro activo bloquea destete y venta
 model WithdrawalPeriod {
-  id             String            @id @default(cuid())
+  id             String   @id @default(cuid())
   tenantId       String
   pigletId       String?
   farrowingId    String?
+  sowId          String?
   medicineId     String
   treatmentId    String?
   withdrawalDays Int
   startDate      DateTime
-  endDate        DateTime          // startDate + withdrawalDays
-  isActive       Boolean           @default(true)
+  endDate        DateTime // startDate + withdrawalDays
+  isActive       Boolean  @default(true)
 
-  medicine   Medicine           @relation(fields: [medicineId], references: [id])
-  piglet     Piglet?            @relation(fields: [pigletId], references: [id])
-  treatment  CurativeTreatment? @relation(fields: [treatmentId], references: [id])
-  farrowing  FarrowingEvent?    @relation(fields: [farrowingId], references: [id])
+  medicine  Medicine           @relation(fields: [medicineId], references: [id])
+  piglet    Piglet?            @relation(fields: [pigletId], references: [id])
+  sow       Sow?               @relation(fields: [sowId], references: [id])
+  treatment CurativeTreatment? @relation(fields: [treatmentId], references: [id])
+  farrowing FarrowingEvent?    @relation(fields: [farrowingId], references: [id])
 
   @@index([tenantId, isActive, endDate])
   @@map("withdrawal_periods")
+}
+
+// Sanidad de maternidad: descolmillado, corte de cola, corte de ombligo,
+// hierro, castración — se carga por camada completa por defecto.
+model ProcedimientoMaternidad {
+  id                         String                      @id @default(cuid())
+  tenantId                   String
+  farrowingId                String
+  procedimiento              ProcedimientoMaternidadTipo
+  cantidadLechonesProcesados Int
+  edadDiasAlProcedimiento    Int
+  observacionesTecnica       String?
+  fecha                      DateTime
+  responsableId              String
+  createdAt                  DateTime                    @default(now())
+
+  farrowing FarrowingEvent @relation(fields: [farrowingId], references: [id])
+
+  @@index([tenantId, farrowingId])
+  @@map("procedimientos_maternidad")
+}
+
+// Necropsias / bajas — investigación de causa de muerte. bajaConfirmaBrote
+// es una confirmación administrativa manual, separada del disparador
+// automático del heatmap de brotes (≥3 casos misma causa/galpón/7 días).
+model Necropsia {
+  id                     String    @id @default(cuid())
+  tenantId               String
+  sowId                  String?
+  boarId                 String?
+  farrowingId            String?
+  pigletId               String?
+  causaSanitariaPresunta String
+  seRealizoNecropsia     Boolean   @default(false)
+  hallazgos              String?
+  galpon                 String?
+  bajaConfirmaBrote      Boolean   @default(false)
+  bajaConfirmaBrotePor   String? // userId — validado en servicio: solo Super Admin / Farm Admin
+  bajaConfirmaBroteFecha DateTime?
+  fecha                  DateTime
+  responsableId          String
+  createdAt              DateTime  @default(now())
+
+  sow       Sow?            @relation(fields: [sowId], references: [id])
+  boar      Boar?           @relation(fields: [boarId], references: [id])
+  farrowing FarrowingEvent? @relation(fields: [farrowingId], references: [id])
+  piglet    Piglet?         @relation(fields: [pigletId], references: [id])
+
+  @@index([tenantId, fecha])
+  @@index([tenantId, galpon, causaSanitariaPresunta])
+  @@map("necropsias")
 }
 
 // ================================================================
@@ -1843,11 +1917,11 @@ model WhatsAppSession {
   phoneNumber    String
   status         WhatsAppSessionStatus @default(ACTIVE)
   context        Json                  @default("{}") // Estado de la conversación en curso
-  currentStep    String?               // Paso actual del flujo ("ASK_BORN_ALIVE", etc.)
+  currentStep    String? // Paso actual del flujo ("ASK_BORN_ALIVE", etc.)
   lastActivityAt DateTime              @default(now())
   expiresAt      DateTime
 
-  messages       WhatsAppMessage[]
+  messages WhatsAppMessage[]
 
   @@index([phoneNumber, status])
   @@index([tenantId])
@@ -1857,14 +1931,14 @@ model WhatsAppSession {
 model WhatsAppMessage {
   id          String   @id @default(cuid())
   sessionId   String
-  direction   String   // "IN" | "OUT"
-  messageType String   // "text" | "audio" | "image"
+  direction   String // "IN" | "OUT"
+  messageType String // "text" | "audio" | "image"
   content     String   @db.Text
-  transcript  String?  @db.Text  // Transcripción si es audio (Whisper)
-  waMessageId String?             // ID del mensaje de Meta
+  transcript  String?  @db.Text // Transcripción si es audio (Whisper)
+  waMessageId String? // ID del mensaje de Meta
   createdAt   DateTime @default(now())
 
-  session     WhatsAppSession @relation(fields: [sessionId], references: [id])
+  session WhatsAppSession @relation(fields: [sessionId], references: [id])
 
   @@index([sessionId])
   @@map("whatsapp_messages")
@@ -1875,18 +1949,18 @@ model WhatsAppMessage {
 // ================================================================
 
 model Alert {
-  id          String        @id @default(cuid())
-  tenantId    String
-  alertType   AlertType
-  severity    AlertSeverity @default(WARNING)
-  title       String
-  body        String
-  entityId    String?       // ID de la entidad relacionada
-  entityType  String?       // "SOW" | "BATCH" | "FORMULA" | "HEALTH_TASK"
-  isRead      Boolean       @default(false)
-  isResolved  Boolean       @default(false)
-  resolvedAt  DateTime?
-  createdAt   DateTime      @default(now())
+  id         String        @id @default(cuid())
+  tenantId   String
+  alertType  AlertType
+  severity   AlertSeverity @default(WARNING)
+  title      String
+  body       String
+  entityId   String? // ID de la entidad relacionada
+  entityType String? // "SOW" | "BATCH" | "FORMULA" | "HEALTH_TASK"
+  isRead     Boolean       @default(false)
+  isResolved Boolean       @default(false)
+  resolvedAt DateTime?
+  createdAt  DateTime      @default(now())
 
   @@index([tenantId, isResolved, createdAt])
   @@index([tenantId, alertType])
@@ -1902,7 +1976,7 @@ model NotificationPreference {
   preferences Json                @default("{}") // { "PIGLETS_OVERDUE_WEANING": "PUSH", ... }
   updatedAt   DateTime            @updatedAt
 
-  user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notification_preferences")
 }
@@ -1911,11 +1985,11 @@ model PushToken {
   id        String   @id @default(cuid())
   userId    String
   token     String   @unique
-  platform  String   // "android" | "ios" | "web"
+  platform  String // "android" | "ios" | "web"
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("push_tokens")
 }
@@ -1942,7 +2016,7 @@ enum MarketplaceCategoria {
 }
 
 model MarketplaceVendor {
-  id             String    @id @default(cuid())
+  id             String   @id @default(cuid())
   empresaNombre  String
   ruc            String?
   contactoNombre String?
@@ -1951,14 +2025,14 @@ model MarketplaceVendor {
   direccion      String?
   ciudad         String?
   logoUrl        String?
-  descripcion    String?   @db.Text
-  isActive       Boolean   @default(true)
-  isApproved     Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  descripcion    String?  @db.Text
+  isActive       Boolean  @default(true)
+  isApproved     Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  productos      MarketplaceProducto[]
-  pedidos        MarketplacePedido[]
+  productos MarketplaceProducto[]
+  pedidos   MarketplacePedido[]
 
   @@map("marketplace_vendors")
 }
@@ -1973,7 +2047,7 @@ model MarketplaceProducto {
   enfermedadObjetivo String?
   viaAplicacion      String?
   dosisMl            Decimal?             @db.Decimal(8, 3)
-  presentacion       String?              // "50ml/vial", "10 dosis/caja"
+  presentacion       String? // "50ml/vial", "10 dosis/caja"
   fichaTecnicaUrl    String?
   stockDisponible    Int                  @default(0)
   unidadMedida       String               @default("dosis") // dosis, ml, kg, unidad
@@ -1985,8 +2059,8 @@ model MarketplaceProducto {
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
 
-  vendor             MarketplaceVendor    @relation(fields: [vendorId], references: [id])
-  pedidoItems        MarketplacePedidoItem[]
+  vendor      MarketplaceVendor       @relation(fields: [vendorId], references: [id])
+  pedidoItems MarketplacePedidoItem[]
 
   @@index([vendorId, isActive])
   @@index([categoria, isActive])
@@ -1994,33 +2068,33 @@ model MarketplaceProducto {
 }
 
 model MarketplacePedido {
-  id          String                   @id @default(cuid())
-  tenantId    String                   // Tenant comprador
-  vendorId    String
-  estado      MarketplacePedidoEstado  @default(PENDIENTE)
-  totalGs     Decimal                  @db.Decimal(14, 0)
-  notas       String?
+  id               String                  @id @default(cuid())
+  tenantId         String // Tenant comprador
+  vendorId         String
+  estado           MarketplacePedidoEstado @default(PENDIENTE)
+  totalGs          Decimal                 @db.Decimal(14, 0)
+  notas            String?
   direccionEntrega String?
-  creadoPorId String?                  // userId del comprador
-  createdAt   DateTime                 @default(now())
-  updatedAt   DateTime                 @updatedAt
+  creadoPorId      String? // userId del comprador
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
 
-  vendor      MarketplaceVendor        @relation(fields: [vendorId], references: [id])
-  items       MarketplacePedidoItem[]
+  vendor MarketplaceVendor       @relation(fields: [vendorId], references: [id])
+  items  MarketplacePedidoItem[]
 
   @@index([tenantId, estado])
   @@map("marketplace_pedidos")
 }
 
 model MarketplacePedidoItem {
-  id         String              @id @default(cuid())
+  id         String  @id @default(cuid())
   pedidoId   String
   productoId String
   cantidad   Int
-  precioGs   Decimal             @db.Decimal(14, 0)
+  precioGs   Decimal @db.Decimal(14, 0)
 
-  pedido     MarketplacePedido   @relation(fields: [pedidoId], references: [id])
-  producto   MarketplaceProducto @relation(fields: [productoId], references: [id])
+  pedido   MarketplacePedido   @relation(fields: [pedidoId], references: [id])
+  producto MarketplaceProducto @relation(fields: [productoId], references: [id])
 
   @@map("marketplace_pedido_items")
 }
@@ -2032,41 +2106,41 @@ model MarketplacePedidoItem {
 model Task {
   id               String    @id @default(cuid())
   tenantId         String
-  tipo             String    // parto-esperado | diagnostico-prenez | vacuna-gestacion | vacuna-lechones
-                             // hierro-fe | destete | pesaje | cambio-fase | tratamiento-curativo
-                             // limpieza-bebederos | desinfeccion-corral | limpieza-semanal
-                             // control-temperatura | alimentacion
-  sector           String    // gestacion | maternidad | iniciacion | engorde | granja
-  alcance          String    // animal | camada | lote | sala | granja
+  tipo             String // parto-esperado | diagnostico-prenez | vacuna-gestacion | vacuna-lechones
+  // hierro-fe | destete | pesaje | cambio-fase | tratamiento-curativo
+  // limpieza-bebederos | desinfeccion-corral | limpieza-semanal
+  // control-temperatura | alimentacion
+  sector           String // gestacion | maternidad | iniciacion | engorde | granja
+  alcance          String // animal | camada | lote | sala | granja
   titulo           String
   descripcion      String
   instrucciones    String?
-  prioridad        String    // urgente | hoy | programada
+  prioridad        String // urgente | hoy | programada
   fechaVencimiento DateTime
   fechaCompletada  DateTime?
 
   // Target (solo uno aplica)
-  animalId         String?   // sowId
-  farrowingId      String?
-  nurseryBatchId   String?
-  growingBatchId   String?
-  targetLabel      String?   // Nombre legible del target (ej: "Cerda 4480 · Corral 14")
+  animalId       String? // sowId
+  farrowingId    String?
+  nurseryBatchId String?
+  growingBatchId String?
+  targetLabel    String? // Nombre legible del target (ej: "Cerda 4480 · Corral 14")
 
   // Completion
-  completadaPor    String?
-  notas            String?
-  pospuestas       Int       @default(0)
+  completadaPor String?
+  notas         String?
+  pospuestas    Int     @default(0)
 
   // Responsable
-  responsableNombre String?  // "Dr. Erwin Segovia"
-  responsableKey    String?  // "erwin-segovia" | "bartolome-vera" | "graciela-duarte" | "alex-almada"
+  responsableNombre String? // "Dr. Erwin Segovia"
+  responsableKey    String? // "erwin-segovia" | "bartolome-vera" | "graciela-duarte" | "alex-almada"
 
   // Generation
-  generadaPor      String    @default("sistema") // sistema | manual
-  disparador       String?   // "parto-{farrowingId}" | "servicio-{serviceEventId}"
+  generadaPor String  @default("sistema") // sistema | manual
+  disparador  String? // "parto-{farrowingId}" | "servicio-{serviceEventId}"
 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([tenantId, fechaVencimiento])
   @@index([tenantId, sector, fechaVencimiento])
@@ -2076,82 +2150,159 @@ model Task {
 
 // ── MÓDULO SANIDAD ────────────────────────────────────────────────────────────
 
-model Vacuna {
-  id                String   @id @default(cuid())
-  tenantId          String
-  nombre            String
-  enfermedad        String
-  categoria         String   // cerda | lechon | lote | verraco | plantel
-  viaAplicacion     String   @default("IM") // IM | SC | oral | intranasal
-  dosisMl           Decimal  @default(2) @db.Decimal(6, 2)
-  intervaloRefuerzo Int?     // días hasta refuerzo
-  criticidad        String   @default("alta") // alta | media | baja
-  bloqueoServicio   Boolean  @default(false)
-  observaciones     String?
-  isActive          Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  lotes             LoteVacuna[]
-  protocoloItems    ProtocoloItem[]
-  eventosVacunacion EventoVacunacion[]
-  aplicaciones      AplicacionVacuna[]
+enum CategoriaProducto {
+  VACUNA
+  SUPLEMENTO
+  MEDICAMENTO
+  MATERIA_PRIMA
+  BALANCEADO
+  EQUIPAMIENTO
+}
+
+enum UnidadMedida {
+  DOSIS
+  ML
+  KG
+  UNIDAD
+  SACO
+}
+
+// Catálogo único de inventario (Logística) — cubre vacunas/suplementos/medicamentos
+// (Sanidad) y, desde la Fase 2, también materia prima y balanceado. Sigue mapeado a
+// las tablas físicas "vacunas"/"lotes_vacunas" — es un renombrado lógico, sin
+// migración de datos.
+model ProductoInventario {
+  id                    String                 @id @default(cuid())
+  tenantId              String
+  nombre                String
+  enfermedad            String
+  sectorDestino         String                 @map("sector_destino") // cerda | lechon | lote | verraco | plantel (ex "categoria" — sector destino de la vacuna; columna física renombrada de "categoria" a "sector_destino")
+  categoria             CategoriaProducto      @default(VACUNA)
+  codigo                String? // V-001 | S-001 | M-001 | MP-001 | B-001 | E-001 — inmutable, nunca se reasigna
+  unidadMedida          UnidadMedida           @default(DOSIS)
+  stockMinimo           Int? // umbral manual de stock crítico (Suplemento/Medicamento/Materia Prima/Balanceado)
+  materialType          RawMaterialType? // solo cuando categoria=MATERIA_PRIMA: PROTEIN | ENERGY | NUCLEUS | ADDITIVE | MINERAL
+  viaAplicacion         String                 @default("IM") // IM | SC | oral | intranasal
+  dosisMl               Decimal                @default(2) @db.Decimal(6, 2)
+  intervaloRefuerzo     Int? // días hasta refuerzo
+  criticidad            String                 @default("alta") // alta | media | baja
+  bloqueoServicio       Boolean                @default(false)
+  descarteHorasApertura Int? // horas hasta descartar un vial ya abierto (multidosis); null = no forzar por tiempo
+  observaciones         String?
+  isActive              Boolean                @default(true)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  lotes                 LoteInventario[]
+  protocoloItems        ProtocoloItem[]
+  eventosVacunacion     EventoVacunacion[]
+  aplicaciones          AplicacionVacuna[]
+  formulaIngredients    FormulaIngredient[]
+  feedTypesBalanceado   FeedType[]
+  movimientos           MovimientoInventario[]
+
   @@index([tenantId])
+  @@index([tenantId, categoria])
   @@map("vacunas")
 }
 
-model LoteVacuna {
-  id               String   @id @default(cuid())
+model LoteInventario {
+  id               String                   @id @default(cuid())
   tenantId         String
   vacunaId         String
   numeroLote       String
   proveedor        String?
   fechaVencimiento DateTime
-  fechaIngreso     DateTime @default(now())
-  cantidadInicial  Int
-  cantidadActual   Int
-  abierto          Boolean  @default(false)
+  fechaIngreso     DateTime                 @default(now())
+  cantidadInicial  Decimal                  @db.Decimal(12, 3)
+  cantidadActual   Decimal                  @db.Decimal(12, 3)
+  costoUnitario    Decimal?                 @db.Decimal(12, 4) // costo por unidad de medida del producto (₲/dosis, ₲/ml, ₲/kg) — para "cuánto me sale cada producto"
+  abierto          Boolean                  @default(false)
+  fechaApertura    DateTime? // cuándo se abrió el vial — junto con vacuna.descarteHorasApertura define el descarte por tiempo
+  abiertoPorId     String? // userId que lo abrió
   observaciones    String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  vacuna           Vacuna   @relation(fields: [vacunaId], references: [id])
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  vacuna           ProductoInventario       @relation(fields: [vacunaId], references: [id])
   aplicaciones     AplicacionVacuna[]
+  nutricion        LoteInventarioNutricion?
+  produccionOrigen BalProductionOrder?
+  movimientos      MovimientoInventario[]
+
   @@index([tenantId, vacunaId])
   @@map("lotes_vacunas")
 }
 
+enum TipoMovimiento {
+  ENTRADA
+  SALIDA
+  AJUSTE
+}
+
+enum OrigenMovimiento {
+  VACUNACION
+  TRATAMIENTO
+  MATERNIDAD
+  PRODUCCION
+  ALIMENTACION
+  COMPRA
+  AJUSTE_MANUAL
+}
+
+// Historial de toda entrada/salida de inventario — audita (no reemplaza) el
+// descuento/incremento directo que ya hace cada flujo sobre LoteInventario.
+model MovimientoInventario {
+  id           String           @id @default(cuid())
+  tenantId     String
+  productoId   String
+  loteId       String?
+  tipo         TipoMovimiento
+  cantidad     Decimal          @db.Decimal(12, 3)
+  origen       OrigenMovimiento
+  referenciaId String?
+  fecha        DateTime         @default(now())
+
+  producto ProductoInventario @relation(fields: [productoId], references: [id])
+  lote     LoteInventario?    @relation(fields: [loteId], references: [id])
+
+  @@index([tenantId, productoId, fecha])
+  @@map("movimientos_inventario")
+}
+
 model ProtocoloSanitario {
-  id          String   @id @default(cuid())
+  id          String          @id @default(cuid())
   tenantId    String
   nombre      String
-  fase        String   // gestacion | maternidad | iniciacion | engorde | reproductores
-  tipoAnimal  String   // cerda | lechon | lote | plantel
+  fase        String // gestacion | maternidad | iniciacion | engorde | reproductores
+  tipoAnimal  String // cerda | lechon | lote | plantel
   descripcion String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
   items       ProtocoloItem[]
+
   @@index([tenantId])
   @@map("protocolos_sanitarios")
 }
 
 model ProtocoloItem {
-  id              String   @id @default(cuid())
+  id              String             @id @default(cuid())
   tenantId        String
   protocoloId     String
   vacunaId        String
   diaCiclo        Int
-  disparador      String   // parto | servicio | destete | ingreso-lote
-  esObligatorio   Boolean  @default(true)
-  bloqueoServicio Boolean  @default(false)
+  disparador      String // parto | servicio | destete | ingreso-lote
+  esObligatorio   Boolean            @default(true)
+  bloqueoServicio Boolean            @default(false)
   descripcion     String?
-  createdAt       DateTime @default(now())
+  createdAt       DateTime           @default(now())
   protocolo       ProtocoloSanitario @relation(fields: [protocoloId], references: [id])
-  vacuna          Vacuna             @relation(fields: [vacunaId], references: [id])
+  vacuna          ProductoInventario @relation(fields: [vacunaId], references: [id])
+
   @@index([tenantId, protocoloId])
   @@map("protocolo_items")
 }
 
 model EventoVacunacion {
-  id              String   @id @default(cuid())
+  id              String             @id @default(cuid())
   tenantId        String
   protocoloItemId String?
   vacunaId        String
@@ -2162,32 +2313,37 @@ model EventoVacunacion {
   nurseryBatchId  String?
   growingBatchId  String?
   targetLabel     String?
-  dosisNecesarias Int      @default(1)
-  estado          String   @default("pendiente") // pendiente | aplicado | retrasado | omitido
+  dosisNecesarias Int                @default(1)
+  estado          String             @default("pendiente") // pendiente | aplicado | retrasado | omitido
   disparador      String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  vacuna          Vacuna             @relation(fields: [vacunaId], references: [id])
+  sectorAlAplicar String? // snapshot de "sector" al momento de aplicar (no cambia si el animal se traslada después)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  vacuna          ProductoInventario @relation(fields: [vacunaId], references: [id])
   aplicaciones    AplicacionVacuna[]
+
   @@index([tenantId, fecha])
   @@index([tenantId, vacunaId, estado])
   @@map("eventos_vacunacion")
 }
 
 model AplicacionVacuna {
-  id              String   @id @default(cuid())
-  tenantId        String
-  eventoId        String
-  loteVacunaId    String?
-  vacunaId        String
-  dosisAplicadas  Int
-  fechaAplicacion DateTime
-  responsable     String
-  observaciones   String?
-  createdAt       DateTime @default(now())
-  evento          EventoVacunacion @relation(fields: [eventoId], references: [id])
-  loteVacuna      LoteVacuna?      @relation(fields: [loteVacunaId], references: [id])
-  vacuna          Vacuna           @relation(fields: [vacunaId], references: [id])
+  id                String             @id @default(cuid())
+  tenantId          String
+  eventoId          String
+  loteVacunaId      String?
+  vacunaId          String
+  dosisAplicadas    Int
+  fechaAplicacion   DateTime
+  responsable       String
+  observaciones     String?
+  grupoAplicacionId String? // agrupa todas las filas creadas en una misma acción de "Registrar aplicación" (bulk)
+  createdAt         DateTime           @default(now())
+  evento            EventoVacunacion   @relation(fields: [eventoId], references: [id])
+  loteVacuna        LoteInventario?    @relation(fields: [loteVacunaId], references: [id])
+  vacuna            ProductoInventario @relation(fields: [vacunaId], references: [id])
+
   @@index([tenantId, eventoId])
+  @@index([tenantId, grupoAplicacionId])
   @@map("aplicaciones_vacunas")
 }

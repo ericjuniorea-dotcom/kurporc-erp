@@ -24,7 +24,7 @@ const NAV_GROUPS = [
     key:   "produccion",
     label: "Producción",
     items: [
-      { label: "Plantel",      href: "/plantel",     icon: IconDna,                roles: [1,2,3,4,5,11] },
+      { label: "Plantel Reproductivo", href: "/plantel", icon: IconDna,              roles: [1,2,3,4,5,11] },
       { label: "Gestación",   href: "/gestacion",   icon: IconHeart,              roles: [1,2,3,4,5,11] },
       { label: "Maternidad",  href: "/maternidad",  icon: IconHeartPlus,          roles: [1,2,3,4,5,10] },
       { label: "Iniciación",   href: "/recria",      icon: IconBuildingWarehouse,  roles: [1,2,3,4,5,12] },
@@ -49,7 +49,7 @@ const NAV_GROUPS = [
       { label: "RRHH",           href: "/rrhh",          icon: IconUsers,          roles: [1,2,8] },
       { label: "Financiero",     href: "/financiero",    icon: IconCalculator,     roles: [1,2,9] },
       { label: "WhatsApp Bot",   href: "/whatsapp",      icon: IconBrandWhatsapp,  roles: [1,2] },
-      { label: "Marketplace",    href: "/marketplace",   icon: IconBuildingStore,  roles: [1,2,3,4,5,6,7,8,9,10,11,12,13] },
+      { label: "Mercado de Insumos", href: "/marketplace", icon: IconBuildingStore, roles: [1,2,3,4,5,6,7,8,9,10,11,12,13] },
       { label: "Configuración",  href: "/configuracion", icon: IconSettings,       roles: [1,2,3,4,5,6,7,8,9,10,11,12,13] },
     ],
   },

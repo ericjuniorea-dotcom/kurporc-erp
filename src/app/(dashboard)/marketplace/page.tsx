@@ -1,6 +1,7 @@
 "use client";
 export const dynamic = "force-dynamic";
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   IconShoppingCart, IconSearch, IconPlus, IconFileText,
@@ -40,11 +41,14 @@ function fmtGs(v: string | number) {
 
 export default function MarketplacePage() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
   const [vendors,    setVendors]    = useState<Vendor[]>([]);
   const [productos,  setProductos]  = useState<Producto[]>([]);
   const [loading,    setLoading]    = useState(true);
-  const [search,     setSearch]     = useState("");
-  const [categoria,  setCategoria]  = useState("ALL");
+  // Precargados desde la URL (?categoria=&q=) — para llegar acá con un enlace
+  // directo desde una alerta de stock crítico en otro módulo (Sanidad, etc.)
+  const [search,     setSearch]     = useState(() => searchParams.get("q") ?? "");
+  const [categoria,  setCategoria]  = useState(() => searchParams.get("categoria") ?? "ALL");
   const [vendorFilt, setVendorFilt] = useState("ALL");
   const [cart,       setCart]       = useState<CartItem[]>([]);
   const [showCart,   setShowCart]   = useState(false);
@@ -157,7 +161,7 @@ export default function MarketplacePage() {
   return (
     <>
       <Topbar
-        title="Marketplace"
+        title="Mercado de Insumos"
         icon={IconBuildingStore}
         iconColor="var(--accent)"
         tabs={[

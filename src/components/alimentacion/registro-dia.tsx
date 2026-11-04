@@ -318,12 +318,27 @@ export function RegistroDia() {
   }
 
   async function handleSaveAll() {
-    const pending = filtered.filter(i => i.kgEntregados === null);
-    for (const item of pending) {
-      if (item.feedTypeId) {
-        await handleSave(item.id, item.feedTypeId, item.kgRecomendados, item.tipo);
-      }
-    }
+    const pending = filtered.filter(i => i.kgEntregados === null && i.feedTypeId);
+    if (pending.length === 0) return;
+    setSaving("__ronda__");
+    try {
+      await fetch("/api/alimentacion/registros/confirmar-ronda", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recordDate: fecha,
+          filas: pending.map(item => ({
+            feedTypeId:     item.feedTypeId,
+            quantityKg:     item.kgRecomendados,
+            farrowingId:    item.tipo === "FARROWING_SOW" ? item.id : null,
+            nurseryBatchId: item.tipo === "NURSERY"       ? item.id : null,
+            growingBatchId: item.tipo === "GROWING"       ? item.id : null,
+          })),
+        }),
+      });
+      await load();
+    } catch {}
+    setSaving(null);
   }
 
   const totalEstimado   = filtered.reduce((s, i) => s + i.kgRecomendados, 0);

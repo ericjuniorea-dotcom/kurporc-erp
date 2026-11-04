@@ -10,6 +10,7 @@ export const serviceEventSchema = z.object({
   expiryDate:     z.string().optional(),
   durationMinutes: z.coerce.number().min(0).optional(),
   notes:          z.string().optional(),
+  currentWeightKg: z.coerce.number().positive("Ingresá el peso actual de la cerda"),
 }).superRefine((data, ctx) => {
   if (data.serviceType === "AI") {
     if (!data.doseCode) {

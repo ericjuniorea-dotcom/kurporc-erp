@@ -69,7 +69,7 @@ export function FormulaEditor({ formulaId, onSuccess, onCancel, isVetChief }: Pr
       const res = await fetch("/api/formulas", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ formulaId, ingredients }),
+        body:    JSON.stringify({ formulaId, ingredients, preview: true }),
       });
       if (res.ok) {
         const data = await res.json();

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
+import { invalidateInventario } from "@/lib/cache";
 
 export async function POST(
   req: NextRequest,
@@ -30,45 +31,51 @@ export async function POST(
 
   // Descontar stock del lote
   if (loteVacunaId) {
-    const lote = await prisma.loteVacuna.findFirst({ where: { id: loteVacunaId, tenantId } });
+    const lote = await prisma.loteInventario.findFirst({ where: { id: loteVacunaId, tenantId } });
     if (!lote) return NextResponse.json({ error: "Lote no encontrado" }, { status: 404 });
     if (lote.fechaVencimiento < new Date()) {
       return NextResponse.json({ error: "El lote de vacuna está vencido. No se puede aplicar." }, { status: 422 });
     }
-    if (lote.cantidadActual < dosisAplicadas) {
-      return NextResponse.json({ error: `Stock insuficiente. Disponible: ${lote.cantidadActual} dosis.` }, { status: 422 });
+    if (Number(lote.cantidadActual) < dosisAplicadas) {
+      return NextResponse.json({ error: `Stock insuficiente. Disponible: ${Number(lote.cantidadActual)} dosis.` }, { status: 422 });
     }
-    await prisma.loteVacuna.update({
+    await prisma.loteInventario.update({
       where: { id: loteVacunaId },
       data: { cantidadActual: { decrement: dosisAplicadas }, abierto: true },
     });
+    await prisma.movimientoInventario.create({
+      data: { tenantId, productoId: evento.vacunaId, loteId: loteVacunaId, tipo: "SALIDA", cantidad: dosisAplicadas, origen: "VACUNACION", referenciaId: evento.id },
+    });
   }
 
-  // Crear registro de aplicación
-  await prisma.aplicacionVacuna.create({
-    data: {
-      tenantId,
-      eventoId:       evento.id,
-      loteVacunaId,
-      vacunaId:       evento.vacunaId,
-      dosisAplicadas,
-      fechaAplicacion: fechaApp,
-      responsable,
-      observaciones,
-    },
-  });
-
-  // Marcar evento como aplicado
-  await prisma.eventoVacunacion.update({
-    where: { id: evento.id },
-    data:  { estado: "aplicado", updatedAt: new Date() },
-  });
+  // Crear registro de aplicación y marcar el evento como aplicado — son
+  // escrituras independientes, se disparan juntas en vez de una tras otra.
+  await Promise.all([
+    prisma.aplicacionVacuna.create({
+      data: {
+        tenantId,
+        eventoId:       evento.id,
+        loteVacunaId,
+        vacunaId:       evento.vacunaId,
+        dosisAplicadas,
+        fechaAplicacion: fechaApp,
+        responsable,
+        observaciones,
+      },
+    }),
+    prisma.eventoVacunacion.update({
+      where: { id: evento.id },
+      data:  { estado: "aplicado", updatedAt: new Date() },
+    }),
+  ]);
 
   // Si la vacuna tenía bloqueoServicio + hay animal → desbloquear cerda
   if (evento.vacuna.bloqueoServicio && evento.animalId) {
     // Marcar en el animal que vacuna aplicada (via nota en tarea o simplemente dejamos desbloqueo implícito)
     // La verificación de bloqueo busca eventos aplicados, por lo que con esto alcanza
   }
+
+  if (loteVacunaId) invalidateInventario(tenantId);
 
   return NextResponse.json({ success: true, mensaje: "Vacunación registrada correctamente." });
 }

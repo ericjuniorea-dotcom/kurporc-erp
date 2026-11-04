@@ -118,7 +118,7 @@ async function main() {
 
   const batches: Record<string, string> = {};
   for (const label of [w07Label, w10Label, w14Label, w20Label]) {
-    const existing = await prisma.serviceBatch.findUnique({ where: { tenantId_weekLabel: { tenantId: tid, weekLabel: label } } });
+    const existing = await prisma.serviceBatch.findFirst({ where: { tenantId: tid, weekLabel: label } });
     const b = existing ?? await prisma.serviceBatch.create({ data: { tenantId: tid, weekLabel: label } });
     batches[label] = b.id;
   }
@@ -326,28 +326,35 @@ async function main() {
   ];
 
   const rawMaterialIds: { id: string; name: string }[] = [];
+  let mpSeq = 1;
   for (const def of rawMatDefs) {
-    let rm = await prisma.rawMaterial.findUnique({ where: { tenantId_name: { tenantId: tid, name: def.name } } });
+    let rm = await prisma.productoInventario.findFirst({ where: { tenantId: tid, nombre: def.name, categoria: "MATERIA_PRIMA" } });
     if (!rm) {
-      rm = await prisma.rawMaterial.create({
-        data: { tenantId: tid, name: def.name, materialType: def.type, minStockKg: def.minStock },
+      rm = await prisma.productoInventario.create({
+        data: {
+          tenantId: tid, nombre: def.name, categoria: "MATERIA_PRIMA", materialType: def.type,
+          codigo: `MP-${String(mpSeq++).padStart(3, "0")}`, unidadMedida: "KG", stockMinimo: def.minStock,
+          enfermedad: "", sectorDestino: "produccion",
+        },
       });
     }
-    rawMaterialIds.push({ id: rm.id, name: rm.name });
+    rawMaterialIds.push({ id: rm.id, name: rm.nombre });
 
     for (const lot of def.lots) {
-      const existingLot = await prisma.rawMaterialLot.findFirst({ where: { tenantId: tid, rawMaterialId: rm.id, lotCode: lot.code } });
+      const existingLot = await prisma.loteInventario.findFirst({ where: { tenantId: tid, vacunaId: rm.id, numeroLote: lot.code } });
       if (!existingLot) {
-        await prisma.rawMaterialLot.create({
+        await prisma.loteInventario.create({
           data: {
-            tenantId:      tid,
-            rawMaterialId: rm.id,
-            lotCode:       lot.code,
-            receivedDate:  addDays(today, -15),
-            quantityKg:    lot.qty,
-            remainingKg:   lot.remain,
-            pricePerKg:    lot.price,
-            crudProteinPct: lot.protein ?? undefined,
+            tenantId:         tid,
+            vacunaId:         rm.id,
+            numeroLote:       lot.code,
+            fechaIngreso:     addDays(today, -15),
+            fechaVencimiento: addDays(today, 365 * 2),
+            cantidadInicial:  lot.qty,
+            cantidadActual:   lot.remain,
+            nutricion: {
+              create: { pricePerKg: lot.price, crudProteinPct: lot.protein ?? undefined },
+            },
           },
         });
       }

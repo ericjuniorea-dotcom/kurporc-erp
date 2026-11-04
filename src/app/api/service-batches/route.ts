@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/config";
 import prisma from "@/lib/db/prisma";
-import { addDays } from "@/lib/utils";
+import { addDays, isoWeekLabel } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -146,4 +146,43 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json(result);
+}
+
+/**
+ * Crea un lote de servicio con nombre/código explícito (sin registrar
+ * servicios todavía). El registro de cada cerda se hace individualmente
+ * después, contra POST /api/service-events pasando este batchId — así se
+ * reutiliza exactamente la misma ficha/validaciones que el servicio
+ * individual (elegibilidad, repetición de celo, inseminación forzada, etc.).
+ */
+export async function POST(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+
+  const allowed = [1, 2, 3, 4, 5, 11, 13];
+  if (!session.user.roles.some((r) => allowed.includes(r))) {
+    return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  }
+
+  const body = await req.json();
+  const { code, serviceDate, notes } = body as { code?: string; serviceDate?: string; notes?: string };
+
+  if (!serviceDate) {
+    return NextResponse.json({ error: "Fecha de servicio requerida" }, { status: 400 });
+  }
+
+  const tenantId  = session.user.tenantId;
+  const weekLabel = isoWeekLabel(new Date(serviceDate));
+
+  let finalCode = typeof code === "string" ? code.trim() : "";
+  if (!finalCode) {
+    const countNamed = await prisma.serviceBatch.count({ where: { tenantId, weekLabel, code: { not: null } } });
+    finalCode = `LOTE-${weekLabel}-${countNamed + 1}`;
+  }
+
+  const batch = await prisma.serviceBatch.create({
+    data: { tenantId, weekLabel, code: finalCode, notes: notes || undefined },
+  });
+
+  return NextResponse.json({ batch }, { status: 201 });
 }

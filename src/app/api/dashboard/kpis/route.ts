@@ -14,6 +14,11 @@ export async function GET(req: NextRequest) {
   const day30Ago = new Date(today); day30Ago.setDate(day30Ago.getDate() - 30);
   const day60Ago = new Date(today); day60Ago.setDate(day60Ago.getDate() - 60);
 
+  // Tasa de parición (partos con lechón vivo / servicios en ventana previa ~114 días)
+  const services144dAgo = new Date(today); services144dAgo.setDate(services144dAgo.getDate() - 144);
+
+  // Ninguna de estas consultas depende de otra — todas se disparan juntas
+  // (antes iban en dos tandas de Promise.all seguidas, ahora es una sola).
   const [
     activeSows,
     activeFarrowings,
@@ -28,6 +33,8 @@ export async function GET(req: NextRequest) {
     weanings30d,
     // GDP promedio recría activa
     nurseryWeight,
+    servicesInWindow,
+    farrowingsFromWindow,
   ] = await Promise.all([
     prisma.sow.count({ where: { tenantId, isActive: true } }),
     prisma.farrowingEvent.count({ where: { tenantId, weaning: null } }),
@@ -48,12 +55,6 @@ export async function GET(req: NextRequest) {
       where:   { tenantId, isActive: true },
       include: { weightRecords: { orderBy: { recordDate: "desc" }, take: 1, select: { dailyGainKg: true } } },
     }),
-  ]);
-
-  // Tasa de parición (partos con lechón vivo / servicios en ventana previa ~114 días)
-  const services30dAgo = new Date(today); services30dAgo.setDate(services30dAgo.getDate() - 30 - 114);
-  const services144dAgo = new Date(today); services144dAgo.setDate(services144dAgo.getDate() - 144);
-  const [servicesInWindow, farrowingsFromWindow] = await Promise.all([
     prisma.serviceEvent.count({
       where: { tenantId, serviceDate: { gte: services144dAgo, lte: new Date(today.getTime() - 114 * 86400000) } },
     }),
