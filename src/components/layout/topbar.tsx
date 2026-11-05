@@ -27,6 +27,7 @@ export function Topbar({ title, icon: Icon, iconColor, tabs, activeTab, onTabCha
 
   return (
     <header
+      className="kp-topbar"
       style={{
         height: 52,
         borderBottom: "0.5px solid var(--border-default)",

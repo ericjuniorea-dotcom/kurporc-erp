@@ -378,36 +378,99 @@
   }
 }
 
-/* ── Mobile sidebar ────────────────────────────── */
+/* ── Sidebar (desktop base) ───────────────────────── */
+.sidebar {
+  width: 220px;
+  background: var(--bg-elevated);
+  border-right: 0.5px solid var(--border-default);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+}
+.mobile-topbar,
+.sidebar-overlay,
+.sidebar-close-btn { display: none; }
+
+/* ── Mobile sidebar: menú tipo drawer ────────────── */
 @media (max-width: 768px) {
+  /* Barra fija arriba con el botón de hamburguesa */
+  .mobile-topbar {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 52px;
+    padding: 0 12px;
+    background: var(--bg-elevated);
+    border-bottom: 0.5px solid var(--border-default);
+    z-index: 110;
+  }
+  .mobile-topbar-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: var(--radius-md);
+  }
+  .mobile-topbar-btn:active { background: var(--bg-overlay); }
+
+  /* El drawer en sí: oculto fuera de la pantalla, se desliza al abrir */
   .sidebar {
     position: fixed !important;
-    bottom: 0; left: 0; right: 0;
-    width: 100% !important;
-    height: 60px !important;
-    flex-direction: row !important;
-    border-right: none !important;
-    border-top: 0.5px solid var(--border-default) !important;
-    z-index: 100;
-    overflow: hidden;
+    top: 0; bottom: 0; left: 0;
+    width: 78vw !important;
+    max-width: 300px;
+    height: 100vh !important;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease-out;
+    z-index: 130;
+    box-shadow: 2px 0 16px rgba(0,0,0,0.25);
   }
-  .sidebar-section-header,
-  .sidebar-logo-sub,
-  .sidebar-user,
-  .sidebar-farm { display: none !important; }
-  .nav-item {
-    flex-direction: column;
-    gap: 3px;
-    padding: 8px 6px;
-    margin: 0;
-    border-radius: 0;
-    font-size: 9px;
-    flex: 1;
+  .sidebar.sidebar-open { transform: translateX(0); }
+
+  .sidebar-close-btn {
+    display: flex !important;
+    align-items: center;
     justify-content: center;
-    text-align: center;
+    width: 28px;
+    height: 28px;
+    background: none;
     border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    flex-shrink: 0;
   }
-  .sidebar-main { padding-bottom: 60px; }
+  .sidebar-footer-desktop { display: none; }
+
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 120;
+  }
+
+  /* El contenido principal deja lugar a la barra superior fija */
+  .sidebar-main { padding-top: 52px; }
+
+  /* Topbar de cada módulo: scroll horizontal en vez de desbordar/romper */
+  .kp-topbar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+  .kp-topbar::-webkit-scrollbar { display: none; }
 }
 
 @media (max-width: 1024px) { .kpi-row { grid-template-columns: repeat(2, 1fr) !important; } }
