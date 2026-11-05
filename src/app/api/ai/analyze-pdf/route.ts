@@ -3,7 +3,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/config";
 import Anthropic from "@anthropic-ai/sdk";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+let client: Anthropic | null = null;
+function getClient() {
+  if (!client) client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  return client;
+}
 
 const EXTRACTION_PROMPT = `Eres un nutricionista especializado en nutrición porcina de alta precisión.
 Se te proporciona un análisis de laboratorio o certificado de calidad de una materia prima.
@@ -59,7 +63,7 @@ export async function POST(req: NextRequest) {
   const buffer  = await file.arrayBuffer();
   const base64  = Buffer.from(buffer).toString("base64");
 
-  const message = await client.messages.create({
+  const message = await getClient().messages.create({
     model:      "claude-opus-4-8",
     max_tokens: 1024,
     messages:   [

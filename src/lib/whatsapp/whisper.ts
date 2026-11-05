@@ -1,6 +1,10 @@
 import OpenAI from "openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let openai: OpenAI | null = null;
+function getOpenAI() {
+  if (!openai) openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  return openai;
+}
 
 // Descarga el audio desde Meta y lo transcribe con Whisper
 export async function transcribeAudio(mediaId: string): Promise<string> {
@@ -19,7 +23,7 @@ export async function transcribeAudio(mediaId: string): Promise<string> {
   const audioFile   = new File([audioBuffer], "audio.ogg", { type: "audio/ogg" });
 
   // 3. Transcribir con Whisper (español)
-  const transcription = await openai.audio.transcriptions.create({
+  const transcription = await getOpenAI().audio.transcriptions.create({
     file:     audioFile,
     model:    "whisper-1",
     language: "es",
