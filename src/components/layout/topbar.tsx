@@ -103,8 +103,10 @@ export function Topbar({ title, icon: Icon, iconColor, tabs, activeTab, onTabCha
         </Link>
       )}
 
-      {/* Theme toggle */}
-      <ThemeToggle />
+      {/* Theme toggle (solo desktop — en mobile vive en la barra fija superior) */}
+      <span className="topbar-theme-desktop">
+        <ThemeToggle />
+      </span>
 
       {/* Avatar usuario */}
       <div

@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { KurPorcLogo } from "@/components/ui/logo";
+import { ThemeToggle } from "./theme-toggle";
 import { signOut } from "next-auth/react";
 import {
   IconHeart, IconHeartPlus, IconBuildingWarehouse,
@@ -78,14 +79,17 @@ export function Sidebar({ farmName, userRoles }: SidebarProps) {
           <IconMenu2 size={20} aria-hidden />
         </button>
         <KurPorcLogo size="sm" />
-        <button
-          type="button"
-          aria-label="Cerrar sesión"
-          onClick={() => signOut({ callbackUrl: "/login" })}
-          className="mobile-topbar-btn"
-        >
-          <IconLogout size={18} aria-hidden />
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <ThemeToggle />
+          <button
+            type="button"
+            aria-label="Cerrar sesión"
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            className="mobile-topbar-btn"
+          >
+            <IconLogout size={18} aria-hidden />
+          </button>
+        </div>
       </header>
 
       {/* Fondo oscuro al abrir el drawer en mobile */}

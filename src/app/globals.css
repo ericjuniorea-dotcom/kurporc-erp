@@ -471,6 +471,37 @@
     padding-right: 14px !important;
   }
   .kp-topbar::-webkit-scrollbar { display: none; }
+  .topbar-theme-desktop { display: none !important; }
+
+  /* Evita que iOS haga zoom automático al tocar un campo de texto
+     (pasa cuando el font-size es menor a 16px) */
+  input, select, textarea, .kp-input {
+    font-size: 16px !important;
+  }
+
+  /* Botones y campos más grandes, fáciles de tocar con el dedo */
+  .btn, button {
+    min-height: 40px;
+  }
+  .kp-input, .kp-label + input, .kp-label + select {
+    min-height: 42px;
+  }
+  .nav-item { min-height: 40px; }
+
+  /* Tablas anchas: se deslizan en vez de romper la pantalla */
+  .kp-table, table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+
+  /* Modales: ocupan casi toda la pantalla y se acercan al pulgar */
+  .kp-modal {
+    width: 94vw !important;
+    max-height: 90vh !important;
+    padding: 16px !important;
+  }
 }
 
 @media (max-width: 1024px) { .kpi-row { grid-template-columns: repeat(2, 1fr) !important; } }
