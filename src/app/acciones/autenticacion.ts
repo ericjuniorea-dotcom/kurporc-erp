@@ -22,6 +22,13 @@ export async function destinoSeguro(next: string | null | undefined, porDefecto 
   return next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") ? next : porDefecto;
 }
 
+/** Motivo técnico del fallo para la auditoría (nunca incluye contraseñas ni claves). */
+function diagnostico(e: unknown): string {
+  if (!e || typeof e !== "object") return "sin error";
+  const x = e as { name?: string; status?: number; message?: string; code?: string };
+  return [x.name, x.status, x.code, x.message].filter(v => v !== undefined && v !== "").join(" | ").slice(0, 300);
+}
+
 async function contexto() {
   const h = await headers();
   return { ip: ipDe(h), userAgent: userAgentDe(h) };
@@ -49,7 +56,8 @@ async function ingresar(email: string, clave: string, next: string | null, metod
   if (error || !data.user) {
     await consumirIntento("ingresoFallido", claveLimite);
     await registrarAuditoria("LOGIN_FALLIDO", "users", null,
-      { email, metodo, motivo: error?.code ?? "desconocido" }, ctx);
+      { email, metodo, motivo: error?.code ?? "desconocido", detalle: diagnostico(error) }, ctx);
+    if (!error?.code) console.error("[ingreso]", diagnostico(error));
     if (error?.code === "email_not_confirmed") {
       return { ok: false, error: "Todavía no confirmaste tu correo. Revisá tu bandeja de entrada." };
     }

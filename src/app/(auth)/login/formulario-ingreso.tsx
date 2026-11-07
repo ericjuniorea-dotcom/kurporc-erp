@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { IconBrandGoogle, IconEye, IconEyeOff, IconLoader2 } from "@tabler/icons-react";
+import { IconEye, IconEyeOff, IconLoader2 } from "@tabler/icons-react";
+import { LogoGoogle } from "@/components/auth/logo-google";
 import { createClient } from "@/lib/supabase/client";
 import { ingresarConCorreo, ingresarConUsuario } from "@/app/acciones/autenticacion";
 import { Aviso } from "@/components/auth/marco-auth";
@@ -59,9 +60,13 @@ export function FormularioIngreso() {
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {error && <Aviso tipo="error">{error}</Aviso>}
 
-      <button type="button" onClick={google} disabled={ocupado} className="btn btn-primary"
-        style={{ width: "100%", height: 38, justifyContent: "center", gap: 8 }}>
-        {conGoogle ? <IconLoader2 size={14} style={{ animation: "spin 1s linear infinite" }} aria-hidden /> : <IconBrandGoogle size={15} aria-hidden />}
+      <button type="button" onClick={google} disabled={ocupado} aria-label="Continuar con Google"
+        style={{
+          width: "100%", height: 44, display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+          background: "#FFFFFF", color: "#1F1F1F", border: "1px solid #DADCE0", borderRadius: "var(--radius-lg)",
+          fontSize: 14, fontWeight: 500, cursor: ocupado ? "default" : "pointer", opacity: ocupado ? 0.7 : 1,
+        }}>
+        {conGoogle ? <IconLoader2 size={16} style={{ animation: "spin 1s linear infinite" }} aria-hidden /> : <LogoGoogle size={18} />}
         Continuar con Google
       </button>
 
@@ -120,8 +125,8 @@ export function FormularioIngreso() {
           </div>
         </div>
 
-        <button type="submit" disabled={ocupado} className="btn"
-          style={{ width: "100%", height: 36, justifyContent: "center" }}>
+        <button type="submit" disabled={ocupado} className="btn btn-primary"
+          style={{ width: "100%", height: 40, justifyContent: "center" }}>
           {pendiente ? <><IconLoader2 size={13} style={{ animation: "spin 1s linear infinite" }} aria-hidden /> Ingresando…</> : "Ingresar"}
         </button>
       </form>

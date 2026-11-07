@@ -40,6 +40,17 @@ export async function GET(request: NextRequest) {
       }
       return NextResponse.redirect(`${origin}${next}`);
     }
+    const motivo = [error?.name, error?.status, error?.code, error?.message].filter(Boolean).join(" | ").slice(0, 300);
+    console.error("[auth/callback]", motivo);
+    await registrarAuditoria("LOGIN_FALLIDO", "users", null, { metodo: "oauth", motivo },
+      { ip: ipDe(request.headers), userAgent: userAgentDe(request.headers) });
+  } else {
+    const motivo = [searchParams.get("error"), searchParams.get("error_code"), searchParams.get("error_description")].filter(Boolean).join(" | ").slice(0, 300);
+    if (motivo) {
+      console.error("[auth/callback]", motivo);
+      await registrarAuditoria("LOGIN_FALLIDO", "users", null, { metodo: "oauth", motivo },
+        { ip: ipDe(request.headers), userAgent: userAgentDe(request.headers) });
+    }
   }
   return NextResponse.redirect(`${origin}/login?error=auth`);
 }
