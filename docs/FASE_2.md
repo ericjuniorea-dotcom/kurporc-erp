@@ -1,6 +1,6 @@
 # Fase 2 — Seguridad base y auditoría
 
-Estado: **probada contra una copia local de producción y en una base vacía (simulación de CI)**. Falta aplicarla en producción.
+Estado: **aplicada en producción el 07/11/2026**: migración, pruebas de las Fases 1 y 2 contra la base real (en verde, sin dejar rastros) y encabezados verificados en kurporc.com.
 
 ## Qué se hizo
 
@@ -29,7 +29,7 @@ Además:
 ## Criterios de aceptación
 - [x] `UPDATE` o `DELETE` sobre `auditoria` desde SQL falla — prueba 1 de `fase2_seguridad.sql`.
 - [x] Un cambio hecho con Prisma deja una fila en `historial_cambio` con el actor correcto — prueba 2 (sobre `miembro`; los movimientos financieros llegan en la Fase 8 y se agregan al trigger).
-- [ ] `curl -I https://kurporc.com` muestra todos los encabezados → verificado en local; verificar en producción después del despliegue.
+- [x] `curl -I https://www.kurporc.com` muestra todos los encabezados (HSTS, nosniff, Referrer-Policy, X-Frame-Options, Permissions-Policy, CSP Report-Only; sin X-Powered-By).
 - [x] El sexto intento de ingreso fallido en 15 minutos queda bloqueado — prueba 3 y prueba de punta a punta (el 6.º intento quedó bloqueado aunque la contraseña era correcta; desde otra IP se pudo entrar).
 - [x] Un dato sensible se guarda cifrado y se ve en claro solo con permiso — aplicado a la cédula (todavía no hay cuentas bancarias en el sistema).
 - [x] Historial de Git sin claves filtradas (revisión con patrones; `gitleaks` no está instalado, lo corre la CI cuando se agregue).
@@ -37,7 +37,7 @@ Además:
 - [x] `prisma validate`, `tsc`, `npm run lint` y `npm run build` sin errores.
 
 ## Pendiente (requiere una decisión o un paso manual)
-1. **Claves de cifrado en Vercel:** `CAMPOS_CIFRADOS_KEY` y `CAMPOS_HMAC_KEY` ya están en `.env.local` (y en el respaldo). Hay que copiarlas a Vercel → Settings → Environment Variables. Sin ellas, cargar un funcionario **con cédula** da un error claro; todo lo demás funciona.
+1. ~~Claves de cifrado en Vercel~~ — cargadas en Production el 07/11/2026.
 2. **Copia externa semanal cifrada (2.9):** quedó sin hacer. Sacar un volcado de la base de producción a otro proveedor (por ejemplo, artefactos de GitHub) implica que datos personales salgan de Supabase: lo decide el dueño. Alternativas: plan Pro de Supabase (respaldo diario + PITR, US$25/mes) o seguir con el respaldo manual antes de cada cambio.
 3. **CAPTCHA (2.3)** en registro, recuperación e ingreso: se configura en Supabase Auth → Fase 3.
 4. **Sesiones (2.10):** cierre por inactividad, "cerrar sesión en todos los dispositivos" y corte inmediato al suspender un miembro → Fase 3 (se hace sobre Supabase Auth, no sobre NextAuth).
