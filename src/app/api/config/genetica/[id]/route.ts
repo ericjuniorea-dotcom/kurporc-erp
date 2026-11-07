@@ -11,7 +11,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const genetica = await prisma.genetica.findFirst({ where: { id: params.id, tenantId } });
   if (!genetica) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
 
-  const body = await req.json();
+  // Nunca se aceptan desde el cliente: id, organización ni fechas de sistema (evita mover el registro a otra organización)
+  const { id: _id, tenantId: _t, createdAt: _c, updatedAt: _u, ...body } = await req.json();
   const updated = await prisma.genetica.update({ where: { id: params.id }, data: { ...body, updatedAt: new Date() } });
   return NextResponse.json(updated);
 }

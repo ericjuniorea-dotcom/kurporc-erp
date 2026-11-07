@@ -2,11 +2,11 @@ import { prisma } from "@/lib/db/prisma";
 
 // ── Responsables ─────────────────────────────────────────────────────────────
 export const RESPONSABLES = {
-  veterinario: { nombre: "Dr. Erwin Segovia",             key: "erwin-segovia"   },
-  gestacion:   { nombre: "Bartolomé Vera",                key: "bartolome-vera"  },
-  maternidad:  { nombre: "Graciela Duarte",               key: "graciela-duarte" },
-  produccion:  { nombre: "Dr. Alex Joaquín Almada Casco", key: "alex-almada"     },
-  admin:       { nombre: "Ing. Eric Acosta",              key: "eric-acosta"     },
+  veterinario: { nombre: "Veterinario",             key: "veterinario"   },
+  gestacion:   { nombre: "Encargado de Gestación",                key: "gestacion"  },
+  maternidad:  { nombre: "Encargado de Maternidad",               key: "maternidad" },
+  produccion:  { nombre: "Jefatura de Producción", key: "produccion"     },
+  admin:       { nombre: "Administración",              key: "admin"     },
 } as const;
 
 const TIPOS_SANITARIOS = new Set([

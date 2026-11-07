@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
@@ -13,11 +14,14 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // Nonce de la CSP (lo genera src/middleware.ts): sin él, la política bloquearía este script en línea.
+  const nonce = headers().get("x-nonce") ?? undefined;
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <script dangerouslySetInnerHTML={{ __html: `
+        {/* eslint-disable-next-line no-restricted-syntax -- script fijo del tema (sin datos del usuario), lleva el nonce de la CSP */}
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: `
           try {
             var t = sessionStorage.getItem('kurporc-theme') || 'dark';
             document.documentElement.setAttribute('data-theme', t);

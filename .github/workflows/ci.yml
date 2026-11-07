@@ -1,0 +1,65 @@
+# Integración continua (Fase 2.7 y 2.14): en cada push y pull request.
+# Valida el esquema, tipos, lint y build, y corre las pruebas de aislamiento y
+# seguridad contra un Postgres efímero que imita a Supabase. No usa datos reales.
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      NEXTAUTH_SECRET: solo-para-ci
+      NEXTAUTH_URL: http://localhost:3000
+      CAMPOS_CIFRADOS_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      CAMPOS_HMAC_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx prisma validate
+      - run: npx tsc --noEmit
+      - run: npm run lint
+
+      - name: Preparar Postgres como Supabase (roles y esquema auth)
+        run: psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f supabase/tests/supabase_stub.sql
+      - name: Migraciones desde cero
+        run: npx prisma migrate deploy
+      - name: Datos de prueba
+        run: npm run db:seed && npm run db:migrar-orgs
+      - name: Prueba de aislamiento entre organizaciones (Fase 1)
+        run: psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f supabase/tests/fase1_aislamiento.sql
+      - name: Prueba de auditoría y límites (Fase 2)
+        run: psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f supabase/tests/fase2_seguridad.sql
+      - name: Las migraciones coinciden con el esquema
+        run: |
+          out=$(npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --script)
+          echo "$out" | grep -q "This is an empty migration" || { echo "$out"; exit 1; }
+
+      - run: npm run build
+
+      - name: Dependencias con vulnerabilidades críticas
+        # Se pasa a --audit-level=high cuando se actualice Next.js (ver docs/FASE_2.md)
+        run: npm audit --omit=dev --audit-level=critical
+        continue-on-error: true

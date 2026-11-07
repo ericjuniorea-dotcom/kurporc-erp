@@ -31,6 +31,10 @@ export default function LoginPage() {
       password: data.password,
       redirect: false,
     });
+    if (result?.error === "BLOQUEADO") {
+      setError("Demasiados intentos fallidos. Esperá unos minutos y volvé a probar.");
+      return;
+    }
     if (result?.error) { setError("Email o contraseña incorrectos."); return; }
     router.push("/dashboard");
     router.refresh();

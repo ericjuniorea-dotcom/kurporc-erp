@@ -71,7 +71,7 @@ export function ConfirmacionPrenez() {
             resultado,
             metodo:           "Ecografía",
             observaciones:    observ,
-            veterinario:      "Dr. Erwin Segovia",
+            veterinario:      "Veterinario",
           }),
         });
         const d = await r.json();

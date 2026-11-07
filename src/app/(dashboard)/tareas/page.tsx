@@ -47,19 +47,19 @@ const PERIODO_OPTS = [
 
 const RESPONSABLE_OPTS = [
   { key: "",                label: "Todos"            },
-  { key: "erwin-segovia",   label: "Dr. Erwin Segovia"             },
-  { key: "bartolome-vera",  label: "Bartolomé Vera"                },
-  { key: "graciela-duarte", label: "Graciela Duarte"               },
-  { key: "alex-almada",     label: "Dr. Alex Almada"               },
-  { key: "eric-acosta",     label: "Ing. Eric Acosta"              },
+  { key: "veterinario",   label: "Veterinario"             },
+  { key: "gestacion",  label: "Encargado de Gestación"                },
+  { key: "maternidad", label: "Encargado de Maternidad"               },
+  { key: "produccion",     label: "Jefatura de Producción"               },
+  { key: "admin",     label: "Administración"              },
 ];
 
 const AVATAR_MAP: Record<string, { iniciales: string; bg: string; bdr: string }> = {
-  "erwin-segovia":   { iniciales: "ES", bg: "#A31621", bdr: "#7A0F18" },
-  "bartolome-vera":  { iniciales: "BV", bg: "#E07C2E", bdr: "#B05E1A" },
-  "graciela-duarte": { iniciales: "GD", bg: "#D4537E", bdr: "#A83060" },
-  "alex-almada":     { iniciales: "AA", bg: "#1D9E75", bdr: "#16735A" },
-  "eric-acosta":     { iniciales: "EA", bg: "#378ADD", bdr: "#2563B0" },
+  "veterinario":   { iniciales: "VE", bg: "#A31621", bdr: "#7A0F18" },
+  "gestacion":  { iniciales: "GE", bg: "#E07C2E", bdr: "#B05E1A" },
+  "maternidad": { iniciales: "MA", bg: "#D4537E", bdr: "#A83060" },
+  "produccion":     { iniciales: "JP", bg: "#1D9E75", bdr: "#16735A" },
+  "admin":     { iniciales: "AD", bg: "#378ADD", bdr: "#2563B0" },
 };
 
 const TIPO_EMOJI: Record<string, string> = {

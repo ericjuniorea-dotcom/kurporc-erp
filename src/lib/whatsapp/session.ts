@@ -9,7 +9,6 @@ let _redis: { get(k: string): Promise<string | null>; setex(k: string, ttl: numb
 function getRedis() {
   if (!process.env.REDIS_URL) return null;
   if (!_redis) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Redis = require("ioredis");
     _redis = new Redis(process.env.REDIS_URL);
   }

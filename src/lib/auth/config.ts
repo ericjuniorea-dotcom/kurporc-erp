@@ -3,6 +3,13 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/db/prisma";
+import { ipDe, registrarAuditoria, userAgentDe } from "@/lib/seguridad/auditoria";
+import { bloqueadoHasta, consumirIntento, limpiarIntentos } from "@/lib/seguridad/limites";
+
+/** Mensaje que recibe la pantalla de ingreso cuando la cuenta está bloqueada por intentos. */
+export const ERROR_BLOQUEADO = "BLOQUEADO";
+// Hash bcrypt de un texto aleatorio: iguala el tiempo de respuesta cuando el correo no existe.
+const HASH_FICTICIO = "$2a$10$dD77cncWQVQFPS.mR7CUu.iAUrlyQ0BxdLR05izFjc5SMGojlBICq";
 
 // Los 14 roles del sistema (IDs 1-14)
 export const ROLES = {
@@ -43,25 +50,44 @@ export const authOptions: NextAuthOptions = {
         email:    { label: "Email",      type: "email"    },
         password: { label: "Contraseña", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) return null;
 
+        const email = credentials.email.toLowerCase().trim().slice(0, 254);
+        const ip = ipDe(req?.headers);
+        const ctx = { ip, userAgent: userAgentDe(req?.headers) };
+        const claveLimite = `${email}:${ip ?? "sin-ip"}`;
+
+        // Fase 2.3: 5 ingresos fallidos cada 15 min por cuenta + IP; después la espera se duplica.
+        const hasta = await bloqueadoHasta("ingresoFallido", claveLimite);
+        if (hasta) {
+          await registrarAuditoria("LOGIN_BLOQUEADO", "users", null, { email, hasta: hasta.toISOString() }, ctx);
+          throw new Error(ERROR_BLOQUEADO);
+        }
+
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email.toLowerCase() },
+          where: { email },
           include: {
             userRoles: { select: { roleId: true } },
             tenant:    { select: { id: true, slug: true, farmName: true, plan: true, isActive: true } },
           },
         });
 
-        if (!user || !user.isActive) return null;
-        if (!user.tenant.isActive)   return null;
+        // Se compara siempre (aunque el usuario no exista) para no revelar por el tiempo de respuesta qué correos existen.
+        const passwordValid = await bcrypt.compare(credentials.password, user?.passwordHash ?? HASH_FICTICIO);
 
-        const passwordValid = await bcrypt.compare(
-          credentials.password,
-          user.passwordHash
-        );
-        if (!passwordValid) return null;
+        if (!user || !user.isActive || !user.tenant.isActive || !passwordValid) {
+          await consumirIntento("ingresoFallido", claveLimite);
+          await registrarAuditoria("LOGIN_FALLIDO", "users", user?.id ?? null,
+            { email, motivo: !user ? "no_existe" : !passwordValid ? "clave" : "inactivo" },
+            { ...ctx, organizacionId: user?.tenantId });
+          return null;
+        }
+
+        await limpiarIntentos("ingresoFallido", claveLimite);
+        await registrarAuditoria("LOGIN", "users", user.id, { metodo: "credenciales" },
+          { ...ctx, actorId: user.id, organizacionId: user.tenantId });
+        prisma.user.update({ where: { id: user.id }, data: { ultimoAcceso: new Date() } }).catch(() => {});
 
         return {
           id:        user.id,

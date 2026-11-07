@@ -43,11 +43,11 @@ const TIPO_EMOJI: Record<string, string> = {
 };
 
 const AVATAR_MINI: Record<string, { in: string; bg: string }> = {
-  "erwin-segovia":   { in: "ES", bg: "#A31621" },
-  "bartolome-vera":  { in: "BV", bg: "#E07C2E" },
-  "graciela-duarte": { in: "GD", bg: "#D4537E" },
-  "alex-almada":     { in: "AA", bg: "#1D9E75" },
-  "eric-acosta":     { in: "EA", bg: "#378ADD" },
+  "veterinario":   { in: "VE", bg: "#A31621" },
+  "gestacion":  { in: "GE", bg: "#E07C2E" },
+  "maternidad": { in: "MA", bg: "#D4537E" },
+  "produccion":     { in: "JP", bg: "#1D9E75" },
+  "admin":     { in: "AD", bg: "#378ADD" },
 };
 
 const P_STYLE = {

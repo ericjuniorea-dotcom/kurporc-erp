@@ -1,72 +1,104 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/config";
+import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
+import { conActor } from "@/lib/db/actor";
+import { cifrar, descifrar, enmascarar, huella, ErrorCifrado } from "@/lib/seguridad/cifrado";
+import { ipDe, registrarAuditoria, userAgentDe } from "@/lib/seguridad/auditoria";
 
 export const dynamic = "force-dynamic";
 
 const FUNCIONARIOS_INICIALES = [
   {
-    name:        "Dr. Alex Joaquín Almada Casco",
+    name:        "Jefatura de Producción",
     cargo:       "Jefe de Producción",
     category:    "profesional",
     position:    "Jefe de Producción",
     sector:      "all",
-    iniciales:   "AA",
+    iniciales:   "JP",
     colorBg:     "#1D9E75",
     colorBorder: "#16735A",
     colorText:   "#FFFFFF",
   },
   {
-    name:        "Ing. Eric Acosta",
+    name:        "Administración",
     cargo:       "Administrador",
     category:    "administrativo",
     position:    "Administrador",
     sector:      "admin",
-    iniciales:   "EA",
+    iniciales:   "AD",
     colorBg:     "#378ADD",
     colorBorder: "#2563B0",
     colorText:   "#FFFFFF",
   },
   {
-    name:        "Bartolomé Vera",
+    name:        "Encargado de Gestación",
     cargo:       "Responsable de Gestación",
     category:    "operativo",
     position:    "Responsable de Gestación",
     sector:      "gestacion",
-    iniciales:   "BV",
+    iniciales:   "GE",
     colorBg:     "#E07C2E",
     colorBorder: "#B05E1A",
     colorText:   "#FFFFFF",
   },
   {
-    name:        "Graciela Duarte",
+    name:        "Encargado de Maternidad",
     cargo:       "Responsable de Maternidad",
     category:    "operativo",
     position:    "Responsable de Maternidad",
     sector:      "maternidad",
-    iniciales:   "GD",
+    iniciales:   "MA",
     colorBg:     "#D4537E",
     colorBorder: "#A83060",
     colorText:   "#FFFFFF",
   },
   {
-    name:        "Dr. Erwin Segovia",
+    name:        "Veterinario",
     cargo:       "Veterinario",
     category:    "profesional",
     position:    "Veterinario",
     sector:      "veterinario",
-    iniciales:   "ES",
+    iniciales:   "VE",
     colorBg:     "#A31621",
     colorBorder: "#7A0F18",
     colorText:   "#FFFFFF",
   },
 ];
 
+// Ven la cédula completa: Super Admin, Admin de granja y Jefe de RRHH
+// (equivale a rrhh.datos_personales.ver; se reemplaza por requirePermiso en la Fase 7).
+const ROLES_DATOS_PERSONALES = [1, 2, 8];
+
+const funcionarioSchema = z.object({
+  name:        z.string().trim().min(1, "Nombre requerido").max(120),
+  cargo:       z.string().trim().max(80).optional().nullable(),
+  category:    z.string().trim().max(40).optional().nullable(),
+  position:    z.string().trim().max(80).optional().nullable(),
+  sector:      z.string().trim().max(40).optional().nullable(),
+  iniciales:   z.string().trim().max(4).optional().nullable(),
+  colorBg:     z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().nullable(),
+  colorBorder: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().nullable(),
+  colorText:   z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().nullable(),
+  cedula:      z.string().trim().regex(/^[0-9.\-\s]{5,15}$/, "Cédula inválida").optional().nullable(),
+}).strict();
+
+function cedulaVisible(valor: string | null, completa: boolean): string | null {
+  if (!valor) return null;
+  try {
+    const clara = descifrar(valor);
+    return completa ? clara : enmascarar(clara);
+  } catch {
+    return completa ? "(no se pudo descifrar)" : "•••";
+  }
+}
+
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   const tenantId = session.user.tenantId;
+  const completa = session.user.roles.some((r: number) => ROLES_DATOS_PERSONALES.includes(r));
 
   const employees = await prisma.employee.findMany({
     where:   { tenantId, isActive: true },
@@ -78,7 +110,13 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  return NextResponse.json(employees);
+  if (completa && employees.some(e => e.cedula)) {
+    await registrarAuditoria("DATO_PERSONAL_VISTO", "employees", null,
+      { campo: "cedula", cantidad: employees.filter(e => e.cedula).length },
+      { actorId: session.user.id, organizacionId: tenantId, ip: ipDe(req.headers), userAgent: userAgentDe(req.headers) });
+  }
+
+  return NextResponse.json(employees.map(e => ({ ...e, cedula: cedulaVisible(e.cedula, completa) })));
 }
 
 export async function POST(req: NextRequest) {
@@ -91,38 +129,56 @@ export async function POST(req: NextRequest) {
   }
 
   const tenantId = session.user.tenantId;
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
 
-  if (body.action === "seed") {
+  if (body?.action === "seed") {
     const existing = await prisma.employee.findMany({ where: { tenantId }, select: { name: true } });
     const existingNames = new Set(existing.map((e) => e.name));
 
     const toCreate = FUNCIONARIOS_INICIALES.filter((f) => !existingNames.has(f.name));
     if (toCreate.length === 0) return NextResponse.json({ message: "Ya inicializados", count: 0 });
 
-    const created = await prisma.employee.createMany({
+    const created = await conActor(session.user.id, tx => tx.employee.createMany({
       data: toCreate.map((f) => ({
         ...f,
         tenantId,
         entryDate:    new Date(),
         baseSalaryGs: 0,
       })),
-    });
+    }));
 
     return NextResponse.json({ message: "Funcionarios creados", count: created.count });
   }
 
   // Create individual employee
-  const { name, cargo, category, position, sector, iniciales, colorBg, colorBorder, colorText, cedula } = body;
-  if (!name) return NextResponse.json({ error: "Nombre requerido" }, { status: 400 });
+  const parsed = funcionarioSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Datos inválidos" }, { status: 400 });
+  }
+  const { cedula, ...datos } = parsed.data;
 
-  const employee = await prisma.employee.create({
+  let cedulaCifrada: string | null = null;
+  let cedulaHash: string | null = null;
+  if (cedula) {
+    try {
+      cedulaCifrada = cifrar(cedula);
+      cedulaHash = huella(cedula);
+    } catch (e) {
+      if (e instanceof ErrorCifrado) {
+        console.error("[rrhh]", e.message);
+        return NextResponse.json({ error: "El servidor no tiene configurado el cifrado de datos personales" }, { status: 500 });
+      }
+      throw e;
+    }
+  }
+
+  const employee = await conActor(session.user.id, tx => tx.employee.create({
     data: {
-      tenantId, name, cargo, category, position, sector,
-      iniciales, colorBg, colorBorder, colorText, cedula,
+      ...datos, tenantId, cedula: cedulaCifrada, cedulaHash,
       entryDate: new Date(), baseSalaryGs: 0,
     },
-  });
+    select: { id: true, name: true, cargo: true, category: true, position: true, sector: true, iniciales: true, entryDate: true, isActive: true },
+  }));
 
-  return NextResponse.json(employee, { status: 201 });
+  return NextResponse.json({ ...employee, cedula: cedula ? enmascarar(cedula) : null }, { status: 201 });
 }

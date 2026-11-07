@@ -1,0 +1,12 @@
+{
+  "root": true,
+  "extends": ["next/core-web-vitals"],
+  "rules": {
+    "no-restricted-syntax": ["error", {
+      "selector": "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+      "message": "Prohibido salvo documentos legales sanitizados (Fase 2.5). Si es imprescindible, agregá // eslint-disable-next-line con el motivo."
+    }],
+    "react/no-unescaped-entities": "off"
+  },
+  "ignorePatterns": ["node_modules/", ".next/", "prisma/migrations/"]
+}

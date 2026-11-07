@@ -1451,7 +1451,8 @@ model Employee {
   id           String    @id @default(cuid())
   tenantId     String
   userId       String?   @unique
-  cedula       String?
+  cedula       String? // cifrada (AES-256-GCM, prefijo k1:) — Fase 2.4
+  cedulaHash   String? // HMAC-SHA256 para buscar por cédula sin descifrar
   name         String
   cargo        String?
   category     String?
@@ -1472,6 +1473,7 @@ model Employee {
   payrolls    PayrollRecord[]
 
   @@index([tenantId])
+  @@index([tenantId, cedulaHash])
   @@map("employees")
 }
 
@@ -2026,7 +2028,7 @@ model Task {
   pospuestas    Int     @default(0)
 
   // Responsable
-  responsableNombre String? // "Dr. Erwin Segovia"
+  responsableNombre String? // "Veterinario" (puesto, nunca nombre personal)
   responsableKey    String? // "erwin-segovia" | "bartolome-vera" | "graciela-duarte" | "alex-almada"
 
   // Generation
@@ -2513,4 +2515,72 @@ model Notificacion {
 
   @@index([userId, leida])
   @@map("notificacion")
+}
+
+// ================================================================
+// SEGURIDAD Y AUDITORÍA (Fase 2)
+// auditoria e historial_cambio son de solo agregar: un trigger rechaza
+// UPDATE y DELETE (ver migración 20261107000200_fase2_seguridad).
+// ================================================================
+
+model Auditoria {
+  id                String   @id @default(uuid()) @db.Uuid
+  organizacionId    String?  @map("organizacion_id")
+  actorId           String?  @map("actor_id") // users.id; null = sistema
+  actorEsPlataforma Boolean  @default(false) @map("actor_es_plataforma")
+  accion            String // LOGIN, LOGIN_FALLIDO, LOGIN_BLOQUEADO, MIEMBRO_INVITADO, PERMISOS_CAMBIADOS, EXPORTACION, ...
+  entidad           String
+  entidadId         String?  @map("entidad_id")
+  detalle           Json     @default("{}")
+  ip                String?
+  userAgent         String?  @map("user_agent")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@index([organizacionId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([accion, createdAt])
+  @@map("auditoria")
+}
+
+model HistorialCambio {
+  id         BigInt   @id @default(autoincrement())
+  tabla      String
+  registroId String   @map("registro_id")
+  operacion  String // INSERT | UPDATE | DELETE
+  antes      Json?
+  despues    Json?
+  actorId    String?  @map("actor_id") // users.id (de la sesión o de app.actor_id)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([tabla, registroId])
+  @@index([createdAt])
+  @@map("historial_cambio")
+}
+
+model LimiteIntento {
+  clave          String    @id // "login:<correo>:<ip>", "registro:<ip>", ...
+  ventanaInicio  DateTime  @default(now()) @map("ventana_inicio")
+  intentos       Int       @default(0)
+  nivel          Int       @default(0) // cuántas veces se bloqueó seguido: la espera se duplica
+  bloqueadoHasta DateTime? @map("bloqueado_hasta")
+
+  @@index([bloqueadoHasta])
+  @@map("limite_intento")
+}
+
+model IncidenteSeguridad {
+  id                    String    @id @default(uuid()) @db.Uuid
+  detectadoEn           DateTime  @map("detectado_en")
+  descripcion           String
+  datosAfectados        String?   @map("datos_afectados")
+  personasAfectadas     Int?      @map("personas_afectadas")
+  notificadoAgenciaEn   DateTime? @map("notificado_agencia_en") // Ley 7593/2025: dentro de las 72 h
+  notificadoTitularesEn DateTime? @map("notificado_titulares_en")
+  medidas               String?
+  estado                String    @default("ABIERTO") // ABIERTO | CONTENIDO | CERRADO
+  registradoPor         String?   @map("registrado_por")
+  createdAt             DateTime  @default(now()) @map("created_at")
+
+  @@index([estado, detectadoEn])
+  @@map("incidente_seguridad")
 }
