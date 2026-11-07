@@ -10,6 +10,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import prisma from "@/lib/db/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { tienePendientes } from "@/lib/legal/documentos";
 
 // Los 14 roles legados (IDs 1-14). Se reemplazan por el catálogo de permisos en la Fase 7.
 export const ROLES = {
@@ -76,7 +77,7 @@ export interface AppSession {
  * Persona autenticada (aunque todavía no pertenezca a ninguna organización).
  * null = sin sesión de Supabase o sin perfil en `users`.
  */
-export const getUsuario = cache(async (): Promise<(UsuarioSesion & { aal: string | null; faltaSegundoFactor: boolean }) | null> => {
+export const getUsuario = cache(async (): Promise<(UsuarioSesion & { aal: string | null; faltaSegundoFactor: boolean; faltaAceptarContrato: boolean }) | null> => {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
@@ -102,6 +103,8 @@ export const getUsuario = cache(async (): Promise<(UsuarioSesion & { aal: string
     esSuperadmin: !!u.adminPlataforma,
     aal: typeof claims.aal === "string" ? claims.aal : null,
     faltaSegundoFactor,
+    // Términos y Privacidad vigentes sin aceptar (Fase 4): sin esto no se usa la plataforma
+    faltaAceptarContrato: await tienePendientes(u.id),
   };
 });
 
@@ -112,8 +115,9 @@ export const getUsuario = cache(async (): Promise<(UsuarioSesion & { aal: string
  */
 export const getSession = cache(async (): Promise<AppSession | null> => {
   const usuario = await getUsuario();
-  // Sin segundo factor verificado (si lo tiene activado) no hay acceso a datos del ERP
-  if (!usuario || usuario.faltaSegundoFactor) return null;
+  // Sin segundo factor verificado (si lo tiene activado) o sin aceptar el contrato vigente,
+  // no hay acceso a datos del ERP
+  if (!usuario || usuario.faltaSegundoFactor || usuario.faltaAceptarContrato) return null;
 
   const [miembros, rolesLegados] = await Promise.all([
     prisma.miembro.findMany({

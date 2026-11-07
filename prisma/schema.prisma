@@ -2541,3 +2541,86 @@ model IncidenteSeguridad {
   @@index([estado, detectadoEn])
   @@map("incidente_seguridad")
 }
+
+// ================================================================
+// CONTRATOS, ACEPTACIÓN Y PRIVACIDAD (Fase 4)
+// Los textos legales viven en la base (no en componentes) para que el
+// abogado los corrija sin tocar código. aceptacion_documento es de solo agregar.
+// ================================================================
+
+model DocumentoLegal {
+  id                   String    @id @default(uuid()) @db.Uuid
+  codigo               String // TERMINOS | PRIVACIDAD | ACUERDO_ORGANIZACION | TERMINOS_VENDEDOR | TERMINOS_MERCADO | COMUNICACIONES | BENCHMARK
+  version              String // "1.0"
+  titulo               String
+  resumen              String // "Lo más importante", lenguaje simple
+  contenidoMd          String    @map("contenido_md")
+  hashSha256           String    @map("hash_sha256") // del contenido_md exacto
+  resumenCambios       String?   @map("resumen_cambios")
+  obligatorio          Boolean   @default(true)
+  requiereReaceptacion Boolean   @default(true) @map("requiere_reaceptacion")
+  aprobadoPorAsesor    Boolean   @default(false) @map("aprobado_por_asesor")
+  estado               String    @default("BORRADOR") // BORRADOR | PUBLICADO | RETIRADO
+  vigenteDesde         DateTime? @map("vigente_desde")
+  publicadoPor         String?   @map("publicado_por")
+  createdAt            DateTime  @default(now()) @map("created_at")
+
+  aceptaciones AceptacionDocumento[]
+
+  @@unique([codigo, version])
+  @@index([codigo, estado])
+  @@map("documento_legal")
+}
+
+model AceptacionDocumento {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id")
+  organizacionId String?  @map("organizacion_id")
+  actuaComo      String   @default("PERSONA") @map("actua_como") // PERSONA | REPRESENTANTE_ORGANIZACION
+  documentoId    String   @map("documento_id") @db.Uuid
+  codigo         String
+  version        String
+  hashSha256     String   @map("hash_sha256") // del texto exacto que se mostró (con los datos del operador)
+  aceptado       Boolean // false = rechazo o revocación de un consentimiento opcional
+  textoCasilla   String   @map("texto_casilla") // la frase exacta que tildó la persona
+  ip             String?
+  userAgent      String?  @map("user_agent")
+  idioma         String   @default("es")
+  metodo         String   @default("CASILLA") // CASILLA | CASILLA_INGRESO_GOOGLE
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  documento DocumentoLegal @relation(fields: [documentoId], references: [id])
+
+  @@index([userId, codigo])
+  @@map("aceptacion_documento")
+}
+
+model SolicitudPrivacidad {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @map("user_id")
+  tipo         String // ACCESO | RECTIFICACION | SUPRESION | OPOSICION | PORTABILIDAD | REVOCAR_CONSENTIMIENTO | IMPUGNAR_DECISION_AUTOMATIZADA
+  detalle      String?
+  estado       String    @default("RECIBIDA") // RECIBIDA | EN_CURSO | RESPONDIDA | RECHAZADA_CON_MOTIVO | CANCELADA
+  venceEn      DateTime  @map("vence_en") // created_at + 30 días corridos
+  respuesta    String?
+  atendidaPor  String?   @map("atendida_por")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  respondidaEn DateTime? @map("respondida_en")
+
+  @@index([userId])
+  @@index([estado, venceEn])
+  @@map("solicitud_privacidad")
+}
+
+model ConfiguracionPlataforma {
+  id                 Int     @id @default(1) // una sola fila
+  razonSocial        String  @map("razon_social")
+  ruc                String
+  domicilio          String
+  correoContacto     String  @map("correo_contacto")
+  correoPrivacidad   String  @map("correo_privacidad")
+  whatsappSoporte    String? @map("whatsapp_soporte")
+  ciudadJurisdiccion String  @default("Asunción") @map("ciudad_jurisdiccion")
+
+  @@map("configuracion_plataforma")
+}

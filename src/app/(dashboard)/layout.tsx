@@ -13,6 +13,7 @@ export default async function DashboardLayout({
   const usuario = await getUsuario();
   if (!usuario) redirect("/login");
   if (usuario.faltaSegundoFactor) redirect("/auth/segundo-factor");
+  if (usuario.faltaAceptarContrato) redirect("/legal/aceptar");
   // Cuenta gestionada con contraseña temporal: primero la cambia (Fase 3)
   if (usuario.debeCambiarClave) redirect("/cuenta/cambiar-clave");
 

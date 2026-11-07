@@ -10,6 +10,8 @@
 | 4 | **No se crea un segundo proyecto Supabase.** Se trabaja sobre el actual; cada fase se prueba antes contra una copia local restaurada desde un respaldo |
 | 6, 7 | IDs: se mantienen los cuid; `tenants` = organización y `users` = perfil, extendidas |
 | 8 | Por ahora una granja por organización, creada desde el nombre de la organización. En producción solo está la granja demo; las granjas reales se cargan desde Configuración |
+| 18 | **Aceptación de contratos con una sola casilla** (07/11/2026): como Meta/Microsoft. No se obliga a leer hasta el final ni se mide el tiempo de lectura (cambia el punto 4.2 del documento). Una casilla desmarcada: "Soy mayor de 18 años y acepto los Términos y Condiciones y la Política de Privacidad", con enlaces a ambos. Sin tildarla no se crea la cuenta ni se usa la plataforma. Se guarda igual la evidencia: versión, hash del texto, fecha, IP y navegador |
+| 19 | `admin@kurporc.com` y `eric.junior.ea@gmail.com` son Super Administradores (nivel TOTAL) |
 | 17 | **Meta de escala:** 1.000 usuarios al arrancar, con una arquitectura que crezca sin rehacerse (Vercel + Supabase, pooler, índices por organización, caché, tareas pesadas fuera del request) |
 
 Cada punto choca entre el documento maestro v2.0 y el código real. Se necesita la respuesta del dueño del producto antes de la Fase 1.

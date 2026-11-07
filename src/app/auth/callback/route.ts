@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import prisma from "@/lib/db/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { ipDe, registrarAuditoria, userAgentDe } from "@/lib/seguridad/auditoria";
+import { pendientesPersona, registrarAceptaciones } from "@/lib/legal/documentos";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,16 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(`${origin}/login?error=inactiva`);
       }
       const proveedor = data.user.app_metadata?.provider ?? "email";
+      // Tildó la casilla en /login antes de "Continuar con Google": se guarda la aceptación
+      if (u && searchParams.get("acepto") === "1") {
+        const pendientes = await pendientesPersona(u.id);
+        if (pendientes.length) {
+          const ctx = { ip: ipDe(request.headers), userAgent: userAgentDe(request.headers) };
+          await registrarAceptaciones(u.id, pendientes, { ...ctx, metodo: "CASILLA_INGRESO_GOOGLE" });
+          await registrarAuditoria("CONTRATO_ACEPTADO", "documento_legal", null,
+            { documentos: pendientes.map(d => `${d.codigo} ${d.version}`), metodo: "ingreso_google" }, { ...ctx, actorId: u.id });
+        }
+      }
       if (u) {
         await registrarAuditoria("LOGIN", "users", u.id, { metodo: proveedor },
           { actorId: u.id, organizacionId: u.tenantId, ip: ipDe(request.headers), userAgent: userAgentDe(request.headers) });

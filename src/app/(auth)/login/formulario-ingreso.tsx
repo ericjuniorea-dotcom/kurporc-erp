@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { IconEye, IconEyeOff, IconLoader2 } from "@tabler/icons-react";
 import { LogoGoogle } from "@/components/auth/logo-google";
+import { CasillaContrato } from "@/components/legal/casilla-contrato";
 import { createClient } from "@/lib/supabase/client";
 import { ingresarConCorreo, ingresarConUsuario } from "@/app/acciones/autenticacion";
 import { Aviso } from "@/components/auth/marco-auth";
@@ -24,6 +25,8 @@ export function FormularioIngreso() {
   const [verClave, setVerClave] = useState(false);
   const [pendiente, iniciar] = useTransition();
   const [conGoogle, setConGoogle] = useState(false);
+  // Con Google se puede crear una cuenta nueva: sin aceptar no se habilita (decisión 18)
+  const [acepta, setAcepta] = useState(false);
 
   async function google() {
     setError(null);
@@ -32,7 +35,7 @@ export function FormularioIngreso() {
     const { error } = await createClient().auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(destino)}`,
+        redirectTo: `${window.location.origin}/auth/callback?acepto=1&next=${encodeURIComponent(destino)}`,
         queryParams: { prompt: "select_account" },
       },
     });
@@ -60,11 +63,14 @@ export function FormularioIngreso() {
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {error && <Aviso tipo="error">{error}</Aviso>}
 
-      <button type="button" onClick={google} disabled={ocupado} aria-label="Continuar con Google"
+      <CasillaContrato marcada={acepta} onChange={setAcepta} />
+
+      <button type="button" onClick={google} disabled={ocupado || !acepta} aria-label="Continuar con Google"
+        title={acepta ? undefined : "Tildá la casilla de aceptación para continuar"}
         style={{
           width: "100%", height: 44, display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
           background: "#FFFFFF", color: "#1F1F1F", border: "1px solid #DADCE0", borderRadius: "var(--radius-lg)",
-          fontSize: 14, fontWeight: 500, cursor: ocupado ? "default" : "pointer", opacity: ocupado ? 0.7 : 1,
+          fontSize: 14, fontWeight: 500, cursor: ocupado || !acepta ? "not-allowed" : "pointer", opacity: ocupado || !acepta ? 0.55 : 1,
         }}>
         {conGoogle ? <IconLoader2 size={16} style={{ animation: "spin 1s linear infinite" }} aria-hidden /> : <LogoGoogle size={18} />}
         Continuar con Google

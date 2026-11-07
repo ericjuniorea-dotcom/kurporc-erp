@@ -1,4 +1,5 @@
-// Pantallas de la cuenta personal: requieren sesión, no una organización.
+// Pantallas de la cuenta personal: requieren sesión, no una organización ni haber
+// aceptado el contrato (privacidad y seguridad siempre accesibles, punto 4.2.10).
 import { redirect } from "next/navigation";
 import { getUsuario } from "@/lib/auth/config";
 

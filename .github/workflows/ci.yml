@@ -47,13 +47,15 @@ jobs:
       - name: Migraciones desde cero
         run: npx prisma migrate deploy
       - name: Datos de prueba
-        run: npm run db:seed && npm run db:migrar-orgs
+        run: npm run db:seed && npm run db:migrar-orgs && npm run db:legales
       - name: Prueba de aislamiento entre organizaciones (Fase 1)
         run: psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f supabase/tests/fase1_aislamiento.sql
       - name: Prueba de auditoría y límites (Fase 2)
         run: psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f supabase/tests/fase2_seguridad.sql
       - name: Prueba del perfil automático al registrarse (Fase 3)
         run: psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f supabase/tests/fase3_auth.sql
+      - name: Prueba de contratos (Fase 4)
+        run: psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f supabase/tests/fase4_contratos.sql
       - name: Las migraciones coinciden con el esquema
         run: |
           out=$(npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --script)
