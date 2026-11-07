@@ -7,7 +7,7 @@ import { ThemeToggle } from "./theme-toggle";
 import { signOut } from "next-auth/react";
 import {
   IconHeart, IconHeartPlus, IconBuildingWarehouse,
-  IconWheat, IconFlask, IconTruck, IconUsers, IconCalculator,
+  IconWheat, IconTruck, IconUsers, IconCalculator,
   IconLayoutDashboard, IconBrandWhatsapp, IconShield,
   IconChartLine, IconLogout, IconDna, IconSettings, IconBuildingStore,
   IconClipboardCheck, IconMenu2, IconX,
@@ -40,7 +40,6 @@ const NAV_GROUPS = [
     label: "Operaciones",
     items: [
       { label: "Alimentación", href: "/alimentacion", icon: IconWheat,      roles: [1,2,3,4,5,6,10,11,12,13] },
-      { label: "Balanceado",   href: "/balanceado",   icon: IconFlask,      roles: [1,2,3,4,6] },
       { label: "Logística",    href: "/logistica",    icon: IconTruck,      roles: [1,2,3,7] },
     ],
   },

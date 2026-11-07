@@ -111,20 +111,6 @@ enum PhaseChangeReason {
   SPACE
 }
 
-enum RawMaterialType {
-  PROTEIN
-  ENERGY
-  NUCLEUS
-  ADDITIVE
-  MINERAL
-}
-
-enum FormulaStatus {
-  ACTIVE
-  INACTIVE
-  SUPERSEDED
-}
-
 enum PurchaseOrderStatus {
   DRAFT
   SENT
@@ -255,19 +241,11 @@ enum PayrollStatus {
   PAID
 }
 
-enum ProductionOrderStatus {
-  PENDING
-  CONFIRMED
-  PRODUCED
-  CANCELLED
-}
-
 enum LocationType {
   GESTATION
   MATERNITY
   NURSERY
   GROWING
-  BAL
   OTHER
 }
 
@@ -275,19 +253,43 @@ enum LocationType {
 // SISTEMA / AUTH
 // ================================================================
 
+// Tenant = Organización (documento maestro v2.0, D1/D2). Se extiende la tabla
+// existente en lugar de crear otra: conserva los ids y todas las FK "tenantId".
 model Tenant {
   id          String   @id @default(cuid())
   slug        String   @unique
-  farmName    String
+  farmName    String // = nombre de la organización
   plan        Plan     @default(FREE)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   config      Json     @default("{}")
-  phoneNumber String? // Número principal de la granja (para identificar tenant en WhatsApp)
-  isActive    Boolean  @default(true)
+  phoneNumber String? // Número principal (para identificar la organización en WhatsApp)
+  isActive    Boolean  @default(true) // legado; la fuente de verdad pasa a ser `estado`
 
-  users User[]
+  tipo               TipoOrganizacion   @default(EMPRESA)
+  codigoUnion        String             @unique @default(dbgenerated("upper(substr(md5((random())::text), 1, 8))")) // "Unirme a una empresa" y login de cuentas gestionadas
+  razonSocial        String?
+  ruc                String?
+  rubro              String?
+  pais               String             @default("PY")
+  departamento       String?
+  distrito           String?
+  whatsapp           String?
+  logoUrl            String?
+  estado             EstadoOrganizacion @default(ACTIVA)
+  verificacion       EstadoVerificacion @default(NO_APLICA)
+  compartirBenchmark Boolean            @default(false) // aparecer anonimizada en comparativas que ven otros usuarios
+  creadoPor          String? // users.id del creador
 
+  users        User[]
+  granjas      Granja[]
+  unidades     UnidadNegocio[]
+  miembros     Miembro[]
+  roles        Rol[]
+  invitaciones Invitacion[]
+
+  @@index([tipo])
+  @@index([departamento])
   @@map("tenants")
 }
 
@@ -305,17 +307,33 @@ model Role {
   @@map("roles")
 }
 
+// User = Perfil (la persona, D1). Se extiende la tabla existente.
+// `tenantId` y `passwordHash` son legado de NextAuth: se vuelven opcionales al
+// pasar a Supabase Auth (Fase 3). La pertenencia real a organizaciones está en `Miembro`.
 model User {
   id           String   @id @default(cuid())
   tenantId     String
   email        String   @unique
   passwordHash String
   name         String
-  phone        String? // Número WhatsApp del usuario/operario
+  phone        String? // Número WhatsApp del usuario/operario (+595)
   language     Language @default(ES)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  authUserId         String?      @unique @db.Uuid // = auth.users.id (Supabase Auth, Fase 3)
+  avatarUrl          String?
+  departamento       String?
+  distrito           String?
+  tipoRegistro       TipoRegistro @default(COMPRADOR)
+  proveedorLogin     String       @default("email") // google | email | gestionada
+  tipoAcceso         TipoAcceso   @default(NORMAL)
+  debeCambiarClave   Boolean      @default(false)
+  declaraMayorEdad   Boolean      @default(false)
+  onboardingCompleto Boolean      @default(false)
+  ultimoAcceso       DateTime?
+  bajaSolicitadaEn   DateTime?
 
   tenant              Tenant                  @relation(fields: [tenantId], references: [id])
   userRoles           UserRole[]
@@ -323,8 +341,9 @@ model User {
   sessions            Session[]
   pushTokens          PushToken[]
   notificationPref    NotificationPreference?
-  approvedVersions    FormulaVersion[]        @relation("ApprovedVersions")
   assignedHealthTasks HealthTask[]            @relation("AssignedHealthTasks")
+  membresias          Miembro[]
+  adminPlataforma     AdminPlataforma?
 
   @@index([tenantId])
   @@map("users")
@@ -391,14 +410,17 @@ model VerificationToken {
 model FarmLocation {
   id           String       @id @default(cuid())
   tenantId     String
+  granjaId     String? // granja a la que pertenece el sector (Fase 1)
   name         String // "Calle 6", "Galpón A", "Sala Maternidad 1"
   locationType LocationType
   isActive     Boolean      @default(true)
 
-  pens Pen[]
+  granja Granja? @relation(fields: [granjaId], references: [id])
+  pens   Pen[]
 
   @@unique([tenantId, name])
   @@index([tenantId])
+  @@index([granjaId])
   @@map("farm_locations")
 }
 
@@ -1262,8 +1284,6 @@ model FeedType {
   productoBalanceadoId String? // FK a ProductoInventario (categoria=BALANCEADO) — fuente única de stock de esta etapa
 
   feedRecords        FeedRecord[]
-  formulas           Formula[]
-  nutritionalTargets NutritionalTarget[]
   productoBalanceado ProductoInventario? @relation(fields: [productoBalanceadoId], references: [id])
 
   @@unique([tenantId, phase])
@@ -1301,135 +1321,10 @@ model FeedRecord {
 // LoteInventario (catálogo único) sigue siendo la única fuente de verdad de
 // cantidad/vencimiento; esta tabla solo agrega los campos que no aplican a
 // lotes de vacunas/suplementos/medicamentos (ver decisión de arquitectura).
-model LoteInventarioNutricion {
-  id                      String   @id @default(cuid())
-  loteId                  String   @unique
-  supplierId              String?
-  pricePerKg              Decimal? @db.Decimal(10, 4)
-  invoiceNumber           String?
-  techDataSheetUrl        String? // URL del PDF en S3
-  aiExtractionNotes       String? // Notas del proceso de extracción con IA
-  crudProteinPct          Decimal? @db.Decimal(6, 3)
-  metabolizableEnergyKcal Decimal? @db.Decimal(8, 2)
-  lysinePct               Decimal? @db.Decimal(6, 3)
-  methioninePct           Decimal? @db.Decimal(6, 3)
-  calciumPct              Decimal? @db.Decimal(6, 3)
-  phosphorusPct           Decimal? @db.Decimal(6, 3)
-  moisturePct             Decimal? @db.Decimal(6, 3)
-  mycotoxinPpb            Decimal? @db.Decimal(10, 2)
-
-  lote     LoteInventario @relation(fields: [loteId], references: [id])
-  supplier Supplier?      @relation(fields: [supplierId], references: [id])
-
-  @@map("lotes_inventario_nutricion")
-}
-
 // Una fórmula por tipo de alimento, con historial de versiones
-model Formula {
-  id         String   @id @default(cuid())
-  tenantId   String
-  feedTypeId String
-  name       String
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-
-  feedType FeedType         @relation(fields: [feedTypeId], references: [id])
-  versions FormulaVersion[]
-
-  @@unique([tenantId, feedTypeId])
-  @@index([tenantId])
-  @@map("formulas")
-}
-
 // REGLA CRÍTICA 1: Solo el Veterinario Jefe puede aprobar cambios de fórmula.
 // La IA sugiere pero NUNCA modifica. approvedById es obligatorio para activar.
-model FormulaVersion {
-  id                 String        @id @default(cuid())
-  tenantId           String
-  formulaId          String
-  versionNumber      Int
-  status             FormulaStatus @default(INACTIVE)
-  // Aprobación — solo rol VET_CHIEF (id=4) puede llenar estos campos
-  approvedById       String?
-  approvedAt         DateTime?
-  approvalNotes      String?
-  // Perfil nutricional calculado automáticamente al guardar
-  totalProteinPct    Decimal?      @db.Decimal(6, 3)
-  totalEnergyKcal    Decimal?      @db.Decimal(8, 2)
-  totalLysinePct     Decimal?      @db.Decimal(6, 3)
-  totalMethioninePct Decimal?      @db.Decimal(6, 3)
-  totalCalciumPct    Decimal?      @db.Decimal(6, 3)
-  totalPhosphorusPct Decimal?      @db.Decimal(6, 3)
-  totalMoisturePct   Decimal?      @db.Decimal(6, 3)
-  totalMycotoxinPpb  Decimal?      @db.Decimal(10, 2)
-  aiSuggestionNotes  String?       @db.Text // Sugerencia del asistente IA
-  createdAt          DateTime      @default(now())
-
-  formula          Formula              @relation(fields: [formulaId], references: [id])
-  approvedBy       User?                @relation("ApprovedVersions", fields: [approvedById], references: [id])
-  ingredients      FormulaIngredient[]
-  productionOrders BalProductionOrder[]
-
-  @@unique([formulaId, versionNumber])
-  @@index([tenantId])
-  @@map("formula_versions")
-}
-
-model FormulaIngredient {
-  id               String  @id @default(cuid())
-  formulaVersionId String
-  rawMaterialId    String // FK a ProductoInventario (categoria=MATERIA_PRIMA)
-  inclusionPct     Decimal @db.Decimal(6, 3) // La suma debe ser exactamente 100%
-
-  formulaVersion FormulaVersion     @relation(fields: [formulaVersionId], references: [id])
-  rawMaterial    ProductoInventario @relation(fields: [rawMaterialId], references: [id])
-
-  @@unique([formulaVersionId, rawMaterialId])
-  @@map("formula_ingredients")
-}
-
 // Metas nutricionales por fase — el sistema compara y alerta si la fórmula queda por debajo
-model NutritionalTarget {
-  id               String   @id @default(cuid())
-  tenantId         String
-  feedTypeId       String
-  minProteinPct    Decimal? @db.Decimal(6, 3)
-  minEnergyKcal    Decimal? @db.Decimal(8, 2)
-  minLysinePct     Decimal? @db.Decimal(6, 3)
-  minMethioninePct Decimal? @db.Decimal(6, 3)
-  minCalciumPct    Decimal? @db.Decimal(6, 3)
-  minPhosphorusPct Decimal? @db.Decimal(6, 3)
-  maxMycotoxinPpb  Decimal? @db.Decimal(10, 2)
-  updatedAt        DateTime @updatedAt
-
-  feedType FeedType @relation(fields: [feedTypeId], references: [id])
-
-  @@unique([tenantId, feedTypeId])
-  @@map("nutritional_targets")
-}
-
-model BalProductionOrder {
-  id               String                @id @default(cuid())
-  tenantId         String
-  formulaVersionId String
-  orderedById      String
-  confirmedById    String?
-  scheduledDate    DateTime
-  quantityKg       Decimal               @db.Decimal(12, 3)
-  status           ProductionOrderStatus @default(PENDING)
-  isAutoGenerated  Boolean               @default(false)
-  producedAt       DateTime?
-  createdAt        DateTime              @default(now())
-
-  loteInventarioId String? @unique // lote de LoteInventario (categoria=BALANCEADO) generado al producir
-
-  formulaVersion FormulaVersion  @relation(fields: [formulaVersionId], references: [id])
-  loteInventario LoteInventario? @relation(fields: [loteInventarioId], references: [id])
-
-  @@index([tenantId, status])
-  @@map("bal_production_orders")
-}
-
 // ================================================================
 // MÓDULO 4: LOGÍSTICA
 // ================================================================
@@ -1445,7 +1340,6 @@ model Supplier {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  lotesNutricion LoteInventarioNutricion[]
   purchaseOrders PurchaseOrder[]
   goodsReceipts  GoodsReceipt[]
 
@@ -2154,7 +2048,6 @@ enum CategoriaProducto {
   VACUNA
   SUPLEMENTO
   MEDICAMENTO
-  MATERIA_PRIMA
   BALANCEADO
   EQUIPAMIENTO
 }
@@ -2181,7 +2074,6 @@ model ProductoInventario {
   codigo                String? // V-001 | S-001 | M-001 | MP-001 | B-001 | E-001 — inmutable, nunca se reasigna
   unidadMedida          UnidadMedida           @default(DOSIS)
   stockMinimo           Int? // umbral manual de stock crítico (Suplemento/Medicamento/Materia Prima/Balanceado)
-  materialType          RawMaterialType? // solo cuando categoria=MATERIA_PRIMA: PROTEIN | ENERGY | NUCLEUS | ADDITIVE | MINERAL
   viaAplicacion         String                 @default("IM") // IM | SC | oral | intranasal
   dosisMl               Decimal                @default(2) @db.Decimal(6, 2)
   intervaloRefuerzo     Int? // días hasta refuerzo
@@ -2196,7 +2088,6 @@ model ProductoInventario {
   protocoloItems        ProtocoloItem[]
   eventosVacunacion     EventoVacunacion[]
   aplicaciones          AplicacionVacuna[]
-  formulaIngredients    FormulaIngredient[]
   feedTypesBalanceado   FeedType[]
   movimientos           MovimientoInventario[]
 
@@ -2206,26 +2097,24 @@ model ProductoInventario {
 }
 
 model LoteInventario {
-  id               String                   @id @default(cuid())
+  id               String                 @id @default(cuid())
   tenantId         String
   vacunaId         String
   numeroLote       String
   proveedor        String?
   fechaVencimiento DateTime
-  fechaIngreso     DateTime                 @default(now())
-  cantidadInicial  Decimal                  @db.Decimal(12, 3)
-  cantidadActual   Decimal                  @db.Decimal(12, 3)
-  costoUnitario    Decimal?                 @db.Decimal(12, 4) // costo por unidad de medida del producto (₲/dosis, ₲/ml, ₲/kg) — para "cuánto me sale cada producto"
-  abierto          Boolean                  @default(false)
+  fechaIngreso     DateTime               @default(now())
+  cantidadInicial  Decimal                @db.Decimal(12, 3)
+  cantidadActual   Decimal                @db.Decimal(12, 3)
+  costoUnitario    Decimal?               @db.Decimal(12, 4) // costo por unidad de medida del producto (₲/dosis, ₲/ml, ₲/kg) — para "cuánto me sale cada producto"
+  abierto          Boolean                @default(false)
   fechaApertura    DateTime? // cuándo se abrió el vial — junto con vacuna.descarteHorasApertura define el descarte por tiempo
   abiertoPorId     String? // userId que lo abrió
   observaciones    String?
-  createdAt        DateTime                 @default(now())
-  updatedAt        DateTime                 @updatedAt
-  vacuna           ProductoInventario       @relation(fields: [vacunaId], references: [id])
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  vacuna           ProductoInventario     @relation(fields: [vacunaId], references: [id])
   aplicaciones     AplicacionVacuna[]
-  nutricion        LoteInventarioNutricion?
-  produccionOrigen BalProductionOrder?
   movimientos      MovimientoInventario[]
 
   @@index([tenantId, vacunaId])
@@ -2242,7 +2131,6 @@ enum OrigenMovimiento {
   VACUNACION
   TRATAMIENTO
   MATERNIDAD
-  PRODUCCION
   ALIMENTACION
   COMPRA
   AJUSTE_MANUAL
@@ -2346,4 +2234,283 @@ model AplicacionVacuna {
   @@index([tenantId, eventoId])
   @@index([tenantId, grupoAplicacionId])
   @@map("aplicaciones_vacunas")
+}
+
+// ================================================================
+// PLATAFORMA — Identidad, organizaciones, membresías y unidades (Fase 1)
+// Organización = Tenant (tabla "tenants") · Perfil = User (tabla "users").
+// Las FK hacia tablas existentes son texto (cuid); los ids propios, uuid.
+// ================================================================
+
+enum TipoRegistro {
+  COMPRADOR
+  INDIVIDUAL
+  EMPRESA
+  VENDEDOR
+}
+
+enum TipoOrganizacion {
+  INDIVIDUAL
+  EMPRESA
+  VENDEDOR
+}
+
+enum EstadoOrganizacion {
+  ACTIVA
+  SUSPENDIDA
+  EN_BAJA
+}
+
+enum EstadoVerificacion {
+  NO_APLICA
+  PENDIENTE
+  VERIFICADA
+  RECHAZADA
+}
+
+enum EstadoMiembro {
+  ACTIVO
+  SUSPENDIDO
+}
+
+enum Alcance {
+  TODAS
+  SELECCION
+}
+
+enum EfectoPermiso {
+  PERMITIR
+  DENEGAR
+}
+
+enum EstadoInvitacion {
+  PENDIENTE
+  ACEPTADA
+  REVOCADA
+  VENCIDA
+}
+
+enum TipoAcceso {
+  NORMAL
+  GESTIONADA // cuenta creada por el Administrador General para un operario sin correo
+}
+
+enum TipoUnidad {
+  GRANJA
+  COMUN
+  OTRA
+}
+
+model Granja {
+  id             String   @id @default(cuid())
+  organizacionId String   @map("organizacion_id")
+  codigo         String // "MISIONES", "SAN-COSME"
+  nombre         String
+  departamento   String?
+  distrito       String?
+  activa         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organizacion Tenant          @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  sectores     FarmLocation[]
+  unidades     UnidadNegocio[]
+  miembros     MiembroGranja[]
+
+  @@unique([organizacionId, codigo])
+  @@index([organizacionId])
+  @@map("granja")
+}
+
+model UnidadNegocio {
+  id             String     @id @default(uuid()) @db.Uuid
+  organizacionId String     @map("organizacion_id")
+  codigo         String // "GRANJA-MISIONES", "COMUN"
+  nombre         String
+  tipo           TipoUnidad
+  granjaId       String?    @map("granja_id")
+  activa         Boolean    @default(true)
+
+  organizacion Tenant          @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  granja       Granja?         @relation(fields: [granjaId], references: [id])
+  miembros     MiembroUnidad[]
+
+  @@unique([organizacionId, codigo])
+  @@index([organizacionId])
+  @@map("unidad_negocio")
+}
+
+model Miembro {
+  id              String        @id @default(uuid()) @db.Uuid
+  organizacionId  String        @map("organizacion_id")
+  userId          String        @map("user_id")
+  rolId           String?       @map("rol_id") @db.Uuid
+  esPropietario   Boolean       @default(false) @map("es_propietario") // Administrador General
+  cargo           String? // texto visible: "Encargada de Maternidad"
+  estado          EstadoMiembro @default(ACTIVO)
+  alcanceGranjas  Alcance       @default(TODAS) @map("alcance_granjas")
+  alcanceUnidades Alcance       @default(TODAS) @map("alcance_unidades")
+  limiteCompraGs  BigInt?       @map("limite_compra_gs") // null = sin límite (solo propietario); 0 = toda compra requiere aprobación
+  invitadoPor     String?       @map("invitado_por")
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  organizacion   Tenant           @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  perfil         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rol            Rol?             @relation(fields: [rolId], references: [id])
+  granjas        MiembroGranja[]
+  unidades       MiembroUnidad[]
+  permisosAjuste MiembroPermiso[]
+
+  @@unique([organizacionId, userId])
+  @@index([userId])
+  @@map("miembro")
+}
+
+model MiembroGranja {
+  miembroId String @map("miembro_id") @db.Uuid
+  granjaId  String @map("granja_id")
+
+  miembro Miembro @relation(fields: [miembroId], references: [id], onDelete: Cascade)
+  granja  Granja  @relation(fields: [granjaId], references: [id], onDelete: Cascade)
+
+  @@id([miembroId, granjaId])
+  @@map("miembro_granja")
+}
+
+model MiembroUnidad {
+  miembroId String @map("miembro_id") @db.Uuid
+  unidadId  String @map("unidad_id") @db.Uuid
+
+  miembro Miembro       @relation(fields: [miembroId], references: [id], onDelete: Cascade)
+  unidad  UnidadNegocio @relation(fields: [unidadId], references: [id], onDelete: Cascade)
+
+  @@id([miembroId, unidadId])
+  @@map("miembro_unidad")
+}
+
+// Roles editables por organización. Los 14 roles fijos de la tabla "roles"
+// quedan como legado hasta que la Fase 7 reemplace los chequeos hardcodeados.
+model Rol {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizacionId String?  @map("organizacion_id") // null = plantilla global del sistema
+  codigo         String
+  nombre         String
+  descripcion    String?
+  esSistema      Boolean  @default(false) @map("es_sistema")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organizacion Tenant?      @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  permisos     RolPermiso[]
+  miembros     Miembro[]
+
+  @@unique([organizacionId, codigo])
+  @@map("rol")
+}
+
+model Permiso {
+  clave           String  @id // "finanzas.movimientos.crear"
+  modulo          String
+  recurso         String
+  accion          String
+  grupo           String // Producción | Finanzas | Compras | Comercial | RRHH | Equipo | Configuración | Tienda
+  descripcion     String // lenguaje simple, lo ve el Administrador General
+  sensible        Boolean @default(false) // ve plata, datos personales o anula registros
+  soloPropietario Boolean @default(false) @map("solo_propietario") // nunca se puede delegar
+  orden           Int     @default(0)
+
+  roles    RolPermiso[]
+  miembros MiembroPermiso[]
+
+  @@map("permiso")
+}
+
+model RolPermiso {
+  rolId        String @map("rol_id") @db.Uuid
+  permisoClave String @map("permiso_clave")
+
+  rol     Rol     @relation(fields: [rolId], references: [id], onDelete: Cascade)
+  permiso Permiso @relation(fields: [permisoClave], references: [clave], onDelete: Cascade)
+
+  @@id([rolId, permisoClave])
+  @@map("rol_permiso")
+}
+
+model MiembroPermiso {
+  miembroId    String        @map("miembro_id") @db.Uuid
+  permisoClave String        @map("permiso_clave")
+  efecto       EfectoPermiso
+
+  miembro Miembro @relation(fields: [miembroId], references: [id], onDelete: Cascade)
+  permiso Permiso @relation(fields: [permisoClave], references: [clave], onDelete: Cascade)
+
+  @@id([miembroId, permisoClave])
+  @@map("miembro_permiso")
+}
+
+model Invitacion {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizacionId String           @map("organizacion_id")
+  email          String
+  rolId          String           @map("rol_id") @db.Uuid
+  cargo          String?
+  ajustes        Json             @default("[]") // [{clave, efecto}]
+  granjas        Json             @default("[]") // [] = TODAS
+  unidades       Json             @default("[]") // [] = TODAS
+  limiteCompraGs BigInt?          @map("limite_compra_gs")
+  tokenHash      String           @unique @map("token_hash") // sha256; el token en claro solo viaja en el link
+  expiraEn       DateTime         @map("expira_en")
+  estado         EstadoInvitacion @default(PENDIENTE)
+  invitadoPor    String           @map("invitado_por")
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  organizacion Tenant @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@index([organizacionId, estado])
+  @@map("invitacion")
+}
+
+model SolicitudUnion {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizacionId String   @map("organizacion_id")
+  userId         String   @map("user_id")
+  mensaje        String?
+  estado         String   @default("PENDIENTE") // PENDIENTE | APROBADA | RECHAZADA
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@unique([organizacionId, userId])
+  @@map("solicitud_union")
+}
+
+model AdminPlataforma {
+  userId    String   @id @map("user_id")
+  nivel     String   @default("TOTAL") // TOTAL | SOPORTE | MODERACION | LECTURA (Anexo A.10)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  perfil User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("admin_plataforma")
+}
+
+model ActividadDiaria {
+  userId         String   @map("user_id")
+  fecha          DateTime @db.Date
+  organizacionId String?  @map("organizacion_id")
+  accesos        Int      @default(1)
+
+  @@id([userId, fecha])
+  @@map("actividad_diaria")
+}
+
+model Notificacion {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id")
+  organizacionId String?  @map("organizacion_id")
+  tipo           String
+  titulo         String
+  cuerpo         String?
+  enlace         String?
+  leida          Boolean  @default(false)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([userId, leida])
+  @@map("notificacion")
 }

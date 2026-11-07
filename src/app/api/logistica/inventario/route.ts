@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/config";
 import { computeStockYFaltantes, type CategoriaInventario } from "@/lib/inventario/proyeccion";
 
-const CATEGORIAS_VALIDAS = ["VACUNA", "SUPLEMENTO", "MEDICAMENTO", "MATERIA_PRIMA", "BALANCEADO", "EQUIPAMIENTO"];
+const CATEGORIAS_VALIDAS = ["VACUNA", "SUPLEMENTO", "MEDICAMENTO", "BALANCEADO", "EQUIPAMIENTO"];
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);

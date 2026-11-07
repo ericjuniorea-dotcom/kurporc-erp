@@ -56,7 +56,7 @@ CREATE TYPE "PurchaseOrderStatus" AS ENUM ('DRAFT', 'SENT', 'CONFIRMED', 'RECEIV
 CREATE TYPE "GoodsReceiptStatus" AS ENUM ('COMPLETE', 'PARTIAL');
 
 -- CreateEnum
-CREATE TYPE "HealthTaskType" AS ENUM ('TAIL_DOCKING', 'TOOTH_CLIPPING', 'CASTRATION', 'IRON_INJECTION', 'VACCINATION');
+CREATE TYPE "HealthTaskType" AS ENUM ('TAIL_DOCKING', 'TOOTH_CLIPPING', 'CASTRATION', 'IRON_INJECTION', 'VACCINATION', 'CLEANING', 'OTHER_PROCEDURE');
 
 -- CreateEnum
 CREATE TYPE "VaccinationRoute" AS ENUM ('IM', 'SC', 'ORAL');
@@ -65,13 +65,25 @@ CREATE TYPE "VaccinationRoute" AS ENUM ('IM', 'SC', 'ORAL');
 CREATE TYPE "DiagnosisType" AS ENUM ('DIARRHEA', 'ARTHRITIS', 'PNEUMONIA', 'OTHER');
 
 -- CreateEnum
+CREATE TYPE "EstadoTratamiento" AS ENUM ('ACTIVO', 'EN_SEGUIMIENTO', 'FINALIZADO', 'ABANDONADO');
+
+-- CreateEnum
+CREATE TYPE "ProcedimientoMaternidadTipo" AS ENUM ('DESCOLMILLADO', 'CORTE_COLA', 'CORTE_OMBLIGO', 'HIERRO', 'CASTRACION');
+
+-- CreateEnum
 CREATE TYPE "AlertSeverity" AS ENUM ('INFO', 'WARNING', 'CRITICAL');
 
 -- CreateEnum
-CREATE TYPE "AlertType" AS ENUM ('PIGLETS_OVERDUE_WEANING', 'SOW_STOCK_NEGATIVE', 'SOW_ZERO_PIGLETS_NO_WEANING', 'FARROWING_LONG_DURATION', 'LOW_BIRTH_WEIGHT', 'GESTATION_DAYS_OUT_OF_RANGE', 'SOW_OVERDUE_FARROWING', 'WITHDRAWAL_PERIOD_NEAR_WEANING', 'PEAK_FARROWINGS_PROJECTED', 'SEMEN_DOSE_EXPIRED', 'BATCH_REACHED_TRANSFER_WEIGHT', 'PEN_OVER_CAPACITY', 'NO_PENS_AVAILABLE', 'FINISHED_STOCK_BELOW_MIN', 'RAW_MATERIAL_BELOW_MIN', 'MYCOTOXIN_LIMIT_EXCEEDED', 'PROJECTED_SHORTAGE_60_DAYS', 'BATCH_NOT_FED', 'HEALTH_TASK_OVERDUE', 'WITHDRAWAL_PERIOD_NEAR_SALE', 'STOCK_ADJUSTMENT_PENDING', 'FORMULA_PENDING_APPROVAL');
+CREATE TYPE "AlertType" AS ENUM ('PIGLETS_OVERDUE_WEANING', 'SOW_STOCK_NEGATIVE', 'SOW_ZERO_PIGLETS_NO_WEANING', 'FARROWING_LONG_DURATION', 'LOW_BIRTH_WEIGHT', 'GESTATION_DAYS_OUT_OF_RANGE', 'SOW_OVERDUE_FARROWING', 'WITHDRAWAL_PERIOD_NEAR_WEANING', 'PEAK_FARROWINGS_PROJECTED', 'SEMEN_DOSE_EXPIRED', 'HEAT_REPEAT_DISCARD', 'LOW_CONCEPTION_RATE', 'BATCH_REACHED_TRANSFER_WEIGHT', 'PEN_OVER_CAPACITY', 'NO_PENS_AVAILABLE', 'FINISHED_STOCK_BELOW_MIN', 'RAW_MATERIAL_BELOW_MIN', 'MYCOTOXIN_LIMIT_EXCEEDED', 'PROJECTED_SHORTAGE_60_DAYS', 'BATCH_NOT_FED', 'HEALTH_TASK_OVERDUE', 'WITHDRAWAL_PERIOD_NEAR_SALE', 'STOCK_ADJUSTMENT_PENDING', 'FORMULA_PENDING_APPROVAL');
 
 -- CreateEnum
 CREATE TYPE "WhatsAppSessionStatus" AS ENUM ('ACTIVE', 'EXPIRED', 'COMPLETED');
+
+-- CreateEnum
+CREATE TYPE "SowPlantelState" AS ENUM ('QUARANTINE', 'REPLACEMENT_DEVELOPING', 'REPLACEMENT_READY', 'MATED', 'PREGNANT', 'FARROWING', 'LACTATING', 'EMPTY', 'CULLED', 'DEAD');
+
+-- CreateEnum
+CREATE TYPE "BoarPlantelState" AS ENUM ('QUARANTINE', 'ACTIVE', 'RESTING', 'CULLED', 'DEAD');
 
 -- CreateEnum
 CREATE TYPE "NotificationChannel" AS ENUM ('PUSH', 'WHATSAPP', 'BOTH');
@@ -84,6 +96,36 @@ CREATE TYPE "ProductionOrderStatus" AS ENUM ('PENDING', 'CONFIRMED', 'PRODUCED',
 
 -- CreateEnum
 CREATE TYPE "LocationType" AS ENUM ('GESTATION', 'MATERNITY', 'NURSERY', 'GROWING', 'BAL', 'OTHER');
+
+-- CreateEnum
+CREATE TYPE "TipoGenetico" AS ENUM ('RAZA_PURA', 'HIBRIDA_F1', 'SINTETICA', 'CRUZA_INTERNA');
+
+-- CreateEnum
+CREATE TYPE "FuncionGenetica" AS ENUM ('MATERNA', 'PATERNA');
+
+-- CreateEnum
+CREATE TYPE "Paridad" AS ENUM ('NULIPARA', 'MULTIPARA', 'AMBAS');
+
+-- CreateEnum
+CREATE TYPE "SujetoAplicacion" AS ENUM ('LECHON', 'HEMBRA');
+
+-- CreateEnum
+CREATE TYPE "MarketplacePedidoEstado" AS ENUM ('PENDIENTE', 'CONFIRMADO', 'ENVIADO', 'ENTREGADO', 'CANCELADO');
+
+-- CreateEnum
+CREATE TYPE "MarketplaceCategoria" AS ENUM ('VACUNA', 'MEDICAMENTO', 'INSUMO', 'ALIMENTO', 'EQUIPAMIENTO', 'OTRO');
+
+-- CreateEnum
+CREATE TYPE "CategoriaProducto" AS ENUM ('VACUNA', 'SUPLEMENTO', 'MEDICAMENTO', 'MATERIA_PRIMA', 'BALANCEADO', 'EQUIPAMIENTO');
+
+-- CreateEnum
+CREATE TYPE "UnidadMedida" AS ENUM ('DOSIS', 'ML', 'KG', 'UNIDAD', 'SACO');
+
+-- CreateEnum
+CREATE TYPE "TipoMovimiento" AS ENUM ('ENTRADA', 'SALIDA', 'AJUSTE');
+
+-- CreateEnum
+CREATE TYPE "OrigenMovimiento" AS ENUM ('VACUNACION', 'TRATAMIENTO', 'MATERNIDAD', 'PRODUCCION', 'ALIMENTACION', 'COMPRA', 'AJUSTE_MANUAL');
 
 -- CreateTable
 CREATE TABLE "tenants" (
@@ -207,6 +249,22 @@ CREATE TABLE "sows" (
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "erpCode" TEXT,
+    "caravanaCode" TEXT,
+    "tattooCode" TEXT,
+    "rfidChip" TEXT,
+    "photoUrl" TEXT,
+    "geneticLine" TEXT,
+    "entryWeightKg" DECIMAL(8,2),
+    "currentWeightKg" DECIMAL(8,2),
+    "sourceProvider" TEXT,
+    "purchasePriceGs" DECIMAL(14,0),
+    "damCodeOrigin" TEXT,
+    "sireCodeOrigin" TEXT,
+    "galponAssigned" TEXT,
+    "corralAssigned" TEXT,
+    "plantelState" "SowPlantelState",
+    "plantelNotes" TEXT,
 
     CONSTRAINT "sows_pkey" PRIMARY KEY ("id")
 );
@@ -219,6 +277,21 @@ CREATE TABLE "boars" (
     "breed" TEXT,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "erpCode" TEXT,
+    "caravanaCode" TEXT,
+    "tattooCode" TEXT,
+    "rfidChip" TEXT,
+    "photoUrl" TEXT,
+    "geneticLine" TEXT,
+    "birthDate" TIMESTAMP(3),
+    "entryDate" TIMESTAMP(3),
+    "entryWeightKg" DECIMAL(8,2),
+    "sourceProvider" TEXT,
+    "purchasePriceGs" DECIMAL(14,0),
+    "galponAssigned" TEXT,
+    "corralAssigned" TEXT,
+    "plantelState" "BoarPlantelState",
+    "plantelNotes" TEXT,
 
     CONSTRAINT "boars_pkey" PRIMARY KEY ("id")
 );
@@ -238,10 +311,150 @@ CREATE TABLE "semen_doses" (
 );
 
 -- CreateTable
+CREATE TABLE "config_metas" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "modulo" TEXT NOT NULL,
+    "kpiKey" TEXT NOT NULL,
+    "valor" DECIMAL(10,3) NOT NULL,
+    "updatedBy" TEXT,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "config_metas_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "config_genetica" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nombre" TEXT NOT NULL,
+    "empresa" TEXT,
+    "tipoGenetico" "TipoGenetico" NOT NULL,
+    "funcion" "FuncionGenetica" NOT NULL,
+    "composicionRacial" TEXT,
+    "metaNacidosVivos" DECIMAL(6,2),
+    "activa" BOOLEAN NOT NULL DEFAULT true,
+    "notas" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "config_genetica_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "config_vacunas" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "modulo" TEXT NOT NULL,
+    "nombreVacuna" TEXT NOT NULL,
+    "marcaComercial" TEXT NOT NULL,
+    "laboratorio" TEXT NOT NULL,
+    "principioActivo" TEXT NOT NULL,
+    "enfermedadObjetivo" TEXT,
+    "viaAplicacion" TEXT NOT NULL,
+    "dosisMl" DECIMAL(8,3) NOT NULL,
+    "momentoAplicacion" TEXT NOT NULL,
+    "refuerzoDias" INTEGER,
+    "paisProcedencia" TEXT NOT NULL,
+    "tempConservacion" TEXT NOT NULL,
+    "diasAlertaVto" INTEGER NOT NULL DEFAULT 30,
+    "loteActual" TEXT,
+    "fechaVencimientoLote" TIMESTAMP(3),
+    "stockDosis" INTEGER,
+    "stockMinimoAlerta" INTEGER,
+    "fichaTecnicaUrl" TEXT,
+    "obligatoria" BOOLEAN NOT NULL DEFAULT false,
+    "diasEsperaServicio" INTEGER NOT NULL DEFAULT 0,
+    "notas" TEXT,
+    "activa" BOOLEAN NOT NULL DEFAULT true,
+    "paridad" "Paridad" NOT NULL DEFAULT 'AMBAS',
+    "diaGestacion" INTEGER,
+    "ordenDosis" INTEGER NOT NULL DEFAULT 1,
+    "grupoMezclaId" TEXT,
+    "sujeto" "SujetoAplicacion",
+    "diaReferencia" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "config_vacunas_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "config_procesos" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "modulo" TEXT NOT NULL,
+    "procesoKey" TEXT NOT NULL,
+    "valor" JSONB NOT NULL,
+    "updatedBy" TEXT,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "config_procesos_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "config_alertas" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "modulo" TEXT NOT NULL,
+    "eventoKey" TEXT NOT NULL,
+    "umbral" DECIMAL(10,3),
+    "canales" TEXT[],
+    "activa" BOOLEAN NOT NULL DEFAULT true,
+    "gravedad" TEXT NOT NULL DEFAULT 'WARNING',
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "config_alertas_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "animal_events" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "sowId" TEXT,
+    "boarId" TEXT,
+    "eventType" TEXT NOT NULL,
+    "eventDate" TIMESTAMP(3) NOT NULL,
+    "description" TEXT,
+    "previousState" TEXT,
+    "newState" TEXT,
+    "moduleSource" TEXT,
+    "userId" TEXT,
+    "metadata" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "animal_events_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "external_semen_lots" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "lotCode" TEXT NOT NULL,
+    "geneticLine" TEXT NOT NULL,
+    "donorBoarCode" TEXT NOT NULL,
+    "originFarm" TEXT NOT NULL,
+    "productionDate" TIMESTAMP(3) NOT NULL,
+    "expiryDate" TIMESTAMP(3) NOT NULL,
+    "totalDoses" INTEGER NOT NULL,
+    "availableDoses" INTEGER NOT NULL,
+    "pricePerDoseGs" DECIMAL(14,0) NOT NULL,
+    "certUrl" TEXT,
+    "observations" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "external_semen_lots_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "service_batches" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
     "weekLabel" TEXT NOT NULL,
+    "code" TEXT,
+    "notes" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "service_batches_pkey" PRIMARY KEY ("id")
@@ -316,10 +529,30 @@ CREATE TABLE "sow_discards" (
     "tenantId" TEXT NOT NULL,
     "sowId" TEXT NOT NULL,
     "discardDate" TIMESTAMP(3) NOT NULL,
-    "reason" TEXT NOT NULL,
+    "reason" TEXT NOT NULL DEFAULT '',
     "destination" TEXT,
     "employeeId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "categoria" TEXT,
+    "motivosEspecificos" TEXT[],
+    "motivoPrincipal" TEXT,
+    "tipoDescarte" TEXT,
+    "pesoKg" DECIMAL(8,2),
+    "condicionCorporal" INTEGER,
+    "estadoSanitario" TEXT,
+    "estadoReproductivo" TEXT,
+    "estadoProductivo" TEXT,
+    "numeroParto" INTEGER,
+    "diasUltimoParto" INTEGER,
+    "diasUltimoServicio" INTEGER,
+    "numeroServicios" INTEGER,
+    "lechonesDestetados" INTEGER,
+    "diagnostico" TEXT,
+    "veterinario" TEXT,
+    "observacionesClinicas" TEXT,
+    "observaciones" TEXT,
+    "responsableAutoriza" TEXT,
 
     CONSTRAINT "sow_discards_pkey" PRIMARY KEY ("id")
 );
@@ -536,8 +769,68 @@ CREATE TABLE "growing_batches" (
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "sitio" TEXT,
+    "procedencia" TEXT NOT NULL DEFAULT 'RECRIA_PROPIA',
+    "avgAgeAtEntryDays" INTEGER,
+    "targetWeightKg" DECIMAL(8,2),
+    "employeeId" TEXT,
+    "observations" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'ACTIVE',
+    "closedAt" TIMESTAMP(3),
+    "closedReason" TEXT,
 
     CONSTRAINT "growing_batches_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "growing_deaths" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "growingBatchId" TEXT NOT NULL,
+    "deathDate" TIMESTAMP(3) NOT NULL,
+    "deathTime" TEXT,
+    "count" INTEGER NOT NULL DEFAULT 1,
+    "cause" TEXT NOT NULL,
+    "employeeId" TEXT,
+    "estimatedWeightKg" DECIMAL(8,2),
+    "notes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "growing_deaths_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "growing_transfers" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "sourceBatchId" TEXT NOT NULL,
+    "targetBatchId" TEXT,
+    "targetSite" TEXT,
+    "transferDate" TIMESTAMP(3) NOT NULL,
+    "count" INTEGER NOT NULL,
+    "totalWeightKg" DECIMAL(10,3),
+    "avgWeightKg" DECIMAL(8,3),
+    "reason" TEXT NOT NULL,
+    "employeeId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "growing_transfers_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "growing_other_exits" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "growingBatchId" TEXT NOT NULL,
+    "exitType" TEXT NOT NULL,
+    "exitDate" TIMESTAMP(3) NOT NULL,
+    "count" INTEGER NOT NULL,
+    "estimatedWeightKg" DECIMAL(8,2),
+    "reason" TEXT NOT NULL,
+    "employeeId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "growing_other_exits_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -567,6 +860,7 @@ CREATE TABLE "feed_types" (
     "phase" TEXT NOT NULL,
     "sortOrder" INTEGER NOT NULL DEFAULT 0,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "productoBalanceadoId" TEXT,
 
     CONSTRAINT "feed_types_pkey" PRIMARY KEY ("id")
 );
@@ -589,34 +883,14 @@ CREATE TABLE "feed_records" (
 );
 
 -- CreateTable
-CREATE TABLE "raw_materials" (
+CREATE TABLE "lotes_inventario_nutricion" (
     "id" TEXT NOT NULL,
-    "tenantId" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "materialType" "RawMaterialType" NOT NULL,
+    "loteId" TEXT NOT NULL,
     "supplierId" TEXT,
-    "currentStockKg" DECIMAL(12,3) NOT NULL DEFAULT 0,
-    "minStockKg" DECIMAL(12,3) NOT NULL DEFAULT 0,
-    "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "raw_materials_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "raw_material_lots" (
-    "id" TEXT NOT NULL,
-    "tenantId" TEXT NOT NULL,
-    "rawMaterialId" TEXT NOT NULL,
-    "lotCode" TEXT NOT NULL,
-    "receivedDate" TIMESTAMP(3) NOT NULL,
-    "quantityKg" DECIMAL(12,3) NOT NULL,
-    "remainingKg" DECIMAL(12,3) NOT NULL,
-    "pricePerKg" DECIMAL(10,4) NOT NULL,
-    "supplierId" TEXT,
+    "pricePerKg" DECIMAL(10,4),
     "invoiceNumber" TEXT,
-    "expiryDate" TIMESTAMP(3),
+    "techDataSheetUrl" TEXT,
+    "aiExtractionNotes" TEXT,
     "crudProteinPct" DECIMAL(6,3),
     "metabolizableEnergyKcal" DECIMAL(8,2),
     "lysinePct" DECIMAL(6,3),
@@ -625,11 +899,8 @@ CREATE TABLE "raw_material_lots" (
     "phosphorusPct" DECIMAL(6,3),
     "moisturePct" DECIMAL(6,3),
     "mycotoxinPpb" DECIMAL(10,2),
-    "techDataSheetUrl" TEXT,
-    "aiExtractionNotes" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "raw_material_lots_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "lotes_inventario_nutricion_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -708,22 +979,9 @@ CREATE TABLE "bal_production_orders" (
     "isAutoGenerated" BOOLEAN NOT NULL DEFAULT false,
     "producedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "loteInventarioId" TEXT,
 
     CONSTRAINT "bal_production_orders_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "finished_stocks" (
-    "id" TEXT NOT NULL,
-    "tenantId" TEXT NOT NULL,
-    "feedTypeId" TEXT NOT NULL,
-    "productionOrderId" TEXT,
-    "batchQuantityKg" DECIMAL(12,3) NOT NULL,
-    "currentStockKg" DECIMAL(12,3) NOT NULL,
-    "minStockDays" INTEGER NOT NULL DEFAULT 7,
-    "producedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "finished_stocks_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -763,7 +1021,7 @@ CREATE TABLE "purchase_orders" (
 CREATE TABLE "purchase_order_items" (
     "id" TEXT NOT NULL,
     "purchaseOrderId" TEXT NOT NULL,
-    "rawMaterialId" TEXT NOT NULL,
+    "productoId" TEXT NOT NULL,
     "quantityKg" DECIMAL(12,3) NOT NULL,
     "pricePerKg" DECIMAL(10,4),
     "totalAmount" DECIMAL(12,2),
@@ -790,7 +1048,7 @@ CREATE TABLE "goods_receipts" (
 CREATE TABLE "goods_receipt_items" (
     "id" TEXT NOT NULL,
     "goodsReceiptId" TEXT NOT NULL,
-    "rawMaterialLotId" TEXT,
+    "loteInventarioId" TEXT,
     "quantityKg" DECIMAL(12,3) NOT NULL,
     "pricePerKg" DECIMAL(10,4) NOT NULL,
 
@@ -829,12 +1087,18 @@ CREATE TABLE "employees" (
     "userId" TEXT,
     "cedula" TEXT,
     "name" TEXT NOT NULL,
+    "cargo" TEXT,
     "category" TEXT,
     "position" TEXT,
+    "sector" TEXT,
+    "iniciales" TEXT,
+    "colorBg" TEXT,
+    "colorBorder" TEXT,
+    "colorText" TEXT,
     "entryDate" TIMESTAMP(3) NOT NULL,
     "exitDate" TIMESTAMP(3),
     "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "baseSalaryGs" DECIMAL(14,0) NOT NULL,
+    "baseSalaryGs" DECIMAL(14,0) NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "employees_pkey" PRIMARY KEY ("id")
@@ -993,6 +1257,7 @@ CREATE TABLE "health_tasks" (
     "dueDate" TIMESTAMP(3) NOT NULL,
     "isCompleted" BOOLEAN NOT NULL DEFAULT false,
     "completedAt" TIMESTAMP(3),
+    "assignedToId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "health_tasks_pkey" PRIMARY KEY ("id")
@@ -1021,8 +1286,10 @@ CREATE TABLE "curative_treatments" (
     "tenantId" TEXT NOT NULL,
     "farrowingId" TEXT,
     "pigletId" TEXT,
+    "sowId" TEXT,
     "diagnosisType" "DiagnosisType" NOT NULL,
     "diagnosisNotes" TEXT,
+    "motivoClinico" TEXT,
     "medicineId" TEXT NOT NULL,
     "doseMl" DECIMAL(8,3) NOT NULL,
     "animalsAffected" INTEGER NOT NULL,
@@ -1030,6 +1297,9 @@ CREATE TABLE "curative_treatments" (
     "startDate" TIMESTAMP(3) NOT NULL,
     "endDate" TIMESTAMP(3),
     "withdrawalDays" INTEGER NOT NULL DEFAULT 0,
+    "estado" "EstadoTratamiento" NOT NULL DEFAULT 'ACTIVO',
+    "fechaSeguimiento" TIMESTAMP(3),
+    "respuestaSeguimiento" TEXT,
     "employeeId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -1042,6 +1312,7 @@ CREATE TABLE "withdrawal_periods" (
     "tenantId" TEXT NOT NULL,
     "pigletId" TEXT,
     "farrowingId" TEXT,
+    "sowId" TEXT,
     "medicineId" TEXT NOT NULL,
     "treatmentId" TEXT,
     "withdrawalDays" INTEGER NOT NULL,
@@ -1050,6 +1321,44 @@ CREATE TABLE "withdrawal_periods" (
     "isActive" BOOLEAN NOT NULL DEFAULT true,
 
     CONSTRAINT "withdrawal_periods_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "procedimientos_maternidad" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "farrowingId" TEXT NOT NULL,
+    "procedimiento" "ProcedimientoMaternidadTipo" NOT NULL,
+    "cantidadLechonesProcesados" INTEGER NOT NULL,
+    "edadDiasAlProcedimiento" INTEGER NOT NULL,
+    "observacionesTecnica" TEXT,
+    "fecha" TIMESTAMP(3) NOT NULL,
+    "responsableId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "procedimientos_maternidad_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "necropsias" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "sowId" TEXT,
+    "boarId" TEXT,
+    "farrowingId" TEXT,
+    "pigletId" TEXT,
+    "causaSanitariaPresunta" TEXT NOT NULL,
+    "seRealizoNecropsia" BOOLEAN NOT NULL DEFAULT false,
+    "hallazgos" TEXT,
+    "galpon" TEXT,
+    "bajaConfirmaBrote" BOOLEAN NOT NULL DEFAULT false,
+    "bajaConfirmaBrotePor" TEXT,
+    "bajaConfirmaBroteFecha" TIMESTAMP(3),
+    "fecha" TIMESTAMP(3) NOT NULL,
+    "responsableId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "necropsias_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -1123,6 +1432,243 @@ CREATE TABLE "push_tokens" (
     CONSTRAINT "push_tokens_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "marketplace_vendors" (
+    "id" TEXT NOT NULL,
+    "empresaNombre" TEXT NOT NULL,
+    "ruc" TEXT,
+    "contactoNombre" TEXT,
+    "email" TEXT,
+    "telefono" TEXT,
+    "direccion" TEXT,
+    "ciudad" TEXT,
+    "logoUrl" TEXT,
+    "descripcion" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "isApproved" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "marketplace_vendors_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "marketplace_productos" (
+    "id" TEXT NOT NULL,
+    "vendorId" TEXT NOT NULL,
+    "categoria" "MarketplaceCategoria" NOT NULL DEFAULT 'VACUNA',
+    "nombreProducto" TEXT NOT NULL,
+    "descripcion" TEXT,
+    "principioActivo" TEXT,
+    "enfermedadObjetivo" TEXT,
+    "viaAplicacion" TEXT,
+    "dosisMl" DECIMAL(8,3),
+    "presentacion" TEXT,
+    "fichaTecnicaUrl" TEXT,
+    "stockDisponible" INTEGER NOT NULL DEFAULT 0,
+    "unidadMedida" TEXT NOT NULL DEFAULT 'dosis',
+    "precioGs" DECIMAL(14,0) NOT NULL,
+    "precioUsd" DECIMAL(10,2),
+    "paisProcedencia" TEXT,
+    "requiereReceta" BOOLEAN NOT NULL DEFAULT false,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "marketplace_productos_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "marketplace_pedidos" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "vendorId" TEXT NOT NULL,
+    "estado" "MarketplacePedidoEstado" NOT NULL DEFAULT 'PENDIENTE',
+    "totalGs" DECIMAL(14,0) NOT NULL,
+    "notas" TEXT,
+    "direccionEntrega" TEXT,
+    "creadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "marketplace_pedidos_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "marketplace_pedido_items" (
+    "id" TEXT NOT NULL,
+    "pedidoId" TEXT NOT NULL,
+    "productoId" TEXT NOT NULL,
+    "cantidad" INTEGER NOT NULL,
+    "precioGs" DECIMAL(14,0) NOT NULL,
+
+    CONSTRAINT "marketplace_pedido_items_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "tasks" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "sector" TEXT NOT NULL,
+    "alcance" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "descripcion" TEXT NOT NULL,
+    "instrucciones" TEXT,
+    "prioridad" TEXT NOT NULL,
+    "fechaVencimiento" TIMESTAMP(3) NOT NULL,
+    "fechaCompletada" TIMESTAMP(3),
+    "animalId" TEXT,
+    "farrowingId" TEXT,
+    "nurseryBatchId" TEXT,
+    "growingBatchId" TEXT,
+    "targetLabel" TEXT,
+    "completadaPor" TEXT,
+    "notas" TEXT,
+    "pospuestas" INTEGER NOT NULL DEFAULT 0,
+    "responsableNombre" TEXT,
+    "responsableKey" TEXT,
+    "generadaPor" TEXT NOT NULL DEFAULT 'sistema',
+    "disparador" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "tasks_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "vacunas" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nombre" TEXT NOT NULL,
+    "enfermedad" TEXT NOT NULL,
+    "sector_destino" TEXT NOT NULL,
+    "categoria" "CategoriaProducto" NOT NULL DEFAULT 'VACUNA',
+    "codigo" TEXT,
+    "unidadMedida" "UnidadMedida" NOT NULL DEFAULT 'DOSIS',
+    "stockMinimo" INTEGER,
+    "materialType" "RawMaterialType",
+    "viaAplicacion" TEXT NOT NULL DEFAULT 'IM',
+    "dosisMl" DECIMAL(6,2) NOT NULL DEFAULT 2,
+    "intervaloRefuerzo" INTEGER,
+    "criticidad" TEXT NOT NULL DEFAULT 'alta',
+    "bloqueoServicio" BOOLEAN NOT NULL DEFAULT false,
+    "descarteHorasApertura" INTEGER,
+    "observaciones" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "vacunas_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "lotes_vacunas" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "vacunaId" TEXT NOT NULL,
+    "numeroLote" TEXT NOT NULL,
+    "proveedor" TEXT,
+    "fechaVencimiento" TIMESTAMP(3) NOT NULL,
+    "fechaIngreso" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "cantidadInicial" DECIMAL(12,3) NOT NULL,
+    "cantidadActual" DECIMAL(12,3) NOT NULL,
+    "costoUnitario" DECIMAL(12,4),
+    "abierto" BOOLEAN NOT NULL DEFAULT false,
+    "fechaApertura" TIMESTAMP(3),
+    "abiertoPorId" TEXT,
+    "observaciones" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "lotes_vacunas_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "movimientos_inventario" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "productoId" TEXT NOT NULL,
+    "loteId" TEXT,
+    "tipo" "TipoMovimiento" NOT NULL,
+    "cantidad" DECIMAL(12,3) NOT NULL,
+    "origen" "OrigenMovimiento" NOT NULL,
+    "referenciaId" TEXT,
+    "fecha" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "movimientos_inventario_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "protocolos_sanitarios" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nombre" TEXT NOT NULL,
+    "fase" TEXT NOT NULL,
+    "tipoAnimal" TEXT NOT NULL,
+    "descripcion" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "protocolos_sanitarios_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "protocolo_items" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "protocoloId" TEXT NOT NULL,
+    "vacunaId" TEXT NOT NULL,
+    "diaCiclo" INTEGER NOT NULL,
+    "disparador" TEXT NOT NULL,
+    "esObligatorio" BOOLEAN NOT NULL DEFAULT true,
+    "bloqueoServicio" BOOLEAN NOT NULL DEFAULT false,
+    "descripcion" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "protocolo_items_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "eventos_vacunacion" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "protocoloItemId" TEXT,
+    "vacunaId" TEXT NOT NULL,
+    "sector" TEXT NOT NULL,
+    "fecha" TIMESTAMP(3) NOT NULL,
+    "animalId" TEXT,
+    "farrowingId" TEXT,
+    "nurseryBatchId" TEXT,
+    "growingBatchId" TEXT,
+    "targetLabel" TEXT,
+    "dosisNecesarias" INTEGER NOT NULL DEFAULT 1,
+    "estado" TEXT NOT NULL DEFAULT 'pendiente',
+    "disparador" TEXT,
+    "sectorAlAplicar" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "eventos_vacunacion_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "aplicaciones_vacunas" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "eventoId" TEXT NOT NULL,
+    "loteVacunaId" TEXT,
+    "vacunaId" TEXT NOT NULL,
+    "dosisAplicadas" INTEGER NOT NULL,
+    "fechaAplicacion" TIMESTAMP(3) NOT NULL,
+    "responsable" TEXT NOT NULL,
+    "observaciones" TEXT,
+    "grupoAplicacionId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "aplicaciones_vacunas_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "tenants_slug_key" ON "tenants"("slug");
 
@@ -1166,19 +1712,64 @@ CREATE INDEX "sows_tenantId_idx" ON "sows"("tenantId");
 CREATE UNIQUE INDEX "sows_tenantId_identCode_key" ON "sows"("tenantId", "identCode");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "sows_tenantId_erpCode_key" ON "sows"("tenantId", "erpCode");
+
+-- CreateIndex
 CREATE INDEX "boars_tenantId_idx" ON "boars"("tenantId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "boars_tenantId_identCode_key" ON "boars"("tenantId", "identCode");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "boars_tenantId_erpCode_key" ON "boars"("tenantId", "erpCode");
+
+-- CreateIndex
 CREATE INDEX "semen_doses_tenantId_idx" ON "semen_doses"("tenantId");
 
 -- CreateIndex
-CREATE INDEX "service_batches_tenantId_idx" ON "service_batches"("tenantId");
+CREATE INDEX "config_metas_tenantId_idx" ON "config_metas"("tenantId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "service_batches_tenantId_weekLabel_key" ON "service_batches"("tenantId", "weekLabel");
+CREATE UNIQUE INDEX "config_metas_tenantId_modulo_kpiKey_key" ON "config_metas"("tenantId", "modulo", "kpiKey");
+
+-- CreateIndex
+CREATE INDEX "config_genetica_tenantId_idx" ON "config_genetica"("tenantId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "config_genetica_tenantId_nombre_key" ON "config_genetica"("tenantId", "nombre");
+
+-- CreateIndex
+CREATE INDEX "config_vacunas_tenantId_modulo_idx" ON "config_vacunas"("tenantId", "modulo");
+
+-- CreateIndex
+CREATE INDEX "config_procesos_tenantId_idx" ON "config_procesos"("tenantId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "config_procesos_tenantId_modulo_procesoKey_key" ON "config_procesos"("tenantId", "modulo", "procesoKey");
+
+-- CreateIndex
+CREATE INDEX "config_alertas_tenantId_idx" ON "config_alertas"("tenantId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "config_alertas_tenantId_modulo_eventoKey_key" ON "config_alertas"("tenantId", "modulo", "eventoKey");
+
+-- CreateIndex
+CREATE INDEX "animal_events_tenantId_sowId_idx" ON "animal_events"("tenantId", "sowId");
+
+-- CreateIndex
+CREATE INDEX "animal_events_tenantId_boarId_idx" ON "animal_events"("tenantId", "boarId");
+
+-- CreateIndex
+CREATE INDEX "external_semen_lots_tenantId_idx" ON "external_semen_lots"("tenantId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "external_semen_lots_tenantId_lotCode_key" ON "external_semen_lots"("tenantId", "lotCode");
+
+-- CreateIndex
+CREATE INDEX "service_batches_tenantId_weekLabel_idx" ON "service_batches"("tenantId", "weekLabel");
+
+-- CreateIndex
+CREATE INDEX "service_batches_tenantId_idx" ON "service_batches"("tenantId");
 
 -- CreateIndex
 CREATE INDEX "service_events_tenantId_sowId_idx" ON "service_events"("tenantId", "sowId");
@@ -1250,6 +1841,15 @@ CREATE INDEX "growing_batches_tenantId_idx" ON "growing_batches"("tenantId");
 CREATE UNIQUE INDEX "growing_batches_tenantId_batchCode_key" ON "growing_batches"("tenantId", "batchCode");
 
 -- CreateIndex
+CREATE INDEX "growing_deaths_tenantId_deathDate_idx" ON "growing_deaths"("tenantId", "deathDate");
+
+-- CreateIndex
+CREATE INDEX "growing_transfers_tenantId_transferDate_idx" ON "growing_transfers"("tenantId", "transferDate");
+
+-- CreateIndex
+CREATE INDEX "growing_other_exits_tenantId_exitDate_idx" ON "growing_other_exits"("tenantId", "exitDate");
+
+-- CreateIndex
 CREATE INDEX "batch_sales_tenantId_idx" ON "batch_sales"("tenantId");
 
 -- CreateIndex
@@ -1262,16 +1862,7 @@ CREATE UNIQUE INDEX "feed_types_tenantId_phase_key" ON "feed_types"("tenantId", 
 CREATE INDEX "feed_records_tenantId_recordDate_idx" ON "feed_records"("tenantId", "recordDate");
 
 -- CreateIndex
-CREATE INDEX "raw_materials_tenantId_idx" ON "raw_materials"("tenantId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "raw_materials_tenantId_name_key" ON "raw_materials"("tenantId", "name");
-
--- CreateIndex
-CREATE INDEX "raw_material_lots_tenantId_rawMaterialId_idx" ON "raw_material_lots"("tenantId", "rawMaterialId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "raw_material_lots_rawMaterialId_lotCode_key" ON "raw_material_lots"("rawMaterialId", "lotCode");
+CREATE UNIQUE INDEX "lotes_inventario_nutricion_loteId_key" ON "lotes_inventario_nutricion"("loteId");
 
 -- CreateIndex
 CREATE INDEX "formulas_tenantId_idx" ON "formulas"("tenantId");
@@ -1292,13 +1883,10 @@ CREATE UNIQUE INDEX "formula_ingredients_formulaVersionId_rawMaterialId_key" ON 
 CREATE UNIQUE INDEX "nutritional_targets_tenantId_feedTypeId_key" ON "nutritional_targets"("tenantId", "feedTypeId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "bal_production_orders_loteInventarioId_key" ON "bal_production_orders"("loteInventarioId");
+
+-- CreateIndex
 CREATE INDEX "bal_production_orders_tenantId_status_idx" ON "bal_production_orders"("tenantId", "status");
-
--- CreateIndex
-CREATE UNIQUE INDEX "finished_stocks_productionOrderId_key" ON "finished_stocks"("productionOrderId");
-
--- CreateIndex
-CREATE INDEX "finished_stocks_tenantId_feedTypeId_idx" ON "finished_stocks"("tenantId", "feedTypeId");
 
 -- CreateIndex
 CREATE INDEX "suppliers_tenantId_idx" ON "suppliers"("tenantId");
@@ -1358,6 +1946,9 @@ CREATE UNIQUE INDEX "health_protocol_configs_tenantId_key" ON "health_protocol_c
 CREATE INDEX "health_tasks_tenantId_isCompleted_dueDate_idx" ON "health_tasks"("tenantId", "isCompleted", "dueDate");
 
 -- CreateIndex
+CREATE INDEX "health_tasks_tenantId_assignedToId_idx" ON "health_tasks"("tenantId", "assignedToId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "health_task_completions_healthTaskId_key" ON "health_task_completions"("healthTaskId");
 
 -- CreateIndex
@@ -1365,6 +1956,15 @@ CREATE INDEX "curative_treatments_tenantId_idx" ON "curative_treatments"("tenant
 
 -- CreateIndex
 CREATE INDEX "withdrawal_periods_tenantId_isActive_endDate_idx" ON "withdrawal_periods"("tenantId", "isActive", "endDate");
+
+-- CreateIndex
+CREATE INDEX "procedimientos_maternidad_tenantId_farrowingId_idx" ON "procedimientos_maternidad"("tenantId", "farrowingId");
+
+-- CreateIndex
+CREATE INDEX "necropsias_tenantId_fecha_idx" ON "necropsias"("tenantId", "fecha");
+
+-- CreateIndex
+CREATE INDEX "necropsias_tenantId_galpon_causaSanitariaPresunta_idx" ON "necropsias"("tenantId", "galpon", "causaSanitariaPresunta");
 
 -- CreateIndex
 CREATE INDEX "whatsapp_sessions_phoneNumber_status_idx" ON "whatsapp_sessions"("phoneNumber", "status");
@@ -1387,6 +1987,54 @@ CREATE UNIQUE INDEX "notification_preferences_userId_key" ON "notification_prefe
 -- CreateIndex
 CREATE UNIQUE INDEX "push_tokens_token_key" ON "push_tokens"("token");
 
+-- CreateIndex
+CREATE INDEX "marketplace_productos_vendorId_isActive_idx" ON "marketplace_productos"("vendorId", "isActive");
+
+-- CreateIndex
+CREATE INDEX "marketplace_productos_categoria_isActive_idx" ON "marketplace_productos"("categoria", "isActive");
+
+-- CreateIndex
+CREATE INDEX "marketplace_pedidos_tenantId_estado_idx" ON "marketplace_pedidos"("tenantId", "estado");
+
+-- CreateIndex
+CREATE INDEX "tasks_tenantId_fechaVencimiento_idx" ON "tasks"("tenantId", "fechaVencimiento");
+
+-- CreateIndex
+CREATE INDEX "tasks_tenantId_sector_fechaVencimiento_idx" ON "tasks"("tenantId", "sector", "fechaVencimiento");
+
+-- CreateIndex
+CREATE INDEX "tasks_tenantId_tipo_farrowingId_idx" ON "tasks"("tenantId", "tipo", "farrowingId");
+
+-- CreateIndex
+CREATE INDEX "vacunas_tenantId_idx" ON "vacunas"("tenantId");
+
+-- CreateIndex
+CREATE INDEX "vacunas_tenantId_categoria_idx" ON "vacunas"("tenantId", "categoria");
+
+-- CreateIndex
+CREATE INDEX "lotes_vacunas_tenantId_vacunaId_idx" ON "lotes_vacunas"("tenantId", "vacunaId");
+
+-- CreateIndex
+CREATE INDEX "movimientos_inventario_tenantId_productoId_fecha_idx" ON "movimientos_inventario"("tenantId", "productoId", "fecha");
+
+-- CreateIndex
+CREATE INDEX "protocolos_sanitarios_tenantId_idx" ON "protocolos_sanitarios"("tenantId");
+
+-- CreateIndex
+CREATE INDEX "protocolo_items_tenantId_protocoloId_idx" ON "protocolo_items"("tenantId", "protocoloId");
+
+-- CreateIndex
+CREATE INDEX "eventos_vacunacion_tenantId_fecha_idx" ON "eventos_vacunacion"("tenantId", "fecha");
+
+-- CreateIndex
+CREATE INDEX "eventos_vacunacion_tenantId_vacunaId_estado_idx" ON "eventos_vacunacion"("tenantId", "vacunaId", "estado");
+
+-- CreateIndex
+CREATE INDEX "aplicaciones_vacunas_tenantId_eventoId_idx" ON "aplicaciones_vacunas"("tenantId", "eventoId");
+
+-- CreateIndex
+CREATE INDEX "aplicaciones_vacunas_tenantId_grupoAplicacionId_idx" ON "aplicaciones_vacunas"("tenantId", "grupoAplicacionId");
+
 -- AddForeignKey
 ALTER TABLE "users" ADD CONSTRAINT "users_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "tenants"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -1407,6 +2055,12 @@ ALTER TABLE "pens" ADD CONSTRAINT "pens_locationId_fkey" FOREIGN KEY ("locationI
 
 -- AddForeignKey
 ALTER TABLE "semen_doses" ADD CONSTRAINT "semen_doses_boarId_fkey" FOREIGN KEY ("boarId") REFERENCES "boars"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "animal_events" ADD CONSTRAINT "animal_events_sowId_fkey" FOREIGN KEY ("sowId") REFERENCES "sows"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "animal_events" ADD CONSTRAINT "animal_events_boarId_fkey" FOREIGN KEY ("boarId") REFERENCES "boars"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "service_events" ADD CONSTRAINT "service_events_sowId_fkey" FOREIGN KEY ("sowId") REFERENCES "sows"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -1499,10 +2153,25 @@ ALTER TABLE "growing_batches" ADD CONSTRAINT "growing_batches_nurseryBatchId_fke
 ALTER TABLE "growing_batches" ADD CONSTRAINT "growing_batches_penId_fkey" FOREIGN KEY ("penId") REFERENCES "pens"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "growing_deaths" ADD CONSTRAINT "growing_deaths_growingBatchId_fkey" FOREIGN KEY ("growingBatchId") REFERENCES "growing_batches"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "growing_transfers" ADD CONSTRAINT "growing_transfers_sourceBatchId_fkey" FOREIGN KEY ("sourceBatchId") REFERENCES "growing_batches"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "growing_transfers" ADD CONSTRAINT "growing_transfers_targetBatchId_fkey" FOREIGN KEY ("targetBatchId") REFERENCES "growing_batches"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "growing_other_exits" ADD CONSTRAINT "growing_other_exits_growingBatchId_fkey" FOREIGN KEY ("growingBatchId") REFERENCES "growing_batches"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "batch_sales" ADD CONSTRAINT "batch_sales_nurseryBatchId_fkey" FOREIGN KEY ("nurseryBatchId") REFERENCES "nursery_batches"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "batch_sales" ADD CONSTRAINT "batch_sales_growingBatchId_fkey" FOREIGN KEY ("growingBatchId") REFERENCES "growing_batches"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "feed_types" ADD CONSTRAINT "feed_types_productoBalanceadoId_fkey" FOREIGN KEY ("productoBalanceadoId") REFERENCES "vacunas"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "feed_records" ADD CONSTRAINT "feed_records_feedTypeId_fkey" FOREIGN KEY ("feedTypeId") REFERENCES "feed_types"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -1517,10 +2186,10 @@ ALTER TABLE "feed_records" ADD CONSTRAINT "feed_records_nurseryBatchId_fkey" FOR
 ALTER TABLE "feed_records" ADD CONSTRAINT "feed_records_growingBatchId_fkey" FOREIGN KEY ("growingBatchId") REFERENCES "growing_batches"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "raw_materials" ADD CONSTRAINT "raw_materials_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "suppliers"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "lotes_inventario_nutricion" ADD CONSTRAINT "lotes_inventario_nutricion_loteId_fkey" FOREIGN KEY ("loteId") REFERENCES "lotes_vacunas"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "raw_material_lots" ADD CONSTRAINT "raw_material_lots_rawMaterialId_fkey" FOREIGN KEY ("rawMaterialId") REFERENCES "raw_materials"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "lotes_inventario_nutricion" ADD CONSTRAINT "lotes_inventario_nutricion_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "suppliers"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "formulas" ADD CONSTRAINT "formulas_feedTypeId_fkey" FOREIGN KEY ("feedTypeId") REFERENCES "feed_types"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -1535,7 +2204,7 @@ ALTER TABLE "formula_versions" ADD CONSTRAINT "formula_versions_approvedById_fke
 ALTER TABLE "formula_ingredients" ADD CONSTRAINT "formula_ingredients_formulaVersionId_fkey" FOREIGN KEY ("formulaVersionId") REFERENCES "formula_versions"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "formula_ingredients" ADD CONSTRAINT "formula_ingredients_rawMaterialId_fkey" FOREIGN KEY ("rawMaterialId") REFERENCES "raw_materials"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "formula_ingredients" ADD CONSTRAINT "formula_ingredients_rawMaterialId_fkey" FOREIGN KEY ("rawMaterialId") REFERENCES "vacunas"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "nutritional_targets" ADD CONSTRAINT "nutritional_targets_feedTypeId_fkey" FOREIGN KEY ("feedTypeId") REFERENCES "feed_types"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -1544,10 +2213,7 @@ ALTER TABLE "nutritional_targets" ADD CONSTRAINT "nutritional_targets_feedTypeId
 ALTER TABLE "bal_production_orders" ADD CONSTRAINT "bal_production_orders_formulaVersionId_fkey" FOREIGN KEY ("formulaVersionId") REFERENCES "formula_versions"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "finished_stocks" ADD CONSTRAINT "finished_stocks_feedTypeId_fkey" FOREIGN KEY ("feedTypeId") REFERENCES "feed_types"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "finished_stocks" ADD CONSTRAINT "finished_stocks_productionOrderId_fkey" FOREIGN KEY ("productionOrderId") REFERENCES "bal_production_orders"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "bal_production_orders" ADD CONSTRAINT "bal_production_orders_loteInventarioId_fkey" FOREIGN KEY ("loteInventarioId") REFERENCES "lotes_vacunas"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "purchase_orders" ADD CONSTRAINT "purchase_orders_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "suppliers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -1563,9 +2229,6 @@ ALTER TABLE "goods_receipts" ADD CONSTRAINT "goods_receipts_supplierId_fkey" FOR
 
 -- AddForeignKey
 ALTER TABLE "goods_receipt_items" ADD CONSTRAINT "goods_receipt_items_goodsReceiptId_fkey" FOREIGN KEY ("goodsReceiptId") REFERENCES "goods_receipts"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "goods_receipt_items" ADD CONSTRAINT "goods_receipt_items_rawMaterialLotId_fkey" FOREIGN KEY ("rawMaterialLotId") REFERENCES "raw_material_lots"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "transfer_items" ADD CONSTRAINT "transfer_items_transferId_fkey" FOREIGN KEY ("transferId") REFERENCES "transfers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -1595,6 +2258,9 @@ ALTER TABLE "health_tasks" ADD CONSTRAINT "health_tasks_farrowingId_fkey" FOREIG
 ALTER TABLE "health_tasks" ADD CONSTRAINT "health_tasks_protocolTaskId_fkey" FOREIGN KEY ("protocolTaskId") REFERENCES "health_protocol_tasks"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "health_tasks" ADD CONSTRAINT "health_tasks_assignedToId_fkey" FOREIGN KEY ("assignedToId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "health_task_completions" ADD CONSTRAINT "health_task_completions_healthTaskId_fkey" FOREIGN KEY ("healthTaskId") REFERENCES "health_tasks"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -1607,16 +2273,37 @@ ALTER TABLE "curative_treatments" ADD CONSTRAINT "curative_treatments_farrowingI
 ALTER TABLE "curative_treatments" ADD CONSTRAINT "curative_treatments_pigletId_fkey" FOREIGN KEY ("pigletId") REFERENCES "piglets"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "curative_treatments" ADD CONSTRAINT "curative_treatments_sowId_fkey" FOREIGN KEY ("sowId") REFERENCES "sows"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "withdrawal_periods" ADD CONSTRAINT "withdrawal_periods_medicineId_fkey" FOREIGN KEY ("medicineId") REFERENCES "medicines"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "withdrawal_periods" ADD CONSTRAINT "withdrawal_periods_pigletId_fkey" FOREIGN KEY ("pigletId") REFERENCES "piglets"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "withdrawal_periods" ADD CONSTRAINT "withdrawal_periods_sowId_fkey" FOREIGN KEY ("sowId") REFERENCES "sows"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "withdrawal_periods" ADD CONSTRAINT "withdrawal_periods_treatmentId_fkey" FOREIGN KEY ("treatmentId") REFERENCES "curative_treatments"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "withdrawal_periods" ADD CONSTRAINT "withdrawal_periods_farrowingId_fkey" FOREIGN KEY ("farrowingId") REFERENCES "farrowing_events"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "procedimientos_maternidad" ADD CONSTRAINT "procedimientos_maternidad_farrowingId_fkey" FOREIGN KEY ("farrowingId") REFERENCES "farrowing_events"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "necropsias" ADD CONSTRAINT "necropsias_sowId_fkey" FOREIGN KEY ("sowId") REFERENCES "sows"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "necropsias" ADD CONSTRAINT "necropsias_boarId_fkey" FOREIGN KEY ("boarId") REFERENCES "boars"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "necropsias" ADD CONSTRAINT "necropsias_farrowingId_fkey" FOREIGN KEY ("farrowingId") REFERENCES "farrowing_events"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "necropsias" ADD CONSTRAINT "necropsias_pigletId_fkey" FOREIGN KEY ("pigletId") REFERENCES "piglets"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "whatsapp_messages" ADD CONSTRAINT "whatsapp_messages_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "whatsapp_sessions"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -1626,3 +2313,43 @@ ALTER TABLE "notification_preferences" ADD CONSTRAINT "notification_preferences_
 
 -- AddForeignKey
 ALTER TABLE "push_tokens" ADD CONSTRAINT "push_tokens_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "marketplace_productos" ADD CONSTRAINT "marketplace_productos_vendorId_fkey" FOREIGN KEY ("vendorId") REFERENCES "marketplace_vendors"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "marketplace_pedidos" ADD CONSTRAINT "marketplace_pedidos_vendorId_fkey" FOREIGN KEY ("vendorId") REFERENCES "marketplace_vendors"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "marketplace_pedido_items" ADD CONSTRAINT "marketplace_pedido_items_pedidoId_fkey" FOREIGN KEY ("pedidoId") REFERENCES "marketplace_pedidos"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "marketplace_pedido_items" ADD CONSTRAINT "marketplace_pedido_items_productoId_fkey" FOREIGN KEY ("productoId") REFERENCES "marketplace_productos"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "lotes_vacunas" ADD CONSTRAINT "lotes_vacunas_vacunaId_fkey" FOREIGN KEY ("vacunaId") REFERENCES "vacunas"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "movimientos_inventario" ADD CONSTRAINT "movimientos_inventario_productoId_fkey" FOREIGN KEY ("productoId") REFERENCES "vacunas"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "movimientos_inventario" ADD CONSTRAINT "movimientos_inventario_loteId_fkey" FOREIGN KEY ("loteId") REFERENCES "lotes_vacunas"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "protocolo_items" ADD CONSTRAINT "protocolo_items_protocoloId_fkey" FOREIGN KEY ("protocoloId") REFERENCES "protocolos_sanitarios"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "protocolo_items" ADD CONSTRAINT "protocolo_items_vacunaId_fkey" FOREIGN KEY ("vacunaId") REFERENCES "vacunas"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "eventos_vacunacion" ADD CONSTRAINT "eventos_vacunacion_vacunaId_fkey" FOREIGN KEY ("vacunaId") REFERENCES "vacunas"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "aplicaciones_vacunas" ADD CONSTRAINT "aplicaciones_vacunas_eventoId_fkey" FOREIGN KEY ("eventoId") REFERENCES "eventos_vacunacion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "aplicaciones_vacunas" ADD CONSTRAINT "aplicaciones_vacunas_loteVacunaId_fkey" FOREIGN KEY ("loteVacunaId") REFERENCES "lotes_vacunas"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "aplicaciones_vacunas" ADD CONSTRAINT "aplicaciones_vacunas_vacunaId_fkey" FOREIGN KEY ("vacunaId") REFERENCES "vacunas"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+

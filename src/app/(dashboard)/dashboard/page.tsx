@@ -8,7 +8,7 @@ import {
 } from "recharts";
 import {
   IconLayoutDashboard, IconPig, IconHeartPlus, IconBuildingWarehouse,
-  IconShield, IconAlertTriangle, IconFlask, IconBell,
+  IconShield, IconAlertTriangle, IconBell,
   IconTrendingUp, IconTrendingDown, IconMinus, IconRefresh,
 } from "@tabler/icons-react";
 import { Topbar } from "@/components/layout/topbar";
@@ -20,7 +20,6 @@ interface KPIs {
   pendingHealthTasks:     number;
   overdueHealthTasks:     number;
   unreadAlerts:           number;
-  pendingFormulaVersions: number;
   farrowings30d:          number;
   weanings30d:            number;
   totalWeaned30d:         number;
@@ -200,21 +199,13 @@ export default function DashboardPage() {
       <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
 
         {/* Alertas críticas */}
-        {kpis && (kpis.overdueHealthTasks > 0 || kpis.pendingFormulaVersions > 0 || kpis.unreadAlerts > 0) && (
+        {kpis && (kpis.overdueHealthTasks > 0 ||kpis.unreadAlerts > 0) && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {kpis.overdueHealthTasks > 0 && (
               <Link href="/sanidad" style={{ textDecoration: "none" }}>
                 <div className="kp-alert kp-alert-danger" style={{ fontSize: 11 }}>
                   <IconAlertTriangle size={13} aria-hidden />
                   {kpis.overdueHealthTasks} tarea{kpis.overdueHealthTasks > 1 ? "s" : ""} vencida{kpis.overdueHealthTasks > 1 ? "s" : ""}
-                </div>
-              </Link>
-            )}
-            {kpis.pendingFormulaVersions > 0 && (
-              <Link href="/balanceado/formulas" style={{ textDecoration: "none" }}>
-                <div className="kp-alert kp-alert-warn" style={{ fontSize: 11 }}>
-                  <IconFlask size={13} aria-hidden />
-                  {kpis.pendingFormulaVersions} fórmula{kpis.pendingFormulaVersions > 1 ? "s" : ""} pendiente{kpis.pendingFormulaVersions > 1 ? "s" : ""} de aprobación
                 </div>
               </Link>
             )}

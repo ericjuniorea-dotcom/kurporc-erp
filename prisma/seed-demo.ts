@@ -316,125 +316,6 @@ async function main() {
   }
   console.log(`   ✓ ${nurseryIds.length} lotes de recría con registros de peso\n`);
 
-  // ── 7. Materias Primas ────────────────────────────────────────
-  console.log("7. Materias primas...");
-  const rawMatDefs = [
-    { name: "Maíz amarillo",         type: "ENERGY"   as const, minStock: 5000, lots: [{ code: "MAZ-2026-001", qty: 8000, remain: 5200, price: 1850, protein: 8.2 }] },
-    { name: "Harina de soja 47%",    type: "PROTEIN"  as const, minStock: 3000, lots: [{ code: "SOJ-2026-001", qty: 4000, remain: 2800, price: 4200, protein: 47.5 }] },
-    { name: "Núcleo vitamínico VHP",  type: "NUCLEUS"  as const, minStock: 500,  lots: [{ code: "NUC-2026-001", qty: 800,  remain: 620,  price: 12000, protein: null }] },
-    { name: "Calcáreo calcítico",     type: "MINERAL"  as const, minStock: 200,  lots: [{ code: "CAL-2026-001", qty: 1000, remain: 880,  price: 350, protein: null }] },
-  ];
-
-  const rawMaterialIds: { id: string; name: string }[] = [];
-  let mpSeq = 1;
-  for (const def of rawMatDefs) {
-    let rm = await prisma.productoInventario.findFirst({ where: { tenantId: tid, nombre: def.name, categoria: "MATERIA_PRIMA" } });
-    if (!rm) {
-      rm = await prisma.productoInventario.create({
-        data: {
-          tenantId: tid, nombre: def.name, categoria: "MATERIA_PRIMA", materialType: def.type,
-          codigo: `MP-${String(mpSeq++).padStart(3, "0")}`, unidadMedida: "KG", stockMinimo: def.minStock,
-          enfermedad: "", sectorDestino: "produccion",
-        },
-      });
-    }
-    rawMaterialIds.push({ id: rm.id, name: rm.nombre });
-
-    for (const lot of def.lots) {
-      const existingLot = await prisma.loteInventario.findFirst({ where: { tenantId: tid, vacunaId: rm.id, numeroLote: lot.code } });
-      if (!existingLot) {
-        await prisma.loteInventario.create({
-          data: {
-            tenantId:         tid,
-            vacunaId:         rm.id,
-            numeroLote:       lot.code,
-            fechaIngreso:     addDays(today, -15),
-            fechaVencimiento: addDays(today, 365 * 2),
-            cantidadInicial:  lot.qty,
-            cantidadActual:   lot.remain,
-            nutricion: {
-              create: { pricePerKg: lot.price, crudProteinPct: lot.protein ?? undefined },
-            },
-          },
-        });
-      }
-    }
-  }
-  console.log(`   ✓ ${rawMaterialIds.length} materias primas con lotes\n`);
-
-  // ── 8. Fórmulas de Balanceado ─────────────────────────────────
-  console.log("8. Fórmulas de balanceado...");
-  const feedTypeGes = await prisma.feedType.findFirst({ where: { tenantId: tid, phase: "GESTATION" } });
-  const feedTypeLac = await prisma.feedType.findFirst({ where: { tenantId: tid, phase: "LACTATION" } });
-
-  const maiz   = rawMaterialIds.find((r) => r.name.includes("Maíz"))!;
-  const soja   = rawMaterialIds.find((r) => r.name.includes("soja"))!;
-  const nucleo = rawMaterialIds.find((r) => r.name.includes("Núcleo"))!;
-  const calcit = rawMaterialIds.find((r) => r.name.includes("Calcáreo"))!;
-
-  const formulaDefs = [
-    {
-      name: "Fórmula Gestación v1",
-      feedTypeId: feedTypeGes?.id,
-      ingredients: [
-        { rawMaterialId: maiz.id,   inclusionPct: 70.00 },
-        { rawMaterialId: soja.id,   inclusionPct: 22.00 },
-        { rawMaterialId: nucleo.id, inclusionPct: 4.00  },
-        { rawMaterialId: calcit.id, inclusionPct: 4.00  },
-      ],
-      nutrition: { protein: 16.2, energy: 3100, lysine: 0.82, methionine: 0.28, calcium: 0.90, phosphorus: 0.45, moisture: 12.0, mycotoxin: 80 },
-    },
-    {
-      name: "Fórmula Lactación v1",
-      feedTypeId: feedTypeLac?.id,
-      ingredients: [
-        { rawMaterialId: maiz.id,   inclusionPct: 62.00 },
-        { rawMaterialId: soja.id,   inclusionPct: 30.00 },
-        { rawMaterialId: nucleo.id, inclusionPct: 4.50  },
-        { rawMaterialId: calcit.id, inclusionPct: 3.50  },
-      ],
-      nutrition: { protein: 18.5, energy: 3250, lysine: 1.05, methionine: 0.35, calcium: 0.95, phosphorus: 0.50, moisture: 11.5, mycotoxin: 65 },
-    },
-  ];
-
-  for (const def of formulaDefs) {
-    if (!def.feedTypeId) continue;
-    let formula = await prisma.formula.findFirst({ where: { tenantId: tid, name: def.name } });
-    if (!formula) {
-      formula = await prisma.formula.create({
-        data: { tenantId: tid, feedTypeId: def.feedTypeId, name: def.name, isActive: true },
-      });
-    }
-
-    const existingVer = await prisma.formulaVersion.findFirst({ where: { tenantId: tid, formulaId: formula.id } });
-    if (!existingVer) {
-      const version = await prisma.formulaVersion.create({
-        data: {
-          tenantId:           tid,
-          formulaId:          formula.id,
-          versionNumber:      1,
-          status:             "ACTIVE",
-          approvedAt:         addDays(today, -5),
-          totalProteinPct:    def.nutrition.protein,
-          totalEnergyKcal:    def.nutrition.energy,
-          totalLysinePct:     def.nutrition.lysine,
-          totalMethioninePct: def.nutrition.methionine,
-          totalCalciumPct:    def.nutrition.calcium,
-          totalPhosphorusPct: def.nutrition.phosphorus,
-          totalMoisturePct:   def.nutrition.moisture,
-          totalMycotoxinPpb:  def.nutrition.mycotoxin,
-          ingredients: {
-            create: def.ingredients.map((ing) => ({
-              rawMaterialId: ing.rawMaterialId,
-              inclusionPct:  ing.inclusionPct,
-            })),
-          },
-        },
-      });
-      console.log(`   ✓ ${def.name} — v${version.versionNumber} activa`);
-    }
-  }
-
   // ── Resumen ───────────────────────────────────────────────────
   console.log("\n✅  Datos demo cargados exitosamente!");
   console.log("─────────────────────────────────────────");
@@ -442,7 +323,6 @@ async function main() {
   console.log("  Módulo Maternidad:  5 partos activos con tareas sanitarias");
   console.log("  Módulo Sanidad:     Tareas pendientes y completadas");
   console.log("  Módulo Recría:      2 lotes activos (Fase 1 y Fase 2)");
-  console.log("  Módulo Balanceado:  4 materias primas, 2 fórmulas aprobadas");
   console.log("─────────────────────────────────────────");
   console.log("  Login: admin@kurporc.com / KurPorc2026!");
 }

@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   IconHeart, IconHeartPlus, IconBuildingWarehouse, IconChartLine,
-  IconDna, IconFlask, IconSettings, IconCheck, IconPlus,
+  IconDna, IconSettings, IconCheck, IconPlus,
   IconLoader2, IconToggleLeft, IconToggleRight, IconTrash, IconEdit,
   IconPackage,
 } from "@tabler/icons-react";
@@ -19,7 +19,6 @@ const MODULES = [
   { key: "RECRIA",     label: "Iniciación",  icon: IconBuildingWarehouse, iconColor: "var(--warning)" },
   { key: "ENGORDE",    label: "Engorde",     icon: IconChartLine,         iconColor: "var(--danger)" },
   { key: "PLANTEL",    label: "Plantel Reproductivo", icon: IconDna,  iconColor: "var(--accent)" },
-  { key: "BALANCEADO", label: "Balanceado",  icon: IconFlask,             iconColor: "var(--text-muted)" },
 ] as const;
 type ModuleKey = typeof MODULES[number]["key"];
 

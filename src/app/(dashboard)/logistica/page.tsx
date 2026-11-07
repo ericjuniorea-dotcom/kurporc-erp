@@ -6,7 +6,7 @@ import { Topbar } from "@/components/layout/topbar";
 import {
   IconTruck, IconLoader2, IconAlertTriangle, IconPlus, IconCheck,
   IconExternalLink, IconHistory, IconPackage, IconSearch, IconX,
-  IconAlertCircle, IconCoin, IconFlask,
+  IconAlertCircle, IconCoin,
 } from "@tabler/icons-react";
 import { CentralAnalisisLogistica } from "@/components/logistica/central-analisis";
 
@@ -45,11 +45,11 @@ interface Movimiento {
 
 const CATEGORIA_LABEL: Record<string, string> = {
   VACUNA: "Vacunas", SUPLEMENTO: "Suplementos", MEDICAMENTO: "Medicamentos",
-  MATERIA_PRIMA: "Materia prima", BALANCEADO: "Balanceado", EQUIPAMIENTO: "Equipamiento",
+  BALANCEADO: "Balanceado", EQUIPAMIENTO: "Equipamiento",
 };
 const CATEGORIA_A_MARKETPLACE: Record<string, string> = {
   VACUNA: "VACUNA", SUPLEMENTO: "INSUMO", MEDICAMENTO: "MEDICAMENTO",
-  MATERIA_PRIMA: "INSUMO", BALANCEADO: "ALIMENTO", EQUIPAMIENTO: "EQUIPAMIENTO",
+  BALANCEADO: "ALIMENTO", EQUIPAMIENTO: "EQUIPAMIENTO",
 };
 const UNIDAD_LABEL: Record<string, string> = { DOSIS: "dosis", ML: "ml", KG: "kg", UNIDAD: "unidades", SACO: "sacos" };
 const UNIDAD_POR_CATEGORIA: Array<{ categoria: string; unidad: string }> = [
@@ -60,12 +60,12 @@ const UNIDAD_POR_CATEGORIA: Array<{ categoria: string; unidad: string }> = [
   { categoria: "Balanceado",    unidad: "kg" },
   { categoria: "Equipamiento",  unidad: "unidades" },
 ];
-const FILTROS = ["TODOS", "VACUNA", "SUPLEMENTO", "MEDICAMENTO", "MATERIA_PRIMA", "BALANCEADO", "EQUIPAMIENTO"] as const;
+const FILTROS = ["TODOS", "VACUNA", "SUPLEMENTO", "MEDICAMENTO", "BALANCEADO", "EQUIPAMIENTO"] as const;
 
 const TIPO_COLOR: Record<string, string> = { ENTRADA: "var(--success)", SALIDA: "var(--danger)", AJUSTE: "var(--warning)" };
 const ORIGEN_LABEL: Record<string, string> = {
   VACUNACION: "Vacunación", TRATAMIENTO: "Tratamiento", MATERNIDAD: "Maternidad",
-  PRODUCCION: "Producción", ALIMENTACION: "Alimentación", COMPRA: "Compra", AJUSTE_MANUAL: "Ajuste manual",
+  ALIMENTACION: "Alimentación", COMPRA: "Compra", AJUSTE_MANUAL: "Ajuste manual",
 };
 
 function todayPlusYears(y: number) { const d = new Date(); d.setFullYear(d.getFullYear() + y); return d.toISOString().slice(0, 10); }
@@ -315,14 +315,6 @@ export default function LogisticaPage() {
                   </div>
                 </div>
 
-                {productoSeleccionado?.categoria === "BALANCEADO" && (
-                  <div style={{ marginTop: 10, background: "var(--info-subtle)", border: "0.5px solid var(--info-border)", borderRadius: "var(--radius-md)", padding: "8px 12px", fontSize: 11, color: "var(--info-text)", display: "flex", alignItems: "flex-start", gap: 6 }}>
-                    <IconFlask size={13} style={{ flexShrink: 0, marginTop: 1 }} />
-                    <span>Esta compra es para balanceado <strong>comprado a un proveedor externo</strong>. Si en cambio lo vas a producir en planta, cargalo desde{" "}
-                      <a href="/balanceado/produccion" style={{ color: "var(--info-text)", fontWeight: 600 }}>Balanceado → Producción</a> — ambos caminos suman al mismo stock, y podés ver la comparación en Central de análisis.
-                    </span>
-                  </div>
-                )}
 
                 <details style={{ marginTop: 10 }}>
                   <summary style={{ fontSize: 10.5, color: "var(--text-muted)", cursor: "pointer" }}>¿En qué unidad cargo cada categoría?</summary>

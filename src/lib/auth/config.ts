@@ -118,11 +118,6 @@ export function hasAnyRole(roles: number[], ...roleIds: RoleId[]): boolean {
   return roleIds.some((id) => roles.includes(id));
 }
 
-export function canApproveFormulas(roles: number[]): boolean {
-  // REGLA 1: Solo el Veterinario Jefe (id=4) aprueba cambios de fórmula
-  return roles.includes(ROLES.VET_CHIEF);
-}
-
 export function canApproveStockAdjustments(roles: number[]): boolean {
   // REGLA 2: Solo el Jefe de producción aprueba ajustes de stock
   return roles.includes(ROLES.PRODUCTION_CHIEF) ||

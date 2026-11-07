@@ -13,7 +13,7 @@ const TOOLTIP_STYLE = {
 
 const CATEGORIA_LABEL: Record<string, string> = {
   VACUNA: "Vacuna", SUPLEMENTO: "Suplemento", MEDICAMENTO: "Medicamento",
-  MATERIA_PRIMA: "Materia prima", BALANCEADO: "Balanceado", EQUIPAMIENTO: "Equipamiento",
+  BALANCEADO: "Balanceado", EQUIPAMIENTO: "Equipamiento",
 };
 
 function fmtGs(v: number) { return `₲ ${Math.round(v).toLocaleString("es-PY")}`; }
@@ -80,7 +80,7 @@ function ForecastStock({ onBack: _, onComprar, stock }: { onBack: () => void; on
     if (!data) return [];
     const criticos = data.filter(p => p.alertaStock);
     if (criticos.length === 0) {
-      return [{ nivel: "success", titulo: "Sin productos en stock crítico", descripcion: "Todo el inventario (vacunas, suplementos, medicamentos, materia prima y balanceado) está dentro de los niveles esperados. ✓" }];
+      return [{ nivel: "success", titulo: "Sin productos en stock crítico", descripcion: "Todo el inventario (vacunas, suplementos, medicamentos y balanceado) está dentro de los niveles esperados. ✓" }];
     }
     const urgentes = criticos.filter(p => p.diasHastaAgotamiento != null && p.diasHastaAgotamiento < 3);
     const r: Recomendacion[] = [];
@@ -187,51 +187,6 @@ function CostosPanel({ onBack: _ }: { onBack: () => void }) {
   );
 }
 
-// ═══ ANÁLISIS 3 — Balanceado: comprado vs. producido ══════════════════════════
-function BalanceadoOrigen({ onBack: _ }: { onBack: () => void }) {
-  const { data, loading } = useLogisticaAnalisis();
-
-  function recs(): Recomendacion[] {
-    const rows: any[] = data?.balanceadoOrigen ?? [];
-    if (rows.length === 0) return [{ nivel: "info", titulo: "Sin movimientos de balanceado todavía", descripcion: "El balanceado se repone de dos formas: comprándolo ya hecho (Logística → Registrar compra) o produciéndolo en planta (Balanceado → Producción). Acá vas a ver cuánto vino de cada vía." }];
-    const totalComprado  = rows.reduce((s, r) => s + r.comprado, 0);
-    const totalProducido = rows.reduce((s, r) => s + r.producido, 0);
-    const total = totalComprado + totalProducido;
-    if (total === 0) return [];
-    const pctProducido = Math.round((totalProducido / total) * 100);
-    return [{ nivel: "info", titulo: `${pctProducido}% del balanceado vino de producción propia`, descripcion: `Comprado: ${totalComprado.toLocaleString("es-PY")} kg · Producido en planta: ${totalProducido.toLocaleString("es-PY")} kg.` }];
-  }
-
-  if (loading) return <Spinner />;
-  const rows: any[] = data?.balanceadoOrigen ?? [];
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <div style={{ background: "var(--info-subtle)", border: "0.5px solid var(--info-border)", borderRadius: "var(--radius-md)", padding: "10px 14px", fontSize: 11, color: "var(--info-text)" }}>
-        El balanceado se repone de dos maneras: <strong>comprado</strong> (proveedor externo, se carga acá en Logística) o <strong>producido</strong> (planta propia, se carga en Balanceado → Producción). Ambas caminos suman al mismo stock — este panel muestra de dónde vino cada kilo.
-      </div>
-      {rows.length === 0 ? (
-        <div style={{ padding: "32px 0", textAlign: "center", fontSize: 12, color: "var(--text-muted)" }}>Sin movimientos de entrada de balanceado en el período</div>
-      ) : (
-        <ChartPanel title="Kg de balanceado por origen">
-          <ResponsiveContainer width="100%" height={Math.max(160, rows.length * 50)}>
-            <BarChart data={rows} layout="vertical" margin={{ left: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-default)" />
-              <XAxis type="number" tick={{ fontSize: 9, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="nombre" tick={{ fontSize: 10, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} width={160} />
-              <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => [`${v.toLocaleString("es-PY")} kg`]} />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="comprado" name="Comprado" fill="var(--info)" radius={[0, 3, 3, 0]} />
-              <Bar dataKey="producido" name="Producido" fill="var(--success)" radius={[0, 3, 3, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartPanel>
-      )}
-      <RecomendacionesPanel recomendaciones={recs()} />
-    </div>
-  );
-}
-
 // ═══ ANÁLISIS 4 — Tendencia de movimientos ════════════════════════════════════
 function TendenciaMovimientos({ onBack: _ }: { onBack: () => void }) {
   const { data, loading } = useLogisticaAnalisis();
@@ -268,7 +223,7 @@ export function CentralAnalisisLogistica({ onComprar, stock }: { onComprar?: (pr
     {
       id: "forecast",
       titulo: "Forecast de stock crítico",
-      descripcion: "Qué producto falta, cuánto falta y cuántos días de stock quedan, en las 6 categorías. Registrá la compra directo desde acá.",
+      descripcion: "Qué producto falta, cuánto falta y cuántos días de stock quedan, en todas las categorías. Registrá la compra directo desde acá.",
       tags: ["Forecast", "Stock", "Compra"],
       categoria: "desempeño",
       color: "var(--danger)",
@@ -282,15 +237,6 @@ export function CentralAnalisisLogistica({ onComprar, stock }: { onComprar?: (pr
       categoria: "analisis",
       color: "var(--warning)",
       component: CostosPanel,
-    },
-    {
-      id: "balanceado",
-      titulo: "Balanceado: comprado vs. producido",
-      descripcion: "El balanceado se repone comprándolo externo o produciéndolo en planta — vea de dónde vino cada kilo.",
-      tags: ["Balanceado", "Producción", "Compra"],
-      categoria: "analisis",
-      color: "var(--info)",
-      component: BalanceadoOrigen,
     },
     {
       id: "movimientos",

@@ -27,15 +27,11 @@ export async function GET(req: NextRequest) {
   const to    = hasta ? new Date(hasta) : new Date();
   to.setHours(23, 59, 59, 999);
 
-  const [stock, movimientos, productosBalanceado] = await Promise.all([
+  const [stock, movimientos] = await Promise.all([
     computeStockYFaltantes(tenantId),
     prisma.movimientoInventario.findMany({
       where: { tenantId, fecha: { gte: from, lte: to } },
       select: { fecha: true, tipo: true, origen: true, cantidad: true, productoId: true },
-    }),
-    prisma.productoInventario.findMany({
-      where: { tenantId, categoria: "BALANCEADO" },
-      select: { id: true, nombre: true },
     }),
   ]);
 
@@ -50,20 +46,6 @@ export async function GET(req: NextRequest) {
     .sort((a, b) => b.valorInvertido - a.valorInvertido);
   const valorTotalInventario = stock.reduce((s, p) => s + p.valorInvertido, 0);
 
-  // ── Balanceado: comprado vs. producido (sobre movimientos de entrada) ───────
-  const idsBalanceado = new Set(productosBalanceado.map(p => p.id));
-  const origenPorProducto = new Map<string, { comprado: number; producido: number }>();
-  for (const m of movimientos) {
-    if (m.tipo !== "ENTRADA" || !idsBalanceado.has(m.productoId)) continue;
-    const cur = origenPorProducto.get(m.productoId) ?? { comprado: 0, producido: 0 };
-    if (m.origen === "COMPRA") cur.comprado += Number(m.cantidad);
-    else if (m.origen === "PRODUCCION") cur.producido += Number(m.cantidad);
-    origenPorProducto.set(m.productoId, cur);
-  }
-  const balanceadoOrigen = productosBalanceado
-    .map(p => ({ productoId: p.id, nombre: p.nombre, ...(origenPorProducto.get(p.id) ?? { comprado: 0, producido: 0 }) }))
-    .filter(p => p.comprado > 0 || p.producido > 0);
-
   // ── Tendencia de movimientos (conteo semanal — mezclar unidades no es comparable) ──
   const semanaMap = new Map<string, { entradas: number; salidas: number }>();
   for (const m of movimientos) {
@@ -77,5 +59,5 @@ export async function GET(req: NextRequest) {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([semana, v]) => ({ semana: semana.replace(/^\d{4}-/, ""), ...v }));
 
-  return NextResponse.json({ costos, valorTotalInventario, balanceadoOrigen, movimientosTendencia });
+  return NextResponse.json({ costos, valorTotalInventario, movimientosTendencia });
 }

@@ -26,7 +26,6 @@ export async function GET(req: NextRequest) {
     pendingHealthTasks,
     overdueHealthTasks,
     unreadAlerts,
-    pendingFormulaVersions,
     // Partos últimos 30 días
     farrowings30d,
     // Destetes últimos 30 días
@@ -42,7 +41,6 @@ export async function GET(req: NextRequest) {
     prisma.healthTask.count({ where: { tenantId, isCompleted: false } }),
     prisma.healthTask.count({ where: { tenantId, isCompleted: false, dueDate: { lt: today } } }),
     prisma.alert.count({ where: { tenantId, isRead: false, isResolved: false } }),
-    prisma.formulaVersion.count({ where: { tenantId, status: "INACTIVE" } }),
     prisma.farrowingEvent.findMany({
       where: { tenantId, startDatetime: { gte: day30Ago } },
       select: { bornAlive: true, bornDead: true, mummified: true },
@@ -100,7 +98,6 @@ export async function GET(req: NextRequest) {
     pendingHealthTasks,
     overdueHealthTasks,
     unreadAlerts,
-    pendingFormulaVersions,
     // Últimos 30d
     farrowings30d:   farrowings30d.length,
     weanings30d:     weanings30d.length,
