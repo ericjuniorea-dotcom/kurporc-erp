@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/config";
+import { getSession } from "@/lib/auth/config";
 import prisma from "@/lib/db/prisma";
 
 /**
@@ -9,8 +8,9 @@ import prisma from "@/lib/db/prisma";
  * filtradas por paridad (misma fuente de verdad — conteo de FarrowingEvent —
  * que ya usa /api/gestacion/disponibles-detail para "primeriza").
  */
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions);
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   const tenantId = session.user.tenantId;
 
@@ -41,7 +41,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   const esPrimeriza = partosCount === 0;
   const paridadCerda: "NULIPARA" | "MULTIPARA" = esPrimeriza ? "NULIPARA" : "MULTIPARA";
   const serviceDate = new Date(ultimoServicio.serviceDate);
-  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const today = new Date();today.setHours(0, 0, 0, 0);
 
   const aplicadosPorConfigId = new Set(
     vaccinationEvents

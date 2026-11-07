@@ -102,15 +102,20 @@ export async function resolveSession(phone: string): Promise<WaSession | null> {
   // Buscar usuario por número de teléfono
   const user = await prisma.user.findFirst({
     where: { phone, isActive: true },
-    select: { id: true, tenantId: true },
+    select: {
+      id: true, tenantId: true,
+      // La organización sale de su membresía activa (Fase 1); tenantId queda como respaldo legado
+      membresias: { where: { estado: "ACTIVO" }, select: { organizacionId: true }, orderBy: { createdAt: "asc" }, take: 1 },
+    },
   });
-  if (!user) return null;
+  const tenantId = user?.membresias[0]?.organizacionId ?? user?.tenantId;
+  if (!user || !tenantId) return null;
 
   // Crear nueva sesión
   const expires = new Date(Date.now() + SESSION_TTL * 1000);
   const dbSession = await prisma.whatsAppSession.create({
     data: {
-      tenantId:    user.tenantId,
+      tenantId,
       userId:      user.id,
       phoneNumber: phone,
       status:      "ACTIVE",
@@ -121,7 +126,7 @@ export async function resolveSession(phone: string): Promise<WaSession | null> {
 
   const session: WaSession = {
     id:          dbSession.id,
-    tenantId:    user.tenantId,
+    tenantId,
     userId:      user.id,
     phoneNumber: phone,
     context:     {},

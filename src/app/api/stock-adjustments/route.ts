@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions, canApproveStockAdjustments } from "@/lib/auth/config";
+import { getSession, canApproveStockAdjustments } from "@/lib/auth/config";
 import prisma from "@/lib/db/prisma";
 import { stockAdjustmentSchema } from "@/lib/validations/maternidad";
 import { calculateSowStock } from "@/lib/maternidad/stock";
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
@@ -29,7 +28,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
   const body   = await req.json();

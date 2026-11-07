@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/config";
+import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 
 // Super Admin (1), Admin de granja (2), Jefe de Producción (5) — únicos
@@ -16,8 +15,9 @@ const DELETE_LOTE_ROLES = [1, 2, 5];
  * sin tocar los ServiceEvent. Si el lote está vacío (nunca se sirvió
  * ninguna cerda), se borra por completo.
  */
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions);
+export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
   if (!session.user.roles.some((r: number) => DELETE_LOTE_ROLES.includes(r))) {

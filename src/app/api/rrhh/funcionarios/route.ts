@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/config";
+import { getSession } from "@/lib/auth/config";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { conActor } from "@/lib/db/actor";
@@ -95,7 +94,7 @@ function cedulaVisible(valor: string | null, completa: boolean): string | null {
 }
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   const tenantId = session.user.tenantId;
   const completa = session.user.roles.some((r: number) => ROLES_DATOS_PERSONALES.includes(r));
@@ -120,7 +119,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const allowedRoles = [1, 2, 5];

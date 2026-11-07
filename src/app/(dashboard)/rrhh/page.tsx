@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth/sesion-cliente";
 import { useRouter }  from "next/navigation";
 import { Topbar }     from "@/components/layout/topbar";
 import { IconUsers, IconPlus, IconLoader2, IconPlayerPlay } from "@tabler/icons-react";

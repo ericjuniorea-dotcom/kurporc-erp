@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/config";
+import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 
 // PATCH /api/sanidad/assign — asignar responsable a una tarea sanitaria
 export async function PATCH(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.tenantId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const isChief = session.user.roles.some((r: number) => [1, 2, 5].includes(r));

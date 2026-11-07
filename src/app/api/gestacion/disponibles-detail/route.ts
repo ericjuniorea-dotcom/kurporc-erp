@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/config";
+import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { getGestacionStates } from "@/lib/gestacion/sow-state";
 
@@ -23,7 +22,7 @@ const CICLO_CELO_DIAS = 21;
 type BadgeEstado = "ABORTO" | "REPITIO_CELO" | "SALE_MATERNIDAD" | "PRIMERIZA" | null;
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { tenantId } = session.user;
 

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { useSession }        from "next-auth/react";
+import { useSession } from "@/lib/auth/sesion-cliente";
 import { useRouter }         from "next/navigation";
 import { BatchCard }         from "@/components/recria/batch-card";
 import { TareasModuloPanel } from "@/components/shared/tareas-modulo-panel";

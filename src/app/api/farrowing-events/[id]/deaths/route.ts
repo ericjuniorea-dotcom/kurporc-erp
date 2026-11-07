@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/config";
+import { getSession } from "@/lib/auth/config";
 import prisma from "@/lib/db/prisma";
 import { pigletDeathSchema } from "@/lib/validations/maternidad";
 import { calculateSowStock } from "@/lib/maternidad/stock";
 import { diffDays } from "@/lib/utils";
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  const session = await getServerSession(authOptions);
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
   const allowed = [1, 2, 3, 4, 5, 10, 13];

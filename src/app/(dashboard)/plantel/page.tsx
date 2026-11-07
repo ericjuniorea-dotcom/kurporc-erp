@@ -1,7 +1,7 @@
 "use client";
 export const dynamic = "force-dynamic";
 import React, { useState, useEffect, useCallback } from "react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth/sesion-cliente";
 import {
   IconUsers, IconUser, IconHeart, IconHeartbeat,
   IconBabyCarriage, IconMars, IconShieldCheck,

@@ -12,20 +12,10 @@ const encabezadosSeguridad = [
 
 const nextConfig = {
   poweredByHeader: false,
-  experimental: {
-    serverComponentsExternalPackages: ["@prisma/client", "bcryptjs"],
-  },
-  images: {
-    dangerouslyAllowSVG: true,
-    contentDispositionType: "attachment",
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "*.s3.amazonaws.com",
-      },
-    ],
-  },
+  serverExternalPackages: ["@prisma/client", "bcryptjs"],
+  // Sin next/image: no se usa, y el optimizador de imágenes es el componente
+  // de Next.js con más fallas críticas publicadas. Si algún día se usa, revisar antes.
+  images: { unoptimized: true },
   async headers() {
     return [{ source: "/:path*", headers: encabezadosSeguridad }];
   },

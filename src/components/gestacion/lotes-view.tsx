@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth/sesion-cliente";
 import {
   IconChevronDown, IconChevronUp, IconLoader2, IconLayoutGrid,
   IconCircleCheck, IconClock, IconX, IconVaccine, IconArrowLeft,

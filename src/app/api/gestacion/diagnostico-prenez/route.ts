@@ -1,13 +1,12 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/config";
+import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { generarTareasServicio } from "@/lib/tasks/generate";
 import { evaluarAlertaConcepcion } from "@/lib/gestacion/tasa-concepcion";
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const allowedRoles = [1, 2, 3, 4, 5, 10, 11, 13];

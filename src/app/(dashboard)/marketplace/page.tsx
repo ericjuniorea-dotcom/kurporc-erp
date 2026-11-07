@@ -2,7 +2,7 @@
 export const dynamic = "force-dynamic";
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth/sesion-cliente";
 import {
   IconShoppingCart, IconSearch, IconPlus, IconFileText,
   IconLoader2, IconPackage, IconCheck, IconAlertCircle,

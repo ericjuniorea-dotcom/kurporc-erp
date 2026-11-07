@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/config";
+import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { invalidateInventario } from "@/lib/cache";
 import { z } from "zod";
@@ -32,7 +31,7 @@ function keyOf(f: { feedTypeId: string; farrowingId?: string | null; nurseryBatc
 // a la base paga ~200ms de latencia de red — una ronda de 10 filas con 1 query
 // por fila tardaba ~6-7s; agrupado en pocas consultas queda en ~1s.
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { tenantId } = session.user;
 

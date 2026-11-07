@@ -1,14 +1,11 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/config";
+import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { id: string } },
-) {
-  const session = await getServerSession(authOptions);
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { tenantId } = session.user;
 
@@ -30,18 +27,16 @@ export async function POST(
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string } },
-) {
-  const session = await getServerSession(authOptions);
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { tenantId } = session.user;
 
   const task = await prisma.task.findFirst({ where: { id: params.id, tenantId } });
   if (!task) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const today = new Date();today.setHours(0, 0, 0, 0);
   const diff  = Math.floor((task.fechaVencimiento.getTime() - today.getTime()) / 86400000);
   const prioridad = diff < 0 ? "urgente" : diff === 0 ? "hoy" : "programada";
 

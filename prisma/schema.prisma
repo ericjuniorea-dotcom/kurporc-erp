@@ -308,13 +308,13 @@ model Role {
 }
 
 // User = Perfil (la persona, D1). Se extiende la tabla existente.
-// `tenantId` y `passwordHash` son legado de NextAuth: se vuelven opcionales al
-// pasar a Supabase Auth (Fase 3). La pertenencia real a organizaciones está en `Miembro`.
+// `tenantId` y `passwordHash` son legado de NextAuth (opcionales desde la Fase 3):
+// la identidad vive en Supabase Auth y la pertenencia a organizaciones en `Miembro`.
 model User {
   id           String   @id @default(cuid())
-  tenantId     String
+  tenantId     String? // legado: organización "principal"; la pertenencia real está en Miembro
   email        String   @unique
-  passwordHash String
+  passwordHash String? // legado NextAuth; la contraseña vive en Supabase Auth
   name         String
   phone        String? // Número WhatsApp del usuario/operario (+595)
   language     Language @default(ES)
@@ -335,10 +335,8 @@ model User {
   ultimoAcceso       DateTime?
   bajaSolicitadaEn   DateTime?
 
-  tenant              Tenant                  @relation(fields: [tenantId], references: [id])
+  tenant              Tenant?                 @relation(fields: [tenantId], references: [id])
   userRoles           UserRole[]
-  accounts            Account[]
-  sessions            Session[]
   pushTokens          PushToken[]
   notificationPref    NotificationPreference?
   assignedHealthTasks HealthTask[]            @relation("AssignedHealthTasks")
@@ -360,47 +358,6 @@ model UserRole {
 
   @@id([userId, roleId])
   @@map("user_roles")
-}
-
-// NextAuth.js — modelos requeridos por el adaptador Prisma
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-  @@map("accounts")
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("sessions")
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-  @@map("verification_tokens")
 }
 
 // ================================================================

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions, canApproveStockAdjustments } from "@/lib/auth/config";
+import { getSession, canApproveStockAdjustments } from "@/lib/auth/config";
 import prisma from "@/lib/db/prisma";
 import { z } from "zod";
 
@@ -9,11 +8,9 @@ const reviewSchema = z.object({
   reviewNotes: z.string().optional(),
 });
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  const session = await getServerSession(authOptions);
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
   // REGLA 2: Solo Jefe de producción, Admin o Super Admin puede aprobar

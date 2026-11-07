@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth/sesion-cliente";
 import { IconPlus, IconLoader2, IconX, IconAlertTriangle, IconFlame } from "@tabler/icons-react";
 import { SowPicker } from "./sow-picker";
 

@@ -1,5 +1,5 @@
 "use client";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth/sesion-cliente";
 import Link from "next/link";
 import { ThemeToggle } from "./theme-toggle";
 import { IconSettings } from "@tabler/icons-react";

@@ -18,6 +18,7 @@ create table if not exists auth.users (
   raw_app_meta_data jsonb default '{}',
   created_at timestamptz default now()
 );
+alter table auth.users add column if not exists email_confirmed_at timestamptz;
 
 -- Igual que en Supabase: el usuario sale del claim "sub" del JWT del request.
 create or replace function auth.uid() returns uuid language sql stable as $$

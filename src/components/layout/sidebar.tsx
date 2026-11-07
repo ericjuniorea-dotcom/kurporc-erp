@@ -4,13 +4,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { KurPorcLogo } from "@/components/ui/logo";
 import { ThemeToggle } from "./theme-toggle";
-import { signOut } from "next-auth/react";
+import { signOut } from "@/lib/auth/sesion-cliente";
+import type { Membresia } from "@/lib/auth/config";
+import { SelectorOrganizacion } from "./selector-organizacion";
 import {
   IconHeart, IconHeartPlus, IconBuildingWarehouse,
   IconWheat, IconTruck, IconUsers, IconCalculator,
   IconLayoutDashboard, IconBrandWhatsapp, IconShield,
   IconChartLine, IconLogout, IconDna, IconSettings, IconBuildingStore,
-  IconClipboardCheck, IconMenu2, IconX,
+  IconClipboardCheck, IconMenu2, IconX, IconShieldLock,
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 
@@ -59,9 +61,11 @@ const NAV_GROUPS = [
 interface SidebarProps {
   farmName:  string;
   userRoles: number[];
+  organizacionActiva: string;
+  membresias: Membresia[];
 }
 
-export function Sidebar({ farmName, userRoles }: SidebarProps) {
+export function Sidebar({ farmName, userRoles, organizacionActiva, membresias }: SidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -114,7 +118,9 @@ export function Sidebar({ farmName, userRoles }: SidebarProps) {
               className="sidebar-farm"
               style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
             >
-              {farmName}
+              {membresias.length > 1
+                ? <SelectorOrganizacion activa={organizacionActiva} membresias={membresias} />
+                : farmName}
             </div>
           </div>
           <button
@@ -186,6 +192,10 @@ export function Sidebar({ farmName, userRoles }: SidebarProps) {
             flexShrink: 0,
           }}
         >
+          <Link href="/cuenta/seguridad" className={cn("nav-item", pathname === "/cuenta/seguridad" && "active")}>
+            <IconShieldLock size={15} style={{ color: "var(--text-muted)", flexShrink: 0 }} aria-hidden />
+            <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Seguridad de la cuenta</span>
+          </Link>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
             className="nav-item"
