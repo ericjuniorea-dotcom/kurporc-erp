@@ -6,7 +6,9 @@
 begin;
 
 -- ── 1. auditoria e historial_cambio son de solo agregar (incluso para el dueño) ─
+-- Una fila en cada tabla: un UPDATE/DELETE que no toca filas no dispara el trigger
 insert into auditoria (id, accion, entidad) values (gen_random_uuid(), 'PRUEBA', 'prueba');
+insert into historial_cambio (tabla, registro_id, operacion) values ('prueba', 'prueba', 'INSERT');
 do $$ begin
   begin update auditoria set accion = 'X' where accion = 'PRUEBA'; raise exception '1: se pudo hacer UPDATE en auditoria';
   exception when insufficient_privilege then null; end;
