@@ -1,6 +1,6 @@
 # Fase 1 — Identidad, organizaciones, membresías y unidades de negocio
 
-Estado: **probada contra una copia local de producción**. Falta aplicarla a la base de producción (ver "Cómo aplicar").
+Estado: **aplicada en producción el 07/11/2026**: migración, datos y prueba de aislamiento en verde.
 
 ## Qué se hizo
 
@@ -24,7 +24,7 @@ Estado: **probada contra una copia local de producción**. Falta aplicarla a la 
 
 ### 3. Seguridad en la base (migración `20261107000100_fase1_organizaciones`)
 - Funciones `usuario_actual()`, `mis_orgs()`, `tiene_permiso(org, clave, granja, unidad)`, `es_superadmin()`.
-- **RLS activado en todas las tablas** (antes: ninguna). Cierra la API REST de Supabase, que estaba abierta para cualquiera con la clave anónima.
+- **RLS activado en todas las tablas** (antes: ninguna). Los roles de la API de Supabase (`anon`, `authenticated`) además no tienen permisos de tabla: RLS es la segunda barrera. Cuando el navegador lea por Supabase (Fase 3 en adelante) habrá que darle `select` a `authenticated` y RLS decide qué filas ve.
 - Tablas del ERP: un miembro activo puede **leer** las de su organización. Sin políticas de escritura: todo se escribe desde el servidor.
 - Vista `v_companeros` (nombre, foto y cargo de los compañeros; nunca correo ni teléfono).
 - Prisma no se ve afectado: en producción entra como `postgres`, dueño de las tablas y con `BYPASSRLS` (verificado).
@@ -47,7 +47,7 @@ Estado: **probada contra una copia local de producción**. Falta aplicarla a la 
 - [x] `tiene_permiso(<org>, 'sanidad.carencias.liberar')` es `true` solo para propietario y veterinario (reemplaza a `balanceado.formulas.aprobar`, que ya no existe) — prueba 4.
 - [x] Un miembro limitado a una unidad no tiene permiso en otra — prueba 5 (sobre `tiene_permiso`; las tablas financieras con `unidad_id` llegan en la Fase 8).
 - [x] El script de migración es idempotente.
-- [ ] Todas las pantallas del ERP muestran los mismos datos que antes → verificar en producción después de aplicar.
+- [ ] Todas las pantallas del ERP muestran los mismos datos que antes → verificar en kurporc.com después del despliegue.
 - [ ] `npm run lint`: el proyecto no tiene ESLint configurado (pendiente, ver abajo).
 
 Prueba: `psql "<url>" -v ON_ERROR_STOP=1 -f supabase/tests/fase1_aislamiento.sql` (corre en una transacción que se deshace).

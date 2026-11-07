@@ -9,6 +9,11 @@
 begin;
 
 -- ── Preparación (como dueño de las tablas) ─────────────────────────
+-- Peor caso: se les dan a los roles de la API permisos de tabla (en producción
+-- no los tienen). Así lo único que protege los datos es RLS, que es lo que se
+-- prueba. El rollback del final los quita.
+grant select, insert on all tables in schema public to anon, authenticated;
+
 create temp table t_ctx (clave text primary key, valor text) on commit drop;
 grant all on t_ctx to anon, authenticated;
 

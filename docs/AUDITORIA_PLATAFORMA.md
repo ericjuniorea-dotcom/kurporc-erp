@@ -129,7 +129,7 @@ Lo positivo: la base productiva está **casi vacía** (1 tenant, 3 usuarios, 1 c
 | # | Riesgo | Severidad |
 |---|---|---|
 | R1 | `prisma migrate dev` sobre la base actual sin *baseline* → Prisma pide resetear la base | **Crítica** |
-| R2 | RLS apagado en las 90 tablas: cualquiera con la `anon key` del proyecto Supabase puede leer y escribir todo por la API REST de Supabase (la app no la distribuye, pero existe) | **Alta** |
+| R2 | RLS apagado en todas las tablas. **Corrección (07/11):** los roles de la API de Supabase (`anon`, `authenticated`) no tienen permisos de tabla, así que la API REST no exponía datos; quedaba una sola barrera. Resuelto en la Fase 1 (RLS activo) | Media → resuelta |
 | R3 | Una sola base para desarrollo y producción | Alta |
 | R4 | Sin respaldos verificados | Alta |
 | R5 | Asignación masiva: `PATCH` con `{ ...body }` en [config/genetica/[id]](../src/app/api/config/genetica/%5Bid%5D/route.ts#L15) y [config/vacunas/[id]](../src/app/api/config/vacunas/%5Bid%5D/route.ts#L15) permite cambiar `tenantId` de un registro | Media |
