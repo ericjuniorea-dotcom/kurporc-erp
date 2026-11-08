@@ -68,9 +68,9 @@ export function LoteCard({ lote }: Props) {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
-            Lote {lote.batchCode}
-          </div>
+          <a href={`/engorde/lotes/${lote.id}`} style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", textDecoration: "none" }}>
+            Lote {lote.batchCode} →
+          </a>
           <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
             {lote.diasAlojamiento} días · {formatFecha(lote.entryDate)}
           </div>

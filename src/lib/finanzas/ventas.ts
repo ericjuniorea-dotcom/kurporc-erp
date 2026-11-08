@@ -18,7 +18,11 @@ export const DESTINOS = { ENGORDE: "Engorde", CONSUMO: "Consumo", CARNEADO: "Car
 export type DatosVenta = {
   organizacionId: string; creadoPor: string; unidadId?: string | null;
   fechaSalida: Date; tipoVenta: TipoVenta; cantidad: number; kgTotales: number;
-  modoPrecio: "POR_KG" | "POR_CABEZA"; precioGs: bigint;
+  modoPrecio: "POR_KG" | "POR_CABEZA" | "POR_KG_CANAL"; precioGs: bigint;
+  /** Venta por kg de canal: kg canal = kg vivo × rendimiento %. */
+  rendimientoPct?: number | null;
+  descuentosGs?: bigint;  // tipificación (se restan del importe)
+  fleteGs?: bigint;       // gasto de venta del lote (no cambia el importe)
   destino: keyof typeof DESTINOS; cliente: string;
   loteDesteteId?: string | null; loteEngordeId?: string | null;
   recibePor?: string | null; remitoFactura?: string | null; guiaTraslado?: string | null;
@@ -34,7 +38,22 @@ export async function registrarVenta(tx: Tx, d: DatosVenta) {
   if (d.cantidad <= 0) throw new ErrorVenta("La cantidad tiene que ser mayor a cero.");
   if (d.kgTotales <= 0) throw new ErrorVenta("Cargá los kg de la balanza.");
   if (d.precioGs <= 0n) throw new ErrorVenta("Cargá el precio.");
-  const importe = d.modoPrecio === "POR_KG" ? BigInt(Math.round(d.kgTotales * Number(d.precioGs))) : d.precioGs * BigInt(d.cantidad);
+  if (d.modoPrecio === "POR_KG_CANAL" && !(d.rendimientoPct && d.rendimientoPct > 0 && d.rendimientoPct <= 100)) throw new ErrorVenta("Cargá el rendimiento de canal (%).");
+  const kgCanal = d.modoPrecio === "POR_KG_CANAL" ? Math.round(d.kgTotales * d.rendimientoPct! / 100 * 100) / 100 : null;
+  const bruto = d.modoPrecio === "POR_KG" ? BigInt(Math.round(d.kgTotales * Number(d.precioGs)))
+    : d.modoPrecio === "POR_KG_CANAL" ? BigInt(Math.round(kgCanal! * Number(d.precioGs))) : d.precioGs * BigInt(d.cantidad);
+  const descuentos = d.descuentosGs ?? 0n;
+  if (descuentos < 0n || descuentos >= bruto) throw new ErrorVenta("Los descuentos no pueden superar el importe.");
+  const importe = bruto - descuentos;
+
+  // Carencia sanitaria (regla del dominio): no se vende un lote con un tratamiento cuya carencia sigue vigente
+  if (d.loteEngordeId) {
+    const carencia = await tx.withdrawalPeriod.findFirst({
+      where: { tenantId: d.organizacionId, growingBatchId: d.loteEngordeId, isActive: true, endDate: { gt: d.fechaSalida } },
+      orderBy: { endDate: "desc" }, include: { medicine: { select: { name: true } } },
+    });
+    if (carencia) throw new ErrorVenta(`El lote está en período de carencia por ${carencia.medicine.name} hasta el ${carencia.endDate.toISOString().slice(0, 10).split("-").reverse().join("/")}: no se puede vender antes.`);
+  }
 
   const nombreCat = TIPOS_VENTA[d.tipoVenta].categoria;
   const categoria = await tx.categoriaFinanciera.findFirst({ where: { nombre: nombreCat, organizacionId: null } });
@@ -101,13 +120,22 @@ export async function registrarVenta(tx: Tx, d: DatosVenta) {
       organizacionId: d.organizacionId, unidadId, granjaId, fechaSalida: d.fechaSalida, tipoVenta: d.tipoVenta,
       loteDesteteId: d.loteDesteteId ?? null, loteEngordeId: d.loteEngordeId ?? null, edadPromDias, cantidad: d.cantidad,
       kgTotales: d.kgTotales, modoPrecio: d.modoPrecio,
-      precioGsKg: d.modoPrecio === "POR_KG" ? d.precioGs : null, precioGsCabeza: d.modoPrecio === "POR_CABEZA" ? d.precioGs : null,
+      precioGsKg: d.modoPrecio !== "POR_CABEZA" ? d.precioGs : null, precioGsCabeza: d.modoPrecio === "POR_CABEZA" ? d.precioGs : null,
+      rendimientoPct: d.rendimientoPct ?? null, kgCanal, descuentosGs: descuentos, fleteGs: d.fleteGs ?? 0n,
       importeGs: importe, destino: d.destino, clienteId: cliente.id, recibePor: d.recibePor ?? null,
       remitoFactura: d.remitoFactura ?? null, guiaTraslado: d.guiaTraslado ?? null, fechaVencimientoCobro: d.fechaVencimientoCobro ?? null,
       movimientoId: mov.id, creadoPor: d.creadoPor,
     },
   });
   await tx.movimiento.update({ where: { id: mov.id }, data: { origenId: venta.id } });
+  // El flete es un gasto de la venta: queda en el libro como pendiente de pago
+  if (d.fleteGs && d.fleteGs > 0n) {
+    const catFlete = await tx.categoriaFinanciera.findFirst({ where: { nombre: "Flete de entrega", organizacionId: null } });
+    if (catFlete) await tx.movimiento.create({ data: {
+      organizacionId: d.organizacionId, unidadId, granjaId, fecha: d.fechaSalida, tipo: "GASTO", concepto: `Flete: ${concepto}`,
+      categoriaId: catFlete.id, montoGs: d.fleteGs, estado: "PENDIENTE", origen: "VENTA", origenId: venta.id, creadoPor: d.creadoPor,
+    } });
+  }
   if (d.cobro) {
     await tx.pagoMovimiento.create({ data: { movimientoId: mov.id, fechaPago: d.cobro.fecha, montoGs: importe, cuentaFondosId: d.cobro.cuentaFondosId, medioPago: (d.cobro.medioPago as never) ?? null, creadoPor: d.creadoPor } });
   }

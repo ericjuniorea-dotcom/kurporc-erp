@@ -95,13 +95,14 @@ function FormularioVenta(p: Parameters<typeof PanelVentas>[0] & { onCerrar: () =
   const [f, setF] = useState({
     fechaSalida: p.hoy, tipoVenta: "LECHONES", loteDesteteId: "", loteEngordeId: "", cantidad: "", kgTotales: "", modoPrecio: "POR_KG",
     precioGs: "", destino: "ENGORDE", cliente: "", recibePor: "", remitoFactura: "", guiaTraslado: "", fechaVencimientoCobro: "",
-    cobrada: false, fechaCobro: p.hoy, cuentaFondosId: "", medioPago: "",
+    cobrada: false, fechaCobro: p.hoy, cuentaFondosId: "", medioPago: "", rendimientoPct: "", descuentosGs: "", fleteGs: "",
   });
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
   const set = (k: keyof typeof f, v: string | boolean) => setF(x => ({ ...x, [k]: v }));
   const cant = Number(f.cantidad) || 0, kg = Number(f.kgTotales.replace(",", ".")) || 0, precio = Number(f.precioGs) || 0;
-  const importe = f.modoPrecio === "POR_KG" ? Math.round(kg * precio) : cant * precio;
+  const rend = Number(f.rendimientoPct.replace(",", ".")) || 0;
+  const importe = (f.modoPrecio === "POR_KG" ? Math.round(kg * precio) : f.modoPrecio === "POR_KG_CANAL" ? Math.round(kg * rend / 100 * precio) : cant * precio) - (Number(f.descuentosGs) || 0);
   const lotes = f.tipoVenta === "CERDO_TERMINADO" ? p.lotesEngorde : f.tipoVenta === "LECHONES" ? p.lotesDestete : [];
 
   function guardar(e: React.FormEvent) {
@@ -140,10 +141,17 @@ function FormularioVenta(p: Parameters<typeof PanelVentas>[0] & { onCerrar: () =
         <Campo label="Cantidad" ancho={100}><input className="kp-input" inputMode="numeric" value={f.cantidad} onChange={e => set("cantidad", e.target.value.replace(/\D/g, ""))} required /></Campo>
         <Campo label="Kg totales (balanza)" ancho={140}><input className="kp-input" inputMode="decimal" value={f.kgTotales} onChange={e => set("kgTotales", e.target.value)} required /></Campo>
         <Campo label="Precio" ancho={130}>
-          <select className="kp-input" value={f.modoPrecio} onChange={e => set("modoPrecio", e.target.value)}><option value="POR_KG">Por kg</option><option value="POR_CABEZA">Por cabeza</option></select>
+          <select className="kp-input" value={f.modoPrecio} onChange={e => set("modoPrecio", e.target.value)}><option value="POR_KG">Por kg vivo</option><option value="POR_KG_CANAL">Por kg de canal</option><option value="POR_CABEZA">Por cabeza</option></select>
         </Campo>
-        <Campo label={f.modoPrecio === "POR_KG" ? "₲ por kg" : "₲ por cabeza"} ancho={130}><input className="kp-input" inputMode="numeric" value={f.precioGs} onChange={e => set("precioGs", e.target.value.replace(/\D/g, ""))} required /></Campo>
+        {f.modoPrecio === "POR_KG_CANAL" && <Campo label="Rendimiento de canal (%)" ancho={130}><input className="kp-input" inputMode="decimal" value={f.rendimientoPct} onChange={e => set("rendimientoPct", e.target.value)} placeholder="Ej: 78" required /></Campo>}
+        <Campo label={f.modoPrecio === "POR_CABEZA" ? "₲ por cabeza" : f.modoPrecio === "POR_KG_CANAL" ? "₲ por kg de canal" : "₲ por kg vivo"} ancho={130}><input className="kp-input" inputMode="numeric" value={f.precioGs} onChange={e => set("precioGs", e.target.value.replace(/\D/g, ""))} required /></Campo>
       </div>
+      {f.tipoVenta === "CERDO_TERMINADO" && (
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <Campo label="Descuentos por tipificación (₲)" ancho={170}><input className="kp-input" inputMode="numeric" value={f.descuentosGs} onChange={e => set("descuentosGs", e.target.value.replace(/\D/g, ""))} /></Campo>
+          <Campo label="Flete (₲, queda como gasto pendiente)" ancho={200}><input className="kp-input" inputMode="numeric" value={f.fleteGs} onChange={e => set("fleteGs", e.target.value.replace(/\D/g, ""))} /></Campo>
+        </div>
+      )}
       {cant > 0 && kg > 0 && precio > 0 && (
         <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
           Peso promedio <strong>{(kg / cant).toLocaleString("es-PY", { maximumFractionDigits: 1 })} kg</strong> · importe <strong>{gs(importe)}</strong> · <strong>{gs(Math.round(importe / cant))}</strong> por animal

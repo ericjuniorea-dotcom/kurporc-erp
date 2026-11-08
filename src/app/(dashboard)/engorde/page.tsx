@@ -100,12 +100,15 @@ export default function EngordePage() {
         activeTab={tab === "datos" ? "" : tab}
         onTabChange={setTab}
         actions={
+          <>
+          <a href="/engorde/comparativo" className="btn" style={{ textDecoration: "none" }}>Comparar lotes</a>
           <button
             className="btn btn-primary"
             onClick={() => { setTab(tab === "datos" ? "general" : "datos"); setDataTab("lotes"); }}
           >
             Ingreso de datos
           </button>
+          </>
         }
         configHref="/configuracion?modulo=ENGORDE&tab=Metas"
       />

@@ -289,20 +289,20 @@ model Tenant {
   invitaciones Invitacion[]
 
   // Finanzas (Fase 8)
-  cuentasFondos CuentaFondos[]
+  cuentasFondos         CuentaFondos[]
   categoriasFinancieras CategoriaFinanciera[]
-  contrapartes Contraparte[]
-  movimientos Movimiento[]
-  ventas Venta[]
-  prestamos Prestamo[]
-  presupuestos Presupuesto[]
-  aportesPrevistos AporteCapitalPrevisto[]
+  contrapartes          Contraparte[]
+  movimientos           Movimiento[]
+  ventas                Venta[]
+  prestamos             Prestamo[]
+  presupuestos          Presupuesto[]
+  aportesPrevistos      AporteCapitalPrevisto[]
   evaluacionesInversion EvaluacionInversion[]
   parametrosFinancieros ParametrosFinancieros?
-  cierresMes CierreMes[]
-  saldosDeclarados SaldoDeclarado[]
-  causasDesvio CausaDesvio[]
-  recomendaciones Recomendacion[]
+  cierresMes            CierreMes[]
+  saldosDeclarados      SaldoDeclarado[]
+  causasDesvio          CausaDesvio[]
+  recomendaciones       Recomendacion[]
 
   @@index([tipo])
   @@index([departamento])
@@ -1135,15 +1135,26 @@ model GrowingBatch {
   updatedAt      DateTime @updatedAt
 
   // Campos Engorde extendidos
-  sitio             String? // Sitio / ubicación
-  procedencia       String    @default("RECRIA_PROPIA") // RECRIA_PROPIA | COMPRA_EXTERNA
-  avgAgeAtEntryDays Int? // Edad media al ingreso (días)
-  targetWeightKg    Decimal?  @db.Decimal(8, 2) // Peso objetivo de salida (default 120)
-  employeeId        String? // Responsable
-  observations      String?
-  status            String    @default("ACTIVE") // ACTIVE | CLOSED
-  closedAt          DateTime?
-  closedReason      String?
+  sitio               String? // Sitio / ubicación
+  procedencia         String             @default("RECRIA_PROPIA") // RECRIA_PROPIA | COMPRA_EXTERNA
+  avgAgeAtEntryDays   Int? // Edad media al ingreso (días)
+  targetWeightKg      Decimal?           @db.Decimal(8, 2) // Peso objetivo de salida (default 120)
+  employeeId          String? // Responsable
+  observations        String?
+  status              String             @default("ACTIVE") // ACTIVE | CLOSED
+  closedAt            DateTime?
+  closedReason        String?
+  // Fase 9: modalidad, costo de ingreso y curva
+  modalidad           String             @default("PROPIO") // PROPIO | INTEGRADO
+  integradorId        String? // contraparte que provee animales y/o alimento
+  pagoIntegracion     String? // POR_KG_PRODUCIDO | POR_ANIMAL_DIA | POR_CABEZA
+  tarifaIntegracionGs BigInt?
+  alimentoLoProvee    String             @default("PROPIO") // PROPIO | INTEGRADOR
+  sexo                String? // MACHOS_CASTRADOS | HEMBRAS | MIXTO
+  genetica            String?
+  costoIngresoGs      BigInt? // lo pagado por los animales (compra); null = según Parámetros
+  curvaId             String?
+  withdrawalPeriods   WithdrawalPeriod[]
 
   nurseryBatch      NurseryBatch?      @relation(fields: [nurseryBatchId], references: [id])
   pen               Pen?               @relation(fields: [penId], references: [id])
@@ -1702,6 +1713,10 @@ model CurativeTreatment {
 model WithdrawalPeriod {
   id             String   @id @default(cuid())
   tenantId       String
+  growingBatchId String? // Fase 9: carencia de un lote de engorde (bloquea la venta)
+  animales       Int? // Fase 9: tratamiento de lote
+  mlAplicados    Decimal? @db.Decimal(10, 2)
+  costoGs        BigInt? // costo del tratamiento (suma al costo del lote)
   pigletId       String?
   farrowingId    String?
   sowId          String?
@@ -1712,11 +1727,12 @@ model WithdrawalPeriod {
   endDate        DateTime // startDate + withdrawalDays
   isActive       Boolean  @default(true)
 
-  medicine  Medicine           @relation(fields: [medicineId], references: [id])
-  piglet    Piglet?            @relation(fields: [pigletId], references: [id])
-  sow       Sow?               @relation(fields: [sowId], references: [id])
-  treatment CurativeTreatment? @relation(fields: [treatmentId], references: [id])
-  farrowing FarrowingEvent?    @relation(fields: [farrowingId], references: [id])
+  medicine     Medicine           @relation(fields: [medicineId], references: [id])
+  piglet       Piglet?            @relation(fields: [pigletId], references: [id])
+  sow          Sow?               @relation(fields: [sowId], references: [id])
+  treatment    CurativeTreatment? @relation(fields: [treatmentId], references: [id])
+  farrowing    FarrowingEvent?    @relation(fields: [farrowingId], references: [id])
+  growingBatch GrowingBatch?      @relation(fields: [growingBatchId], references: [id])
 
   @@index([tenantId, isActive, endDate])
   @@map("withdrawal_periods")
@@ -2720,22 +2736,22 @@ model CuentaFondos {
 
 /// Hoja LISTAS. organizacionId null = categoría del sistema (la ven todas las organizaciones)
 model CategoriaFinanciera {
-  id             String         @id @default(uuid()) @db.Uuid
-  organizacionId String?        @map("organizacion_id")
+  id             String            @id @default(uuid()) @db.Uuid
+  organizacionId String?           @map("organizacion_id")
   nombre         String
   tipo           TipoMovFinanciero
   area           String
   naturaleza     Naturaleza
   signo          Int
-  unidadDefault  String         @map("unidad_default") // GRANJA | COMUN
+  unidadDefault  String            @map("unidad_default") // GRANJA | COMUN
   subcategorias  String[]
-  grupoTablero   String?        @map("grupo_tablero") // BALANCEADO | PERSONAL | SANIDAD_VET | GENETICA | ENERGIA_AGUA | MANT_LIMPIEZA | LOGISTICA | ADMIN_OTROS
-  grupoCosto     String?        @map("grupo_costo") // ALIMENTACION | OTROS_DIRECTOS | ESTRUCTURA
+  grupoTablero   String?           @map("grupo_tablero") // BALANCEADO | PERSONAL | SANIDAD_VET | GENETICA | ENERGIA_AGUA | MANT_LIMPIEZA | LOGISTICA | ADMIN_OTROS
+  grupoCosto     String?           @map("grupo_costo") // ALIMENTACION | OTROS_DIRECTOS | ESTRUCTURA
   dieta          String? // GESTACION | LACTACION | VILO_BABY | PRE_INICIAL_1 | PRE_INICIAL_2 | INICIAL | CRECIMIENTO | TERMINACION
-  vidaUtil       String?        @map("vida_util") // OBRA | EQUIPOS | MATRIZ | null = no se amortiza
-  orden          Int            @default(0)
-  esSistema      Boolean        @default(false) @map("es_sistema")
-  activa         Boolean        @default(true)
+  vidaUtil       String?           @map("vida_util") // OBRA | EQUIPOS | MATRIZ | null = no se amortiza
+  orden          Int               @default(0)
+  esSistema      Boolean           @default(false) @map("es_sistema")
+  activa         Boolean           @default(true)
 
   organizacion Tenant?      @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
   movimientos  Movimiento[]
@@ -2766,46 +2782,46 @@ model Contraparte {
 
 /// Hoja MOVIMIENTOS
 model Movimiento {
-  id                  String           @id @default(uuid()) @db.Uuid
-  organizacionId      String           @map("organizacion_id")
-  unidadId            String           @map("unidad_id") @db.Uuid
-  granjaId            String?          @map("granja_id")
-  fecha               DateTime         @db.Date
-  fechaVencimiento    DateTime?        @map("fecha_vencimiento") @db.Date
+  id                  String              @id @default(uuid()) @db.Uuid
+  organizacionId      String              @map("organizacion_id")
+  unidadId            String              @map("unidad_id") @db.Uuid
+  granjaId            String?             @map("granja_id")
+  fecha               DateTime            @db.Date
+  fechaVencimiento    DateTime?           @map("fecha_vencimiento") @db.Date
   tipo                TipoMovFinanciero
   concepto            String
-  categoriaId         String           @map("categoria_id") @db.Uuid
+  categoriaId         String              @map("categoria_id") @db.Uuid
   subcategoria        String?
-  cantidad            Decimal?         @db.Decimal(14, 3)
-  unidadMedida        String?          @map("unidad_medida")
-  contraparteId       String?          @map("contraparte_id") @db.Uuid
-  medioPago           MedioPago?       @map("medio_pago")
-  cuentaFondosId      String?          @map("cuenta_fondos_id") @db.Uuid
-  montoGs             BigInt           @map("monto_gs") // siempre positivo; el signo lo da la categoría
+  cantidad            Decimal?            @db.Decimal(14, 3)
+  unidadMedida        String?             @map("unidad_medida")
+  contraparteId       String?             @map("contraparte_id") @db.Uuid
+  medioPago           MedioPago?          @map("medio_pago")
+  cuentaFondosId      String?             @map("cuenta_fondos_id") @db.Uuid
+  montoGs             BigInt              @map("monto_gs") // siempre positivo; el signo lo da la categoría
   estado              EstadoMovimiento
   observacion         String?
   // automáticos (los completa el trigger completar_movimiento)
-  naturaleza          Naturaleza       @default(NO_APLICA)
-  area                String           @default("")
-  signo               Int              @default(0)
-  mes                 Int              @default(0) // AAAAMM
-  precioUnitarioGs    Decimal?         @map("precio_unitario_gs") @db.Decimal(16, 2)
+  naturaleza          Naturaleza          @default(NO_APLICA)
+  area                String              @default("")
+  signo               Int                 @default(0)
+  mes                 Int                 @default(0) // AAAAMM
+  precioUnitarioGs    Decimal?            @map("precio_unitario_gs") @db.Decimal(16, 2)
   // sanidad
-  productoSanitarioId String?          @map("producto_sanitario_id")
-  mlPorUnidad         Decimal?         @map("ml_por_unidad") @db.Decimal(10, 2)
-  mlComprados         Decimal?         @map("ml_comprados") @db.Decimal(14, 2)
+  productoSanitarioId String?             @map("producto_sanitario_id")
+  mlPorUnidad         Decimal?            @map("ml_por_unidad") @db.Decimal(10, 2)
+  mlComprados         Decimal?            @map("ml_comprados") @db.Decimal(14, 2)
   // trazabilidad
   origen              OrigenMovFinanciero @default(MANUAL)
-  origenId            String?          @map("origen_id")
-  esInterno           Boolean          @default(false) @map("es_interno")
-  facturaNumero       String?          @map("factura_numero")
-  comprobantePath     String?          @map("comprobante_path")
-  motivoAnulacion     String?          @map("motivo_anulacion")
-  anuladoPor          String?          @map("anulado_por")
-  anuladoEn           DateTime?        @map("anulado_en")
-  creadoPor           String           @map("creado_por")
-  createdAt           DateTime         @default(now()) @map("created_at")
-  updatedAt           DateTime         @updatedAt @map("updated_at")
+  origenId            String?             @map("origen_id")
+  esInterno           Boolean             @default(false) @map("es_interno")
+  facturaNumero       String?             @map("factura_numero")
+  comprobantePath     String?             @map("comprobante_path")
+  motivoAnulacion     String?             @map("motivo_anulacion")
+  anuladoPor          String?             @map("anulado_por")
+  anuladoEn           DateTime?           @map("anulado_en")
+  creadoPor           String              @map("creado_por")
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt @map("updated_at")
 
   organizacion Tenant              @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
   categoria    CategoriaFinanciera @relation(fields: [categoriaId], references: [id])
@@ -2861,6 +2877,10 @@ model Venta {
   guiaTraslado          String?   @map("guia_traslado")
   fechaVencimientoCobro DateTime? @map("fecha_vencimiento_cobro") @db.Date
   movimientoId          String    @map("movimiento_id") @db.Uuid
+  rendimientoPct        Decimal?  @map("rendimiento_pct") @db.Decimal(5, 2) // venta por kg de canal
+  kgCanal               Decimal?  @map("kg_canal") @db.Decimal(12, 2)
+  descuentosGs          BigInt    @default(0) @map("descuentos_gs") // tipificación
+  fleteGs               BigInt    @default(0) @map("flete_gs")
   estado                String    @default("CONFIRMADA") // CONFIRMADA | ANULADA
   creadoPor             String    @map("creado_por")
   createdAt             DateTime  @default(now()) @map("created_at")
@@ -2960,37 +2980,39 @@ model EvaluacionInversion {
 
 /// Hoja PARÁMETROS (una fila por organización)
 model ParametrosFinancieros {
-  organizacionId           String  @id @map("organizacion_id")
-  precioReferenciaLechonGs BigInt  @default(435000) @map("precio_referencia_lechon_gs")
-  precioKgVivoGs           BigInt  @default(18500) @map("precio_kg_vivo_gs")
-  pesoVentaKg              Decimal @default(25) @map("peso_venta_kg") @db.Decimal(6, 2)
-  modoProyeccionVentas     String  @default("PARAMETRO") @map("modo_proyeccion_ventas") // PARAMETRO | CALENDARIO_BANDAS
-  lechonesAVenderMes       Int     @default(80) @map("lechones_a_vender_mes")
-  precioEsperadoLechonGs   BigInt  @default(435000) @map("precio_esperado_lechon_gs")
-  otrosIngresosMesGs       BigInt  @default(0) @map("otros_ingresos_mes_gs")
-  colchonMesesEgreso       Decimal @default(1) @map("colchon_meses_egreso") @db.Decimal(4, 2)
-  consumoGestacionKgDia    Decimal @default(2.5) @map("consumo_gestacion_kg_dia") @db.Decimal(5, 2)
-  consumoLactacionKgDia    Decimal @default(8) @map("consumo_lactacion_kg_dia") @db.Decimal(5, 2)
-  preInicial1KgLechon      Decimal @default(2) @map("pre_inicial1_kg_lechon") @db.Decimal(5, 2)
-  preInicial2KgLechon      Decimal @default(4) @map("pre_inicial2_kg_lechon") @db.Decimal(5, 2)
-  inicialKgLechon          Decimal @default(35) @map("inicial_kg_lechon") @db.Decimal(5, 2)
-  tasaDescuentoVan         Decimal @default(0.12) @map("tasa_descuento_van") @db.Decimal(5, 4)
-  crecimientoFlujoAnual    Decimal @default(0.10) @map("crecimiento_flujo_anual") @db.Decimal(5, 4)
-  metaCoberturaDias        Int     @default(30) @map("meta_cobertura_dias")
-  alertaCoberturaDias      Int     @default(20) @map("alerta_cobertura_dias")
-  metaDesvio               Decimal @default(0.05) @map("meta_desvio") @db.Decimal(5, 4)
-  alertaDesvio             Decimal @default(0.10) @map("alerta_desvio") @db.Decimal(5, 4)
-  vidaObraAnios            Int     @default(20) @map("vida_obra_anios")
-  vidaEquiposAnios         Int     @default(10) @map("vida_equipos_anios")
-  modoAmortizacion         String  @default("POR_ACTIVO") @map("modo_amortizacion") // PLANILLA | POR_ACTIVO
-  amortizarMatrices        Boolean @default(false) @map("amortizar_matrices")
-  vidaMatrizMeses          Int     @default(36) @map("vida_matriz_meses")
-  valorDescarteMatrizGs    BigInt  @default(2000000) @map("valor_descarte_matriz_gs")
-  imputacionSanidad        String  @default("USO") @map("imputacion_sanidad") // COMPRA | USO
-  tasaIpsPatronal          Decimal @default(0.165) @map("tasa_ips_patronal") @db.Decimal(5, 4)
-  provisionarAguinaldo     Boolean @default(true) @map("provisionar_aguinaldo")
-  limiteAprobacionPagoGs   BigInt? @map("limite_aprobacion_pago_gs") // pagos mayores requieren finanzas.pagar.aprobar
-  matricesActivasManual    Int?    @map("matrices_activas_manual") // si se carga, reemplaza al promedio de Plantel
+  organizacionId              String  @id @map("organizacion_id")
+  precioReferenciaLechonGs    BigInt  @default(435000) @map("precio_referencia_lechon_gs")
+  precioKgVivoGs              BigInt  @default(18500) @map("precio_kg_vivo_gs")
+  pesoVentaKg                 Decimal @default(25) @map("peso_venta_kg") @db.Decimal(6, 2)
+  modoProyeccionVentas        String  @default("PARAMETRO") @map("modo_proyeccion_ventas") // PARAMETRO | CALENDARIO_BANDAS
+  lechonesAVenderMes          Int     @default(80) @map("lechones_a_vender_mes")
+  precioEsperadoLechonGs      BigInt  @default(435000) @map("precio_esperado_lechon_gs")
+  otrosIngresosMesGs          BigInt  @default(0) @map("otros_ingresos_mes_gs")
+  colchonMesesEgreso          Decimal @default(1) @map("colchon_meses_egreso") @db.Decimal(4, 2)
+  consumoGestacionKgDia       Decimal @default(2.5) @map("consumo_gestacion_kg_dia") @db.Decimal(5, 2)
+  consumoLactacionKgDia       Decimal @default(8) @map("consumo_lactacion_kg_dia") @db.Decimal(5, 2)
+  preInicial1KgLechon         Decimal @default(2) @map("pre_inicial1_kg_lechon") @db.Decimal(5, 2)
+  preInicial2KgLechon         Decimal @default(4) @map("pre_inicial2_kg_lechon") @db.Decimal(5, 2)
+  inicialKgLechon             Decimal @default(35) @map("inicial_kg_lechon") @db.Decimal(5, 2)
+  tasaDescuentoVan            Decimal @default(0.12) @map("tasa_descuento_van") @db.Decimal(5, 4)
+  crecimientoFlujoAnual       Decimal @default(0.10) @map("crecimiento_flujo_anual") @db.Decimal(5, 4)
+  metaCoberturaDias           Int     @default(30) @map("meta_cobertura_dias")
+  alertaCoberturaDias         Int     @default(20) @map("alerta_cobertura_dias")
+  metaDesvio                  Decimal @default(0.05) @map("meta_desvio") @db.Decimal(5, 4)
+  alertaDesvio                Decimal @default(0.10) @map("alerta_desvio") @db.Decimal(5, 4)
+  vidaObraAnios               Int     @default(20) @map("vida_obra_anios")
+  vidaEquiposAnios            Int     @default(10) @map("vida_equipos_anios")
+  modoAmortizacion            String  @default("POR_ACTIVO") @map("modo_amortizacion") // PLANILLA | POR_ACTIVO
+  amortizarMatrices           Boolean @default(false) @map("amortizar_matrices")
+  vidaMatrizMeses             Int     @default(36) @map("vida_matriz_meses")
+  valorDescarteMatrizGs       BigInt  @default(2000000) @map("valor_descarte_matriz_gs")
+  imputacionSanidad           String  @default("USO") @map("imputacion_sanidad") // COMPRA | USO
+  tasaIpsPatronal             Decimal @default(0.165) @map("tasa_ips_patronal") @db.Decimal(5, 4)
+  provisionarAguinaldo        Boolean @default(true) @map("provisionar_aguinaldo")
+  limiteAprobacionPagoGs      BigInt? @map("limite_aprobacion_pago_gs") // pagos mayores requieren finanzas.pagar.aprobar
+  matricesActivasManual       Int?    @map("matrices_activas_manual") // si se carga, reemplaza al promedio de Plantel
+  precioTransferenciaLechon   String  @default("MERCADO") @map("precio_transferencia_lechon") // MERCADO | COSTO (Fase 9)
+  porcentajeEstructuraEngorde Decimal @default(0) @map("porcentaje_estructura_engorde") @db.Decimal(5, 4) // parte de los gastos fijos que va al engorde
 
   organizacion Tenant @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
 
@@ -3132,4 +3154,17 @@ model ProduccionMensualImportada {
 
   @@id([organizacionId, mes])
   @@map("produccion_mensual_importada")
+}
+
+/// Curva de crecimiento esperada para engorde (la carga la Jefatura de Producción)
+model CurvaEngorde {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizacionId String   @map("organizacion_id")
+  nombre         String
+  puntos         Json // [{ dia: 0, pesoKg: 25, consumoKgDia: 1.1 }, ...]
+  predeterminada Boolean  @default(false)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([organizacionId])
+  @@map("curva_engorde")
 }

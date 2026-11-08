@@ -25,7 +25,7 @@ const EMPTY_FORM = {
   batchCode: "", sitio: "", procedencia: "RECRIA_PROPIA",
   entryDate: new Date().toISOString().split("T")[0],
   currentCount: "", entryWeightKg: "", avgAgeAtEntryDays: "",
-  targetWeightKg: "120", employeeId: "", observations: "",
+  targetWeightKg: "120", employeeId: "", observations: "", costoIngresoGs: "", proveedor: "",
 };
 
 function gdpColor(status: "ok" | "warn" | "bad" | null) {
@@ -170,6 +170,18 @@ export function TabLotes() {
                     <option value="COMPRA_EXTERNA">Compra externa</option>
                   </select>
                 </div>
+                {form.procedencia === "COMPRA_EXTERNA" && (
+                  <>
+                    <div>
+                      <label className="kp-label">Proveedor</label>
+                      <input className="kp-input" value={form.proveedor} onChange={e => F("proveedor", e.target.value)} maxLength={120} />
+                    </div>
+                    <div>
+                      <label className="kp-label">Total pagado por los animales (₲)</label>
+                      <input className="kp-input" inputMode="numeric" value={form.costoIngresoGs} onChange={e => F("costoIngresoGs", e.target.value.replace(/[^0-9]/g, ""))} placeholder="Queda en Finanzas como gasto pendiente" />
+                    </div>
+                  </>
+                )}
                 <div>
                   <label className="kp-label">Fecha de ingreso *</label>
                   <input className="kp-input" type="date" value={form.entryDate} onChange={e => F("entryDate", e.target.value)} />

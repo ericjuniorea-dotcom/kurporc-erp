@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { addDays, diffDays } from "@/lib/utils";
 import { getPermisos, puede } from "@/lib/permisos/servidor";
 import { jsonConMontos } from "@/lib/permisos/montos";
+import { conActor } from "@/lib/db/actor";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
@@ -117,8 +118,9 @@ export async function POST(req: NextRequest) {
   const {
     batchCode, sitio, procedencia, entryDate, nurseryBatchId,
     currentCount, entryWeightKg, avgAgeAtEntryDays,
-    targetWeightKg, employeeId, observations,
+    targetWeightKg, employeeId, observations, costoIngresoGs, proveedor,
   } = body;
+  const costoCompra = typeof costoIngresoGs === "string" || typeof costoIngresoGs === "number" ? String(costoIngresoGs).replace(/\D/g, "") : "";
 
   if (!batchCode || !currentCount || !entryWeightKg || !entryDate) {
     return NextResponse.json({ error: "Faltan campos obligatorios" }, { status: 400 });
@@ -131,6 +133,7 @@ export async function POST(req: NextRequest) {
 
   const lote = await prisma.growingBatch.create({
     data: {
+      costoIngresoGs: costoCompra ? BigInt(costoCompra) : null,
       tenantId,
       batchCode,
       sitio: sitio || null,
@@ -146,6 +149,23 @@ export async function POST(req: NextRequest) {
       status: "ACTIVE",
     },
   });
+
+  // Fase 9: animales comprados a terceros = gasto "Compra de lechones para engorde" (pendiente de pago)
+  if ((procedencia === "COMPRA_EXTERNA") && costoCompra && BigInt(costoCompra) > 0n) {
+    const [cat, unidad] = await Promise.all([
+      prisma.categoriaFinanciera.findFirst({ where: { nombre: "Compra de lechones para engorde", organizacionId: null } }),
+      prisma.unidadNegocio.findFirst({ where: { organizacionId: tenantId, tipo: "GRANJA", activa: true }, orderBy: { codigo: "asc" } }),
+    ]);
+    if (cat && unidad) {
+      const prov = proveedor ? String(proveedor).trim().slice(0, 120) : "";
+      const cp = prov ? await prisma.contraparte.upsert({ where: { organizacionId_nombre: { organizacionId: tenantId, nombre: prov } }, create: { organizacionId: tenantId, nombre: prov, tipo: "PROVEEDOR" }, update: {} }) : null;
+      await conActor(session.user.id, tx => tx.movimiento.create({ data: {
+        organizacionId: tenantId, unidadId: unidad.id, granjaId: unidad.granjaId, fecha: new Date(`${String(entryDate).slice(0, 10)}T00:00:00Z`), tipo: "GASTO",
+        concepto: `Compra de ${Number(currentCount)} animales · lote ${batchCode}`, categoriaId: cat.id, cantidad: Number(currentCount), unidadMedida: "cabezas",
+        contraparteId: cp?.id ?? null, montoGs: BigInt(costoCompra), estado: "PENDIENTE", origenId: lote.id, creadoPor: session.user.id,
+      } }));
+    }
+  }
 
   return NextResponse.json(lote, { status: 201 });
 }

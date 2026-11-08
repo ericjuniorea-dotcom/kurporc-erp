@@ -23,6 +23,8 @@ export const PARAMETROS: DefParam[] = [
   { grupo: "Costos", clave: "amortizarMatrices", etiqueta: "Amortizar las matrices compradas", tipo: "bool" },
   { grupo: "Costos", clave: "vidaMatrizMeses", etiqueta: "Vida productiva de una matriz (meses)", tipo: "int" },
   { grupo: "Costos", clave: "valorDescarteMatrizGs", etiqueta: "Valor de descarte de una matriz", tipo: "gs" },
+  { grupo: "Engorde", clave: "precioTransferenciaLechon", etiqueta: "Valor del lechón de recría propia que entra al engorde", tipo: "sel", opciones: { MERCADO: "Precio de referencia (muestra si el engorde solo gana plata)", COSTO: "Costo propio del lechón" } },
+  { grupo: "Engorde", clave: "porcentajeEstructuraEngorde", etiqueta: "Parte de los gastos fijos que se carga al engorde", tipo: "pct", ayuda: "Mano de obra, estructura y amortización prorrateadas a los lotes" },
   { grupo: "Personal", clave: "tasaIpsPatronal", etiqueta: "IPS patronal", tipo: "pct", ayuda: "Verificá la vigente con tu contador" },
   { grupo: "Personal", clave: "provisionarAguinaldo", etiqueta: "Provisionar aguinaldo en el presupuesto", tipo: "bool" },
   { grupo: "Retorno de la inversión", clave: "tasaDescuentoVan", etiqueta: "Tasa de descuento (VAN)", tipo: "pct" },

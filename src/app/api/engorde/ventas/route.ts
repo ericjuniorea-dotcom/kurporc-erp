@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { getPermisos, puede } from "@/lib/permisos/servidor";
 import { conActor } from "@/lib/db/actor";
 import { ErrorVenta, registrarVenta } from "@/lib/finanzas/ventas";
+import { loteCerrado } from "@/lib/engorde/guardas";
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
@@ -12,6 +13,8 @@ export async function POST(req: NextRequest) {
   const tenantId = session.user.tenantId;
 
   const body = await req.json();
+  const cerrado = await loteCerrado(session.user.tenantId, body.growingBatchId);
+  if (cerrado) return NextResponse.json({ error: cerrado }, { status: 409 });
   const { growingBatchId, saleDate, buyerName, animalCount, totalWeightKg, pricePerKg, transferGuide, employeeId } = body;
 
   if (!growingBatchId || !saleDate || !animalCount || !totalWeightKg || !pricePerKg) {
