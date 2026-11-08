@@ -63,5 +63,9 @@ Pendiente: proyección de ventas por calendario de bandas (hoy, por parámetro),
 
 Sin fábrica no aplican los controles 3 y 4 ni REC-13 y REC-15. REC-04 (inventario físico) y REC-10 (desvío de tres meses seguidos) quedan para cuando haya conteo físico e historial de presupuesto.
 
-## Próximas partes
-- **Parte 4b:** importación de la planilla de Administración y Finanzas y el informe de validación contra el Anexo H.
+## Parte 4b — Importación de la planilla (hecha; migración `20261108000800_produccion_importada`)
+
+- `npm run db:importar-planilla` ([importar_planilla.ts](../scripts/importar_planilla.ts)) lee el .xlsx sin dependencias ([xlsx.ts](../src/lib/finanzas/importar/xlsx.ts)) y, en una sola transacción, carga en una organización vacía: parámetros (amortización como la planilla y sanidad por compra, para reproducir el Anexo H), cuentas y saldos declarados, productos sanitarios con su uso por mes y su stock, las 357 filas manuales y las 20 compras de balanceado del libro con sus pagos, los 5 préstamos con sus cuotas enlazadas a las 41 cuotas pagadas del libro, las ventas (vinculadas a sus ingresos, sin duplicarlos), el presupuesto de 24 meses, los aportes previstos, la producción histórica (tabla `produccion_mensual_importada`, que se usa solo en meses sin registros de los módulos) y una copia fiel de DATOS ORIGINALES.
+- Al terminar imprime el informe contra el Anexo H con corte 30/09/2026: **58 de 59 valores coinciden**. La diferencia que queda es la esperada: la planilla llevaba las cuentas por pagar en una hoja aparte del libro (mejora N° 2). Esas filas quedan en `/finanzas/importacion` para cargarlas o descartarlas una por una.
+- La amortización "como la planilla" ahora cuenta solo hasta el mes de corte.
+- Quedó afuera el asistente web de importación (subir el archivo desde la pantalla): por ahora se importa con el script.

@@ -27,6 +27,7 @@ export const datosAnio = cache(async (org: string, anio: number) => {
     prisma.venta.findMany({ where: { organizacionId: org, estado: "CONFIRMADA", tipoVenta: "LECHONES", fechaSalida: rango(anio) }, select: { fechaSalida: true, cantidad: true, kgTotales: true, importeGs: true } }),
     prisma.sow.count({ where: { tenantId: org, isActive: true } }),
   ]);
+  const importada = await prisma.produccionMensualImportada.findMany({ where: { organizacionId: org, mes: { gte: anio * 100 + 1, lte: anio * 100 + 12 } } });
 
   const prod: ProdMes[] = meses12(anio).map(() => ({ servicios: 0, partos: 0, nacidosTotales: 0, nacidosVivos: 0, muertosAlNacer: 0, destetados: 0, muertosLactancia: 0, entregados: 0, kgEntregados: 0, ingresosLechonesGs: 0n }));
   for (const s of servicios) prod[idx(s.serviceDate)].servicios++;
@@ -34,6 +35,12 @@ export const datosAnio = cache(async (org: string, anio: number) => {
   for (const w of destetes) prod[idx(w.weaningDate)].destetados += w.pigletsWeaned;
   for (const d of muertes) prod[idx(d.deathDatetime)].muertosLactancia += d.quantity;
   for (const v of ventas) { const x = prod[idx(v.fechaSalida)]; x.entregados += v.cantidad; x.kgEntregados += Number(v.kgTotales); x.ingresosLechonesGs += v.importeGs; }
+  // Historia previa al ERP (hoja PRODUCCIÓN de la planilla): solo en meses sin registros de los módulos
+  for (const p of importada) {
+    const x = prod[(p.mes % 100) - 1];
+    if (x.servicios || x.partos || x.destetados || x.muertosLactancia) continue;
+    Object.assign(x, { servicios: p.servicios, partos: p.partos, nacidosTotales: p.nacidosTotales, nacidosVivos: p.nacidosVivos, muertosAlNacer: p.muertosAlNacer, destetados: p.destetados, muertosLactancia: p.muertosLactancia });
+  }
 
   // Matrices activas: el número cargado en Parámetros o, si no, las activas de Plantel hoy
   const matrices = params?.matricesActivasManual ?? matricesHoy;

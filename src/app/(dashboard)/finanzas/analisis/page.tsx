@@ -17,7 +17,7 @@ export default async function AnalisisPage({ searchParams }: { searchParams: Pro
     prisma.pagoMovimiento.findMany({ where: { movimiento: { organizacionId: org, estado: { not: "ANULADO" } } }, select: { fechaPago: true, montoGs: true, movimiento: { select: { signo: true, tipo: true, esInterno: true, categoria: { select: { nombre: true } } } } } }),
     prisma.cuentaFondos.aggregate({ where: { organizacionId: org }, _sum: { saldoInicialGs: true } }),
   ]);
-  const c = hojaCostos(d.movs, d.inversiones, d.prod, d.matricesPorMes, d.params, anio, san.usadoPorMes);
+  const c = hojaCostos(d.movs, d.inversiones, d.prod, d.matricesPorMes, d.params, anio, san.usadoPorMes, corte);
   const meses = Array.from({ length: 12 }, (_, i) => anio * 100 + i + 1);
   const porMes = (f: (m: (typeof d.movs)[number]) => boolean) => meses.map(mes => d.movs.filter(m => m.mes === mes && !m.esInterno && f(m)).reduce((s, m) => s + m.montoGs, 0n));
   const ingresos = porMes(m => m.tipo === "INGRESO");

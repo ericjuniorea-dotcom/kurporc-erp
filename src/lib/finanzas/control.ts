@@ -74,7 +74,7 @@ export const estadoFinanciero = cache(async (org: string) => {
   const disponibles = caja + totalBancos + porCobrar;
   const cuotaMes = proy.prestamos.reduce((s, p) => s + p.cuotas.filter(c => !c.pagada && mesDeFecha(c.vencimiento) <= mes).reduce((t, c) => t + c.montoGs, 0n), 0n);
   const cuotas3 = proy.prestamos.reduce((s, p) => s + p.cuotas.filter(c => !c.pagada && mesDeFecha(c.vencimiento) <= sumarMeses(mes, 3)).reduce((t, c) => t + c.montoGs, 0n), 0n);
-  const costos = hojaCostos(d.movs, d.inversiones, d.prod, d.matricesPorMes, d.params, anio, san.usadoPorMes);
+  const costos = hojaCostos(d.movs, d.inversiones, d.prod, d.matricesPorMes, d.params, anio, san.usadoPorMes, mesDe(hoyUTC()));
   const ingresosAnio = d.movs.filter(m => m.tipo === "INGRESO" && !m.esInterno).reduce((s, m) => s + m.montoGs, 0n);
   const balanceado = sumaB(costos.subAlim);
   // ¿De dónde salió la plata? (todo por lo efectivamente cobrado y pagado)
@@ -118,7 +118,7 @@ export const indicadores = cache(async (org: string) => {
     prisma.parametrosFinancieros.findUnique({ where: { organizacionId: org } }),
     prisma.movimiento.aggregate({ where: { organizacionId: org, estado: { not: "ANULADO" }, categoria: { nombre: "Aporte de capital" } }, _sum: { montoGs: true } }),
   ]);
-  const c = hojaCostos(d.movs, d.inversiones, d.prod, d.matricesPorMes, d.params, anio, san.usadoPorMes);
+  const c = hojaCostos(d.movs, d.inversiones, d.prod, d.matricesPorMes, d.params, anio, san.usadoPorMes, mesDe(hoyUTC()));
   const fv = hojaFijosVariables(d.movs, mes);
   const ingMes = d.movs.filter(m => m.tipo === "INGRESO" && m.mes === mes && !m.esInterno).reduce((s, m) => s + m.montoGs, 0n);
   const gasMes = d.movs.filter(m => m.tipo === "GASTO" && m.mes === mes && !m.esInterno).reduce((s, m) => s + m.montoGs, 0n);
@@ -193,15 +193,15 @@ export async function calcularRecomendaciones(org: string, mes: number): Promise
   const [ctrl, d, san, proy, params, aportesDesglosar, vencidosSinPagar, presCargas, presSueldos] = await Promise.all([
     controlesLibro(org), datosAnio(org, anio), sanidadAnio(org, anio), datosProyeccion(org),
     prisma.parametrosFinancieros.findUnique({ where: { organizacionId: org } }),
-    prisma.movimiento.count({ where: { organizacionId: org, estado: { not: "ANULADO" }, categoria: { nombre: "Aporte de capital" }, OR: [{ observacion: { contains: "DESGLOSAR", mode: "insensitive" } }, { concepto: { contains: "DESGLOSAR", mode: "insensitive" } }] } }),
+    prisma.movimiento.count({ where: { organizacionId: org, estado: { not: "ANULADO" }, categoria: { nombre: "Aporte de capital" }, OR: [{ observacion: { contains: "DESGLOSAR", mode: "insensitive" } }, { concepto: { contains: "DESGLOSAR", mode: "insensitive" } }, { observacion: { contains: "POR DIFERENCIA", mode: "insensitive" } }] } }),
     prisma.movimiento.count({ where: { organizacionId: org, estado: { in: ["PENDIENTE", "POR_COBRAR"] }, fechaVencimiento: { lt: new Date(hoyUTC().getTime() - 10 * DIA) } } }),
     prisma.presupuesto.count({ where: { organizacionId: org, mes: { gte: anio * 100 + 1, lte: anio * 100 + 12 }, categoriaId: { in: (await prisma.categoriaFinanciera.findMany({ where: { organizacionId: null, nombre: "Cargas sociales (IPS y aguinaldo)" }, select: { id: true } })).map(c => c.id) } } }),
     prisma.movimiento.count({ where: { organizacionId: org, estado: { not: "ANULADO" }, mes: { gte: anio * 100 + 1, lte: mes }, categoria: { nombre: { in: ["Personal producción", "Personal administración"] } } } }),
   ]);
   const out: Rec[] = [];
-  const c = hojaCostos(d.movs, d.inversiones, d.prod, d.matricesPorMes, d.params, anio, san.usadoPorMes);
+  const c = hojaCostos(d.movs, d.inversiones, d.prod, d.matricesPorMes, d.params, anio, san.usadoPorMes, mesDe(hoyUTC()));
   const alim = hojaAlimentacion(d.movs, d.prod, d.matricesPorMes);
-  if (aportesDesglosar > 0) out.push({ codigo: "REC-01", prioridad: "ALTA", problema: "Capital propio cargado como una sola cifra", situacion: `${aportesDesglosar} aporte(s) marcados «A DESGLOSAR».`, mejora: "Documentar cada aporte con fecha, monto y comprobante, como si fuera un préstamo.", impacto: "Saber cuánto puso el titular y cuándo, y poder medir el retorno real.", accion: "Anulá la cifra global y cargá cada aporte por separado en Movimientos." });
+  if (aportesDesglosar > 0) out.push({ codigo: "REC-01", prioridad: "ALTA", problema: "Capital propio cargado como una sola cifra", situacion: `${aportesDesglosar} aporte(s) cargados como una cifra global («a desglosar» o calculados por diferencia).`, mejora: "Documentar cada aporte con fecha, monto y comprobante, como si fuera un préstamo.", impacto: "Saber cuánto puso el titular y cuándo, y poder medir el retorno real.", accion: "Anulá la cifra global y cargá cada aporte por separado en Movimientos." });
   const dobles = ctrl.find(x => x.codigo === 11)?.valor ?? 0;
   if (dobles > 0) out.push({ codigo: "REC-02", prioridad: "ALTA", problema: "Posible doble registro", situacion: `${dobles} pendiente(s) coinciden con un pago del mismo proveedor y monto en ±5 días.`, mejora: "Un gasto se carga una sola vez y después se registra su pago.", impacto: "Las cuentas por pagar y la proyección dejan de inflarse.", accion: "Revisá Por pagar y anulá los duplicados." });
   if (vencidosSinPagar > 0) out.push({ codigo: "REC-03", prioridad: "ALTA", problema: "Pagos o cobros sin registrar", situacion: `${vencidosSinPagar} movimiento(s) vencidos hace más de 10 días siguen pendientes.`, mejora: "Registrar cada pago o cobro el día que ocurre.", impacto: "La caja calculada coincide con la real y la proyección es confiable.", accion: "Entrá a Por pagar / Por cobrar y registrá lo que ya se pagó o cobró." });

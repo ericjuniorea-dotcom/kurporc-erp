@@ -707,3 +707,40 @@ export async function cambiarEstadoRecomendacion(id: string, estado: "ABIERTA" |
     return { ok: true };
   } catch (e) { return manejar(e); }
 }
+
+// ── Revisión de la importación de la planilla (8.29) ─────────────────
+export async function resolverRevision(id: string, decision: "CARGAR" | "DESCARTAR"): Promise<R> {
+  try {
+    const { session, permisos } = await requirePermiso("finanzas.importar.ejecutar");
+    const org = permisos.organizacionId;
+    if (!/^\d+$/.test(id)) throw new Error("•Fila inválida.");
+    const fila = await prisma.importacionFilaOriginal.findFirst({ where: { id: BigInt(id), organizacionId: org, hoja: "CUENTAS POR PAGAR · REVISIÓN" } });
+    if (!fila) throw new Error("•Esa fila no existe.");
+    const d = fila.datos as Record<string, string | number | null>;
+    if (d.decision) throw new Error("•Ya estaba decidida.");
+    if (decision === "CARGAR") {
+      const cat = await prisma.categoriaFinanciera.findFirst({ where: { nombre: String(d.categoria ?? ""), OR: [{ organizacionId: null }, { organizacionId: org }] } });
+      if (!cat) throw new Error(`•No existe la categoría «${d.categoria}»: cargala a mano en Movimientos.`);
+      const { unidadParaCategoria } = await import("@/lib/finanzas/plan-datos");
+      const u = await unidadParaCategoria(org, cat.unidadDefault);
+      if (!u) throw new Error("•Sin unidades de negocio.");
+      const saldo = BigInt(Math.round(Number(d.saldoGs ?? d.montoGs ?? 0)));
+      if (saldo <= 0n) throw new Error("•Sin saldo para cargar.");
+      await conActor(session.user.id, async tx => {
+        const proveedor = String(d.proveedor ?? "").trim();
+        const cp = proveedor ? await tx.contraparte.upsert({ where: { organizacionId_nombre: { organizacionId: org, nombre: proveedor } }, create: { organizacionId: org, nombre: proveedor, tipo: "PROVEEDOR" }, update: {} }) : null;
+        await tx.movimiento.create({ data: {
+          organizacionId: org, unidadId: u.id, granjaId: u.granjaId, fecha: fechaISO(String(d.fecha)), fechaVencimiento: d.vencimiento ? fechaISO(String(d.vencimiento)) : null,
+          tipo: cat.tipo, concepto: String(d.concepto ?? cat.nombre).slice(0, 200), categoriaId: cat.id, contraparteId: cp?.id ?? null, montoGs: saldo,
+          estado: cat.signo > 0 ? "POR_COBRAR" : "PENDIENTE", facturaNumero: d.factura ? String(d.factura).slice(0, 40) : null,
+          observacion: `Desde la revisión de la importación (CUENTAS POR PAGAR fila ${fila.fila})`, origen: "IMPORTACION", origenId: `CUENTAS POR PAGAR!${fila.fila}`, creadoPor: session.user.id,
+        } });
+        await tx.importacionFilaOriginal.update({ where: { id: fila.id }, data: { datos: { ...d, decision, decididoPor: session.user.id, decididoEn: new Date().toISOString() } } });
+      });
+    } else {
+      await prisma.importacionFilaOriginal.update({ where: { id: fila.id }, data: { datos: { ...d, decision, decididoPor: session.user.id, decididoEn: new Date().toISOString() } } });
+    }
+    revalidatePath("/finanzas", "layout");
+    return { ok: true };
+  } catch (e) { return manejar(e); }
+}

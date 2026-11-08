@@ -68,7 +68,13 @@ export function hojaAlimentacion(movs: MovHoja[], prod: ProdMes[], matricesPorMe
 }
 
 // ── 8.11 · Amortización ───────────────────────────────────────────
-export function amortizacionMensual(inversiones: MovHoja[], p: ParamsHojas, anio: number): bigint[] {
+/** Amortización de cada mes del año. Los meses posteriores al corte (si se indica) quedan en 0: todavía no pasaron. */
+export function amortizacionMensual(inversiones: MovHoja[], p: ParamsHojas, anio: number, mesCorte?: number): bigint[] {
+  const tope = mesCorte && Math.floor(mesCorte / 100) === anio ? (mesCorte % 100) - 1 : mesCorte && Math.floor(mesCorte / 100) < anio ? -1 : 11;
+  return calcularAmortizacion(inversiones, p, anio).map((v, i) => (i <= tope ? v : 0n));
+}
+
+function calcularAmortizacion(inversiones: MovHoja[], p: ParamsHojas, anio: number): bigint[] {
   const out = ceros();
   const obra = (m: MovHoja) => m.categoria.vidaUtil === "OBRA";
   const equipos = (m: MovHoja) => m.categoria.vidaUtil === "EQUIPOS";
@@ -105,7 +111,7 @@ export function amortizacionMensual(inversiones: MovHoja[], p: ParamsHojas, anio
 export type FilaCosto = { clave: string; etiqueta: string; valores: bigint[] };
 export function hojaCostos(
   movsAnio: MovHoja[], movsInversionHastaAnio: MovHoja[], prod: ProdMes[], matricesPorMes: number[],
-  p: ParamsHojas, anio: number, sanidadUsadaGs?: bigint[],
+  p: ParamsHojas, anio: number, sanidadUsadaGs?: bigint[], mesCorte?: number,
 ) {
   const gastos = movsAnio.filter(m => m.tipo === "GASTO" && !m.esInterno);
   const alim = hojaAlimentacion(movsAnio, prod, matricesPorMes);
@@ -129,7 +135,7 @@ export function hojaCostos(
   const estructura = porCategoria("ESTRUCTURA");
   const sub = (fs: FilaCosto[]) => Array.from({ length: 12 }, (_, i) => fs.reduce((s, f) => s + f.valores[i], 0n));
   const subAlim = alim.totalGs, subDirectos = sub(directos), subEstructura = sub(estructura);
-  const amortizacion = amortizacionMensual(movsInversionHastaAnio, p, anio);
+  const amortizacion = amortizacionMensual(movsInversionHastaAnio, p, anio, mesCorte);
   const sinAmort = Array.from({ length: 12 }, (_, i) => subAlim[i] + subDirectos[i] + subEstructura[i]);
   const conAmort = sinAmort.map((v, i) => v + amortizacion[i]);
   const unit = {

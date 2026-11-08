@@ -10,7 +10,7 @@ export default async function CostosFinanzas({ searchParams }: { searchParams: P
   const anio = anioDe(await searchParams);
   const corte = corteDelAnio(anio, mesCorte);
   const [d, san] = await Promise.all([datosAnio(org, anio), sanidadAnio(org, anio)]);
-  const c = hojaCostos(d.movs, d.inversiones, d.prod, d.matricesPorMes, d.params, anio, san.usadoPorMes);
+  const c = hojaCostos(d.movs, d.inversiones, d.prod, d.matricesPorMes, d.params, anio, san.usadoPorMes, corte);
   const total = sumaB(c.conAmort);
   const pct = (v: bigint) => (total > 0n ? Number(v) / Number(total) : null);
   const bloque = (fs: typeof c.directos): Fila[] => fs.map(f => ({ etiqueta: f.etiqueta, valores: f.valores, total: sumaB(f.valores), formato: "gs" }));

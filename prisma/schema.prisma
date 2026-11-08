@@ -3116,3 +3116,20 @@ model RucDnit {
 
   @@map("ruc_dnit")
 }
+
+/// Producción mensual traída de la planilla (hoja PRODUCCIÓN). Solo se usa en los meses en que los
+/// módulos productivos todavía no tienen registros (8.29): la historia previa al ERP.
+model ProduccionMensualImportada {
+  organizacionId   String @map("organizacion_id")
+  mes              Int
+  servicios        Int    @default(0)
+  partos           Int    @default(0)
+  nacidosTotales   Int    @default(0) @map("nacidos_totales")
+  nacidosVivos     Int    @default(0) @map("nacidos_vivos")
+  muertosAlNacer   Int    @default(0) @map("muertos_al_nacer")
+  destetados       Int    @default(0)
+  muertosLactancia Int    @default(0) @map("muertos_lactancia")
+
+  @@id([organizacionId, mes])
+  @@map("produccion_mensual_importada")
+}

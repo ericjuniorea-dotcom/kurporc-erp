@@ -33,6 +33,7 @@ const SECCIONES: (SeccionFinanzas & { permiso: string })[] = [
   { grupo: "Control", href: "/finanzas/recomendaciones", label: "Recomendaciones", permiso: "finanzas.recomendaciones.ver" },
   { grupo: "Control", href: "/finanzas/buenas-practicas", label: "Buenas prácticas", permiso: "finanzas.tablero.ver" },
   { grupo: "Control", href: "/finanzas/parametros", label: "Parámetros", permiso: "finanzas.parametros.ver" },
+  { grupo: "Control", href: "/finanzas/importacion", label: "Importación", permiso: "finanzas.importar.ejecutar" },
 ];
 
 export default async function FinanzasLayout({ children }: { children: React.ReactNode }) {
