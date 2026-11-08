@@ -12,6 +12,13 @@ const SECCIONES: (SeccionFinanzas & { permiso: string })[] = [
   { href: "/finanzas/caja-bancos", label: "Caja y bancos", permiso: "finanzas.caja_bancos.ver" },
   { href: "/finanzas/pagar", label: "Por pagar", permiso: "finanzas.pagar.ver" },
   { href: "/finanzas/cobrar", label: "Por cobrar", permiso: "finanzas.cobrar.ver" },
+  { href: "/finanzas/ventas", label: "Ventas", permiso: "ventas.ventas.ver" },
+  { href: "/finanzas/produccion", label: "Producción", permiso: "finanzas.costos.ver" },
+  { href: "/finanzas/alimentacion", label: "Alimentación", permiso: "finanzas.balanceado.ver" },
+  { href: "/finanzas/sanidad", label: "Sanidad", permiso: "finanzas.sanidad_valorizada.ver" },
+  { href: "/finanzas/costos", label: "Costos", permiso: "finanzas.costos.ver" },
+  { href: "/finanzas/fijos-variables", label: "Fijos y variables", permiso: "finanzas.fijos_variables.ver" },
+  { href: "/finanzas/parametros", label: "Parámetros", permiso: "finanzas.parametros.ver" },
 ];
 
 export default async function FinanzasLayout({ children }: { children: React.ReactNode }) {

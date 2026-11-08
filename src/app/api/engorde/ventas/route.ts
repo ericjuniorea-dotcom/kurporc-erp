@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { getPermisos, puede } from "@/lib/permisos/servidor";
+import { conActor } from "@/lib/db/actor";
+import { ErrorVenta, registrarVenta } from "@/lib/finanzas/ventas";
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
@@ -21,26 +23,28 @@ export async function POST(req: NextRequest) {
   const precio = Number(pricePerKg);
   const total = Math.round(totalKg * precio * 100) / 100;
 
-  const [venta] = await prisma.$transaction([
-    prisma.batchSale.create({
-      data: {
-        tenantId,
-        growingBatchId,
-        saleDate: new Date(saleDate),
-        animalCount: count,
-        totalWeightKg: totalKg,
-        pricePerKg: precio,
-        totalAmount: total,
-        buyerName: buyerName || null,
-        transferGuide: transferGuide || null,
-        employeeId: employeeId || null,
-      },
-    }),
-    prisma.growingBatch.update({
-      where: { id: growingBatchId },
-      data: { currentCount: { decrement: count }, updatedAt: new Date() },
-    }),
-  ]);
-
+  // Una sola carga: la venta de engorde genera también su ingreso en Finanzas (Fase 8)
+  let venta;
+  try {
+    venta = await conActor(session.user.id, async tx => {
+      const v = await tx.batchSale.create({
+        data: {
+          tenantId, growingBatchId, saleDate: new Date(saleDate), animalCount: count, totalWeightKg: totalKg,
+          pricePerKg: precio, totalAmount: total, buyerName: buyerName || null, transferGuide: transferGuide || null, employeeId: employeeId || null,
+        },
+      });
+      await tx.growingBatch.update({ where: { id: growingBatchId }, data: { currentCount: { decrement: count }, updatedAt: new Date() } });
+      await registrarVenta(tx, {
+        organizacionId: tenantId, creadoPor: session.user.id, fechaSalida: new Date(saleDate), tipoVenta: "CERDO_TERMINADO",
+        cantidad: count, kgTotales: totalKg, modoPrecio: "POR_KG", precioGs: BigInt(Math.round(precio)), destino: "FRIGORIFICO",
+        cliente: (buyerName || "Cliente sin nombre").toString().slice(0, 120), loteEngordeId: growingBatchId,
+        guiaTraslado: transferGuide || null, bajaYaHecha: true,
+      });
+      return v;
+    });
+  } catch (e) {
+    if (e instanceof ErrorVenta) return NextResponse.json({ error: e.message }, { status: 400 });
+    throw e;
+  }
   return NextResponse.json(venta, { status: 201 });
 }

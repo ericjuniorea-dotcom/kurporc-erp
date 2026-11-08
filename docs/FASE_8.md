@@ -16,7 +16,22 @@ Réplica de la planilla de Administración y Finanzas, por partes. Sin fábrica 
 | `/finanzas/pagar` y `/cobrar` | Vista sobre los movimientos con saldo: estado, tramo, mes de pago, resumen por tramo, registrar pago o cobro. Límite de aprobación de pagos configurable |
 | Pruebas | `supabase/tests/fase8_finanzas.sql` (9 controles) y `npm run prueba:finanzas` (25 controles), en la CI |
 
+## Parte 2 — Ventas y hojas de costos (hecha, sin cambios en la base)
+
+| Punto | Implementación |
+|---|---|
+| `/finanzas/ventas` | Una venta crea, en la misma transacción, el ingreso en el libro (origen VENTA, cobrado o por cobrar), la salida del lote y la baja de los animales ([ventas.ts](../src/lib/finanzas/ventas.ts)). Peso promedio, importe y valor por animal automáticos. Control: ventas = ingresos por ventas del libro. Anular devuelve los animales al lote |
+| Engorde | La venta de cerdos terminados (`/api/engorde/ventas`) genera también su ingreso en Finanzas: se carga una sola vez |
+| `/finanzas/produccion` | Mes a mes desde los módulos: servicios, partos, nacidos, destetados, muertes, entregados, kg, mortalidad, por parto, peso de salida; stock de hoy |
+| `/finanzas/alimentacion` | Precio por kilo por dieta (un mes sin compras repite el anterior), kilos y guaraníes por dieta, indicadores por matriz, por destetado, por entregado y por kg. Sin fábrica: el alimento entra por lo comprado en el mes |
+| `/finanzas/sanidad` | Por producto: comprado, precio por ml (pagado o de lista), usado (aplicaciones de Sanidad), costo de lo usado, stock y estado. Mes a mes compras contra uso |
+| `/finanzas/costos` | Alimentación, directos, estructura, amortización (por activo o como la planilla), costo total, costo por lechón entregado, por kg, por matriz, por destetado, margen, participación del alimento. Sanidad por uso o por compra |
+| `/finanzas/fijos-variables` | Fijos, variables, % y acumulado; detalle por categoría con promedio mensual hasta el corte |
+| `/finanzas/parametros` | Metas y supuestos editables (precios, caja, desvíos, amortización, sanidad, IPS, VAN, límite de aprobación, matrices fijas) |
+| Pruebas | `prueba:finanzas` suma 12 controles de las hojas; `prueba:ventas` (8 controles), en la CI |
+
+Pendiente de esta parte: conteo físico de sanidad (hoy el stock es el teórico de los lotes), matrices activas promedio por mes (hoy se usan las activas de hoy o el número fijo de Parámetros) y gráficos.
+
 ## Próximas partes
-- **Parte 2:** Ventas (con baja de animales), balanceado y alimentación (precio por kilo por dieta, kg por matriz), sanidad valorizada, datos de producción, costos de producción, fijos y variables, parámetros.
 - **Parte 3:** Presupuesto, presupuesto contra real con causas, proyección de caja, flujo de caja, inversiones, evaluación de nueva inversión, deudas y calendario de cuotas, aportes de capital.
 - **Parte 4:** Estado financiero, indicadores (VAN, TIR, payback), análisis del año, tablero completo, controles del libro, cierre de mes, recomendaciones, buenas prácticas e importación de la planilla con el informe contra el Anexo H.

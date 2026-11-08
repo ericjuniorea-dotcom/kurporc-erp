@@ -267,3 +267,93 @@ export async function declararSaldo(datos: z.input<typeof saldoSchema>): Promise
   } catch (e) { return manejar(e); }
 }
 
+
+// ── Ventas (8.5) ─────────────────────────────────────────────────────
+const ventaSchema = z.object({
+  fechaSalida: fecha,
+  tipoVenta: z.enum(["LECHONES", "MATRIZ_DESCARTE", "REPRODUCTOR", "DOSIS_SEMINALES", "CERDO_TERMINADO", "OTRO"]),
+  loteDesteteId: z.string().max(40).optional().default(""),
+  loteEngordeId: z.string().max(40).optional().default(""),
+  cantidad: z.coerce.number().int("La cantidad es un número entero").min(1, "Cargá la cantidad").max(100000),
+  kgTotales: z.string().trim().regex(/^\d{1,7}([.,]\d{1,2})?$/, "Kg inválidos"),
+  modoPrecio: z.enum(["POR_KG", "POR_CABEZA"]),
+  precioGs: z.string().trim().regex(/^\d{1,12}$/, "Precio inválido (en guaraníes, sin puntos)"),
+  destino: z.enum(["ENGORDE", "CONSUMO", "CARNEADO", "REPRODUCCION", "FRIGORIFICO"]),
+  cliente: z.string().trim().min(2, "Escribí el cliente").max(120),
+  recibePor: z.string().trim().max(80).optional().default(""),
+  remitoFactura: z.string().trim().max(40).optional().default(""),
+  guiaTraslado: z.string().trim().max(40).optional().default(""),
+  fechaVencimientoCobro: fecha.optional().or(z.literal("")),
+  cobrada: z.boolean(),
+  fechaCobro: fecha.optional().or(z.literal("")),
+  cuentaFondosId: z.string().uuid().nullable().default(null),
+  medioPago: medio.nullable().default(null),
+}).strict();
+
+export async function crearVenta(datos: z.input<typeof ventaSchema>): Promise<R<{ importe: string }>> {
+  try {
+    const { session, permisos } = await requirePermiso("ventas.ventas.crear");
+    const d = ventaSchema.parse(datos);
+    const org = permisos.organizacionId;
+    if (d.cobrada && !puede(permisos, "finanzas.cobrar.registrar_cobro")) throw new Error("•No tenés permiso para registrar cobros: cargala como por cobrar.");
+    if (d.cuentaFondosId && !(await prisma.cuentaFondos.findFirst({ where: { id: d.cuentaFondosId, organizacionId: org } }))) throw new Error("•Esa cuenta no es de tu organización.");
+    const { registrarVenta, ErrorVenta } = await import("@/lib/finanzas/ventas");
+    try {
+      const r = await conActor(session.user.id, tx => registrarVenta(tx, {
+        organizacionId: org, creadoPor: session.user.id, fechaSalida: fechaISO(d.fechaSalida), tipoVenta: d.tipoVenta,
+        cantidad: d.cantidad, kgTotales: Number(d.kgTotales.replace(",", ".")), modoPrecio: d.modoPrecio, precioGs: BigInt(d.precioGs),
+        destino: d.destino, cliente: d.cliente, loteDesteteId: d.loteDesteteId || null, loteEngordeId: d.loteEngordeId || null,
+        recibePor: d.recibePor || null, remitoFactura: d.remitoFactura || null, guiaTraslado: d.guiaTraslado || null,
+        fechaVencimientoCobro: d.fechaVencimientoCobro ? fechaISO(d.fechaVencimientoCobro) : null,
+        cobro: d.cobrada ? { fecha: fechaISO(d.fechaCobro || d.fechaSalida), cuentaFondosId: d.cuentaFondosId, medioPago: d.medioPago } : null,
+      }));
+      revalidatePath("/finanzas", "layout");
+      return { ok: true, importe: r.importe.toString() };
+    } catch (e) {
+      if (e instanceof ErrorVenta) throw new Error(`•${e.message}`);
+      throw e;
+    }
+  } catch (e) { return manejar(e); }
+}
+
+export async function anularVenta(id: string, motivo: string): Promise<R> {
+  try {
+    const { session, permisos } = await requirePermiso("ventas.ventas.anular");
+    const texto = motivo.trim();
+    if (texto.length < 5) throw new Error("•Escribí el motivo (al menos 5 letras).");
+    const v = await prisma.venta.findFirst({ where: { id, organizacionId: permisos.organizacionId } });
+    if (!v) throw new Error("•Esa venta no existe.");
+    if (v.estado === "ANULADA") throw new Error("•Ya estaba anulada.");
+    await conActor(session.user.id, async tx => {
+      await tx.venta.update({ where: { id }, data: { estado: "ANULADA" } });
+      await tx.movimiento.update({ where: { id: v.movimientoId }, data: { estado: "ANULADO", motivoAnulacion: `Venta anulada: ${texto}`, anuladoPor: session.user.id, anuladoEn: new Date() } });
+      // Los animales vuelven al lote
+      if (v.loteDesteteId) await tx.nurseryBatch.update({ where: { id: v.loteDesteteId }, data: { currentCount: { increment: v.cantidad }, isActive: true } });
+      if (v.loteEngordeId) await tx.growingBatch.update({ where: { id: v.loteEngordeId }, data: { currentCount: { increment: v.cantidad } } });
+    });
+    await registrarAuditoria("MOVIMIENTO_ANULADO", "venta", id, { motivo: texto, importeGs: v.importeGs.toString() }, await ctx(session.user.id, permisos.organizacionId));
+    revalidatePath("/finanzas", "layout");
+    return { ok: true };
+  } catch (e) { return manejar(e); }
+}
+
+// ── Parámetros (hoja PARÁMETROS) ─────────────────────────────────────
+export async function guardarParametros(valores: Record<string, string>): Promise<R> {
+  try {
+    const { session, permisos } = await requirePermiso("finanzas.parametros.editar");
+    const { PARAMETROS, convertirParametro } = await import("@/lib/finanzas/parametros");
+    const data: Record<string, unknown> = {};
+    for (const d of PARAMETROS) {
+      if (!(d.clave in valores)) continue;
+      try { data[d.clave] = convertirParametro(d, String(valores[d.clave] ?? "")); }
+      catch (e) { throw new Error(`•${(e as Error).message}`); }
+    }
+    if (typeof data.alertaCoberturaDias === "number" && typeof data.metaCoberturaDias === "number" && data.alertaCoberturaDias > data.metaCoberturaDias) {
+      throw new Error("•La alerta de cobertura tiene que ser menor o igual a la meta.");
+    }
+    const org = permisos.organizacionId;
+    await conActor(session.user.id, tx => tx.parametrosFinancieros.upsert({ where: { organizacionId: org }, create: { organizacionId: org, ...data }, update: data }));
+    revalidatePath("/finanzas", "layout");
+    return { ok: true };
+  } catch (e) { return manejar(e); }
+}
