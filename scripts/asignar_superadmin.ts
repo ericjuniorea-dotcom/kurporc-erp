@@ -1,15 +1,17 @@
 /**
  * Designa al Super Administrador de la plataforma. Idempotente.
  *
- *   SUPERADMIN_EMAIL=correo@dominio npm run db:superadmin
+ *   SUPERADMIN_EMAIL=correo@dominio AUTORIZA_EMAIL=correo-de-un-admin-TOTAL npm run db:superadmin
+ *
+ * Nadie se vuelve Super Administrador sin la autorización de uno TOTAL existente: la base lo
+ * exige (trigger controlar_admin_plataforma) y deja registrado quién lo autorizó.
+ * Lo normal es hacerlo desde /admin/administradores; este script queda para emergencias.
  *
  * 1. Busca la cuenta en Supabase Auth (tiene que haber ingresado al menos una vez,
  *    con Google o con correo).
  * 2. Crea o vincula su perfil en `users`.
  * 3. Le da nivel TOTAL en `admin_plataforma`.
- * 4. Lo suma como Administrador General (no propietario) de las organizaciones
- *    existentes, para que pueda usar el ERP. Con el panel /admin (Fase 11) esto
- *    deja de hacer falta: la lectura de la plataforma no requiere membresía.
+ * Ya no lo suma como miembro de las organizaciones: el panel /admin lee sin membresía (Fase 11).
  */
 import { PrismaClient } from "@prisma/client";
 
@@ -43,24 +45,15 @@ async function main() {
   }
   await prisma.user.update({ where: { id: user.id }, data: { onboardingCompleto: true, isActive: true } });
 
-  await prisma.adminPlataforma.upsert({ where: { userId: user.id }, create: { userId: user.id, nivel: "TOTAL" }, update: { nivel: "TOTAL" } });
-  console.log(`  ✓ Super Administrador (nivel TOTAL)`);
+  const autoriza = (process.env.AUTORIZA_EMAIL ?? "").trim().toLowerCase();
+  const actor = autoriza ? await prisma.user.findFirst({ where: { email: autoriza, adminPlataforma: { nivel: "TOTAL" } }, select: { id: true } }) : null;
+  if (!actor) throw new Error("Falta AUTORIZA_EMAIL: el correo de un Super Administrador TOTAL que autoriza el alta");
+  await prisma.$transaction([
+    prisma.$executeRaw`select set_config('app.actor_id', ${actor.id}, true)`,
+    prisma.adminPlataforma.upsert({ where: { userId: user.id }, create: { userId: user.id, nivel: "TOTAL" }, update: { nivel: "TOTAL" } }),
+  ]);
+  console.log(`  ✓ Super Administrador (nivel TOTAL), autorizado por ${autoriza}`);
 
-  // Roles legados que usa hoy el menú (1 Super Admin, 2 Admin de granja) hasta la Fase 7
-  await prisma.userRole.createMany({ data: [{ userId: user.id, roleId: 1 }, { userId: user.id, roleId: 2 }], skipDuplicates: true });
-
-  const orgs = await prisma.tenant.findMany({ where: { tipo: { in: ["EMPRESA", "INDIVIDUAL"] } }, select: { id: true, farmName: true } });
-  for (const org of orgs) {
-    const rol = await prisma.rol.findFirst({ where: { organizacionId: org.id, codigo: "ADMIN_GENERAL" }, select: { id: true } });
-    const existe = await prisma.miembro.findUnique({ where: { organizacionId_userId: { organizacionId: org.id, userId: user.id } } });
-    if (!existe) {
-      await prisma.miembro.create({
-        data: { organizacionId: org.id, userId: user.id, rolId: rol?.id, cargo: "Super Administrador", limiteCompraGs: null },
-      });
-      console.log(`  ✓ Miembro de ${org.farmName} como Administrador General`);
-    }
-  }
-  if (!user.tenantId && orgs[0]) await prisma.user.update({ where: { id: user.id }, data: { tenantId: orgs[0].id } });
   console.log("Listo.");
 }
 

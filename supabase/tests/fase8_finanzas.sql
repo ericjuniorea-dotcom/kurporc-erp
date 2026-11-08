@@ -10,7 +10,13 @@ declare
   v_mov_estado text; v_mes int; v_signo int; v_precio numeric;
 begin
   select id into v_org from tenants limit 1;
+  if v_org is null then  -- base vacía (CI)
+    insert into tenants (id, slug, "farmName", "updatedAt") values ('prueba-f8-org', 'prueba-f8', 'Prueba F8', now()) returning id into v_org;
+  end if;
   select id into v_user from users limit 1;
+  if v_user is null then
+    insert into users (id, email, name, "updatedAt") values ('prueba-f8-user', 'f8@prueba.test', 'Prueba', now()) returning id into v_user;
+  end if;
   insert into unidad_negocio (id, organizacion_id, codigo, nombre, tipo) values (gen_random_uuid(), v_org, 'PRUEBA-F8', 'Prueba', 'GRANJA') returning id into v_unidad;
   select id into v_gasto from categoria_financiera where organizacion_id is null and nombre = 'Balanceado de gestación';
   select id into v_ingreso from categoria_financiera where organizacion_id is null and nombre = 'Venta de lechones';

@@ -65,9 +65,11 @@ interface SidebarProps {
   permisos: string[];
   organizacionActiva: string;
   membresias: Membresia[];
+  /** Super Administrador de la plataforma: ve el acceso al panel /admin (Fase 11). */
+  esSuperadmin?: boolean;
 }
 
-export function Sidebar({ farmName, permisos, organizacionActiva, membresias }: SidebarProps) {
+export function Sidebar({ farmName, permisos, organizacionActiva, membresias, esSuperadmin }: SidebarProps) {
   const tiene = (p: string) => p === "*" || permisos.includes(p);
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -195,6 +197,12 @@ export function Sidebar({ farmName, permisos, organizacionActiva, membresias }: 
             flexShrink: 0,
           }}
         >
+          {esSuperadmin && (
+            <Link href="/admin" className="nav-item">
+              <IconShieldLock size={15} style={{ color: "var(--danger)", flexShrink: 0 }} aria-hidden />
+              <span style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>Panel de plataforma</span>
+            </Link>
+          )}
           <Link href="/cuenta/seguridad" className={cn("nav-item", pathname === "/cuenta/seguridad" && "active")}>
             <IconShieldLock size={15} style={{ color: "var(--text-muted)", flexShrink: 0 }} aria-hidden />
             <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Seguridad de la cuenta</span>

@@ -147,7 +147,7 @@ const NOMBRE_ACCION: Record<string, string> = {
   MIEMBRO_INVITADO: "Sumó a una persona", MIEMBRO_SUSPENDIDO: "Suspendió o quitó a una persona", PERMISOS_CAMBIADOS: "Cambió permisos",
   PROPIEDAD_TRANSFERIDA: "Transfirió la organización", DATO_PERSONAL_VISTO: "Vio datos personales", EXPORTACION: "Exportó datos",
   MOVIMIENTO_ANULADO: "Anuló un movimiento", MES_CERRADO: "Cerró un mes", MES_REABIERTO: "Reabrió un mes",
-  CONTRATO_ACEPTADO: "Aceptó los términos", SOLICITUD_PRIVACIDAD: "Pidió algo sobre sus datos", BAJA_SOLICITADA: "Pidió la baja",
+  CONTRATO_ACEPTADO: "Aceptó los términos", ACCESO_PLATAFORMA: "La plataforma vio tus datos (con motivo)", SOLICITUD_PRIVACIDAD: "Pidió algo sobre sus datos", BAJA_SOLICITADA: "Pidió la baja",
 };
 
 function resumenDetalle(e: EventoActividad): string {

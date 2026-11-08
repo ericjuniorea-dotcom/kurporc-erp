@@ -1,4 +1,6 @@
+import { after } from "next/server";
 import { redirect } from "next/navigation";
+import { registrarActividad } from "@/lib/admin/actividad";
 import { getSession, getUsuario } from "@/lib/auth/config";
 import { SesionProvider } from "@/lib/auth/sesion-cliente";
 import { getPermisos } from "@/lib/permisos/servidor";
@@ -25,6 +27,9 @@ export default async function DashboardLayout({
   const activa = session.membresias.find(m => m.organizacionId === session.user.tenantId);
   if (activa?.tipo === "VENDEDOR") redirect("/vendedor");
 
+  // Uso diario para el panel de plataforma: después de responder, sin demorar la pantalla
+  after(() => registrarActividad(usuario.id, session.user.tenantId));
+
   const permisos = await getPermisos();
   const claves = permisos ? Array.from(permisos.claves) : [];
   const sesionCliente = { ...session, permisos: claves, esPropietario: !!permisos?.esPropietario };
@@ -35,6 +40,7 @@ export default async function DashboardLayout({
         <Sidebar
           farmName={session.user.farmName}
           permisos={claves}
+          esSuperadmin={usuario.esSuperadmin}
           organizacionActiva={session.user.tenantId}
           membresias={session.membresias}
         />

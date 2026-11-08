@@ -41,6 +41,10 @@ export default async function EquipoPage() {
     ? await prisma.auditoria.findMany({ where: { organizacionId: o }, orderBy: { createdAt: "desc" }, take: 300,
         select: { id: true, createdAt: true, actorId: true, accion: true, entidad: true, detalle: true, ip: true } })
     : [];
+  // Accesos de la plataforma a los datos de esta organización (Fase 11): la organización los ve siempre
+  const accesos = veActividad
+    ? await prisma.accesoPlataforma.findMany({ where: { organizacionId: o }, orderBy: { createdAt: "desc" }, take: 100 })
+    : [];
   const actorIds = Array.from(new Set(eventos.map(e => e.actorId).filter((x): x is string => !!x)));
   const actores = actorIds.length ? await prisma.user.findMany({ where: { id: { in: actorIds } }, select: { id: true, name: true } }) : [];
   const nombreActor = new Map(actores.map(a => [a.id, a.name]));
@@ -87,11 +91,17 @@ export default async function EquipoPage() {
           invitaciones={invitaciones.map(i => ({ ...i, expiraEn: i.expiraEn.toISOString(), rol: roles.find(r => r.id === i.rolId)?.nombre ?? "—" }))}
           rolesDetalle={roles.map(r => ({ id: r.id, codigo: r.codigo, nombre: r.nombre, descripcion: r.descripcion ?? "", permisos: r.permisos.map(p => p.permisoClave), miembros: r._count.miembros }))}
           puedeEditarRoles={puede(permisos, "equipo.roles.editar")}
-          actividad={veActividad ? eventos.map(e => ({
-            id: e.id, fecha: e.createdAt.toISOString(), actor: e.actorId ? (nombreActor.get(e.actorId) ?? "Persona eliminada") : "Sistema",
-            accion: e.accion, entidad: e.entidad, ip: e.ip,
-            detalle: e.detalle && typeof e.detalle === "object" && !Array.isArray(e.detalle) ? e.detalle as Record<string, unknown> : {},
-          })) : null}
+          actividad={veActividad ? [
+            ...eventos.map(e => ({
+              id: e.id, fecha: e.createdAt.toISOString(), actor: e.actorId ? (nombreActor.get(e.actorId) ?? "Persona eliminada") : "Sistema",
+              accion: e.accion, entidad: e.entidad, ip: e.ip,
+              detalle: e.detalle && typeof e.detalle === "object" && !Array.isArray(e.detalle) ? e.detalle as Record<string, unknown> : {},
+            })),
+            ...accesos.map(a => ({
+              id: a.id, fecha: a.createdAt.toISOString(), actor: "Plataforma KurPorc", accion: "ACCESO_PLATAFORMA", entidad: a.seccion, ip: null,
+              detalle: { tipo: a.motivo.toLowerCase(), nombre: a.detalleMotivo ?? undefined } as Record<string, unknown>,
+            })),
+          ].sort((x, y) => (x.fecha < y.fecha ? 1 : -1)) : null}
           transferir={permisos.esPropietario ? {
             nombreOrg: org?.farmName ?? "",
             tieneSegundoFactor: session.aal === "aal2",

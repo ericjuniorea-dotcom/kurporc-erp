@@ -2456,9 +2456,10 @@ model SolicitudUnion {
 }
 
 model AdminPlataforma {
-  userId    String   @id @map("user_id")
-  nivel     String   @default("TOTAL") // TOTAL | SOPORTE | MODERACION | LECTURA (Anexo A.10)
-  createdAt DateTime @default(now()) @map("created_at")
+  userId      String   @id @map("user_id")
+  nivel       String   @default("TOTAL") // TOTAL | SOPORTE | MODERACION | LECTURA (Anexo A.10)
+  otorgadoPor String?  @map("otorgado_por") // users.id del administrador TOTAL que lo autorizó
+  createdAt   DateTime @default(now()) @map("created_at")
 
   perfil User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -3082,4 +3083,26 @@ model ImportacionFilaOriginal {
 
   @@index([organizacionId, importacionId])
   @@map("importacion_fila_original")
+}
+
+// ================================================================
+// FASE 11: PANEL DEL SUPER ADMINISTRADOR
+// ================================================================
+
+/// Cada lectura de datos de una organización desde el panel de plataforma (inmutable)
+model AccesoPlataforma {
+  id             String   @id @default(uuid()) @db.Uuid
+  adminId        String   @map("admin_id")
+  organizacionId String?  @map("organizacion_id")
+  seccion        String
+  motivo         String // SOPORTE | SEGURIDAD | CUMPLIMIENTO_LEGAL | ESTADISTICA | MEJORA_DEL_PRODUCTO | OTRO
+  detalleMotivo  String?  @map("detalle_motivo")
+  exportacion    Boolean  @default(false)
+  filas          Int?
+  ip             String?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([organizacionId, createdAt])
+  @@index([adminId, createdAt])
+  @@map("acceso_plataforma")
 }
