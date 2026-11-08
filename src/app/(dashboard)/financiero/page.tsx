@@ -1,55 +1,6 @@
-"use client";
-import { useEffect } from "react";
-import { useSession, usePermisos } from "@/lib/auth/sesion-cliente";
-import { useRouter } from "next/navigation";
-import { Topbar } from "@/components/layout/topbar";
-import { IconCoin, IconTools } from "@tabler/icons-react";
+import { redirect } from "next/navigation";
 
-const ALLOWED = [1, 2, 9];
-
+// La sección se llama Finanzas desde la Fase 8.
 export default function FinancieroPage() {
-  const { data: session, status } = useSession();
-  const { alguno } = usePermisos();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login");
-      return;
-    }
-    if (status === "authenticated" && !alguno(["finanzas.tablero.ver"])) {
-      router.push("/dashboard");
-    }
-  }, [session, status, router, alguno]);
-
-  if (status === "loading" || !session) return null;
-
-  return (
-    <>
-      <Topbar title="Financiero" icon={IconCoin} iconColor="var(--success)" />
-      <div style={{ padding: "16px 20px" }}>
-        <div style={{
-          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-          padding: "48px 24px", textAlign: "center",
-          background: "var(--bg-surface)", border: "0.5px solid var(--border-default)",
-          borderRadius: "var(--radius-lg)",
-        }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: "var(--radius-lg)",
-            background: "var(--success-subtle)", display: "flex", alignItems: "center", justifyContent: "center",
-            marginBottom: 12,
-          }}>
-            <IconTools size={22} style={{ color: "var(--success)" }} aria-hidden />
-          </div>
-          <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 4 }}>
-            Módulo en desarrollo
-          </div>
-          <div style={{ fontSize: 11, color: "var(--text-muted)", maxWidth: 280, lineHeight: 1.6 }}>
-            El módulo Financiero con gestión de ventas, gastos y análisis de rentabilidad
-            estará disponible próximamente.
-          </div>
-        </div>
-      </div>
-    </>
-  );
+  redirect("/finanzas");
 }

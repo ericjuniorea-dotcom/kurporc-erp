@@ -288,6 +288,22 @@ model Tenant {
   roles        Rol[]
   invitaciones Invitacion[]
 
+  // Finanzas (Fase 8)
+  cuentasFondos CuentaFondos[]
+  categoriasFinancieras CategoriaFinanciera[]
+  contrapartes Contraparte[]
+  movimientos Movimiento[]
+  ventas Venta[]
+  prestamos Prestamo[]
+  presupuestos Presupuesto[]
+  aportesPrevistos AporteCapitalPrevisto[]
+  evaluacionesInversion EvaluacionInversion[]
+  parametrosFinancieros ParametrosFinancieros?
+  cierresMes CierreMes[]
+  saldosDeclarados SaldoDeclarado[]
+  causasDesvio CausaDesvio[]
+  recomendaciones Recomendacion[]
+
   @@index([tipo])
   @@index([departamento])
   @@map("tenants")
@@ -2623,4 +2639,447 @@ model ConfiguracionPlataforma {
   ciudadJurisdiccion String  @default("Asunción") @map("ciudad_jurisdiccion")
 
   @@map("configuracion_plataforma")
+}
+
+// ================================================================
+// FASE 8: FINANZAS (réplica de la planilla de Administración y Finanzas)
+// Un solo lugar de carga manual: el libro de movimientos. Todo lo demás se calcula.
+// Montos en BigInt (guaraníes); nunca se borra un movimiento: se anula con motivo.
+// Sin fábrica de balanceado (decisión 16): el balanceado es una compra a proveedores.
+// ================================================================
+
+enum TipoMovFinanciero {
+  INGRESO
+  GASTO
+  INVERSION
+  FINANCIAMIENTO
+}
+
+enum Naturaleza {
+  FIJO
+  VARIABLE
+  NO_APLICA
+}
+
+enum EstadoMovimiento {
+  PAGADO
+  PENDIENTE
+  COBRADO
+  POR_COBRAR
+  ANULADO
+}
+
+enum MedioPago {
+  EFECTIVO
+  TRANSFERENCIA
+  CHEQUE
+  DEBITO_AUTOMATICO
+  TARJETA
+  CREDITO_PROVEEDOR
+}
+
+enum OrigenMovFinanciero {
+  MANUAL
+  VENTA
+  CUOTA_PRESTAMO
+  PEDIDO_MERCADO
+  SUELDO
+  PROVISION
+  IMPORTACION
+  AJUSTE
+}
+
+enum TipoCuentaFondos {
+  CAJA
+  CAJA_CHICA
+  BANCO
+  COOPERATIVA
+  OTRA
+}
+
+/// CAJA / BANCO de la planilla
+model CuentaFondos {
+  id                String           @id @default(uuid()) @db.Uuid
+  organizacionId    String           @map("organizacion_id")
+  unidadId          String?          @map("unidad_id") @db.Uuid
+  nombre            String
+  tipo              TipoCuentaFondos
+  numeroCifrado     String?          @map("numero_cifrado")
+  saldoInicialGs    BigInt           @default(0) @map("saldo_inicial_gs")
+  fechaSaldoInicial DateTime?        @map("fecha_saldo_inicial") @db.Date
+  montoAsignadoGs   BigInt?          @map("monto_asignado_gs")
+  activa            Boolean          @default(true)
+  createdAt         DateTime         @default(now()) @map("created_at")
+
+  organizacion Tenant @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@unique([organizacionId, nombre])
+  @@map("cuenta_fondos")
+}
+
+/// Hoja LISTAS. organizacionId null = categoría del sistema (la ven todas las organizaciones)
+model CategoriaFinanciera {
+  id             String         @id @default(uuid()) @db.Uuid
+  organizacionId String?        @map("organizacion_id")
+  nombre         String
+  tipo           TipoMovFinanciero
+  area           String
+  naturaleza     Naturaleza
+  signo          Int
+  unidadDefault  String         @map("unidad_default") // GRANJA | COMUN
+  subcategorias  String[]
+  grupoTablero   String?        @map("grupo_tablero") // BALANCEADO | PERSONAL | SANIDAD_VET | GENETICA | ENERGIA_AGUA | MANT_LIMPIEZA | LOGISTICA | ADMIN_OTROS
+  grupoCosto     String?        @map("grupo_costo") // ALIMENTACION | OTROS_DIRECTOS | ESTRUCTURA
+  dieta          String? // GESTACION | LACTACION | VILO_BABY | PRE_INICIAL_1 | PRE_INICIAL_2 | INICIAL | CRECIMIENTO | TERMINACION
+  vidaUtil       String?        @map("vida_util") // OBRA | EQUIPOS | MATRIZ | null = no se amortiza
+  orden          Int            @default(0)
+  esSistema      Boolean        @default(false) @map("es_sistema")
+  activa         Boolean        @default(true)
+
+  organizacion Tenant?      @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  movimientos  Movimiento[]
+
+  @@unique([organizacionId, nombre])
+  @@map("categoria_financiera")
+}
+
+/// Proveedores, clientes y acreedores
+model Contraparte {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizacionId String   @map("organizacion_id")
+  tipo           String // PROVEEDOR | CLIENTE | AMBOS | ACREEDOR | TITULAR
+  nombre         String
+  ruc            String?
+  telefono       String?
+  email          String?
+  tiendaId       String?  @map("tienda_id")
+  activa         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organizacion Tenant       @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  movimientos  Movimiento[]
+
+  @@unique([organizacionId, nombre])
+  @@map("contraparte")
+}
+
+/// Hoja MOVIMIENTOS
+model Movimiento {
+  id                  String           @id @default(uuid()) @db.Uuid
+  organizacionId      String           @map("organizacion_id")
+  unidadId            String           @map("unidad_id") @db.Uuid
+  granjaId            String?          @map("granja_id")
+  fecha               DateTime         @db.Date
+  fechaVencimiento    DateTime?        @map("fecha_vencimiento") @db.Date
+  tipo                TipoMovFinanciero
+  concepto            String
+  categoriaId         String           @map("categoria_id") @db.Uuid
+  subcategoria        String?
+  cantidad            Decimal?         @db.Decimal(14, 3)
+  unidadMedida        String?          @map("unidad_medida")
+  contraparteId       String?          @map("contraparte_id") @db.Uuid
+  medioPago           MedioPago?       @map("medio_pago")
+  cuentaFondosId      String?          @map("cuenta_fondos_id") @db.Uuid
+  montoGs             BigInt           @map("monto_gs") // siempre positivo; el signo lo da la categoría
+  estado              EstadoMovimiento
+  observacion         String?
+  // automáticos (los completa el trigger completar_movimiento)
+  naturaleza          Naturaleza       @default(NO_APLICA)
+  area                String           @default("")
+  signo               Int              @default(0)
+  mes                 Int              @default(0) // AAAAMM
+  precioUnitarioGs    Decimal?         @map("precio_unitario_gs") @db.Decimal(16, 2)
+  // sanidad
+  productoSanitarioId String?          @map("producto_sanitario_id")
+  mlPorUnidad         Decimal?         @map("ml_por_unidad") @db.Decimal(10, 2)
+  mlComprados         Decimal?         @map("ml_comprados") @db.Decimal(14, 2)
+  // trazabilidad
+  origen              OrigenMovFinanciero @default(MANUAL)
+  origenId            String?          @map("origen_id")
+  esInterno           Boolean          @default(false) @map("es_interno")
+  facturaNumero       String?          @map("factura_numero")
+  comprobantePath     String?          @map("comprobante_path")
+  motivoAnulacion     String?          @map("motivo_anulacion")
+  anuladoPor          String?          @map("anulado_por")
+  anuladoEn           DateTime?        @map("anulado_en")
+  creadoPor           String           @map("creado_por")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+
+  organizacion Tenant              @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  categoria    CategoriaFinanciera @relation(fields: [categoriaId], references: [id])
+  contraparte  Contraparte?        @relation(fields: [contraparteId], references: [id])
+  pagos        PagoMovimiento[]
+
+  @@index([organizacionId, mes])
+  @@index([organizacionId, categoriaId, mes])
+  @@index([organizacionId, estado])
+  @@map("movimiento")
+}
+
+/// Pagos y cobros (también parciales). El flujo de caja usa estas fechas.
+model PagoMovimiento {
+  id              String     @id @default(uuid()) @db.Uuid
+  movimientoId    String     @map("movimiento_id") @db.Uuid
+  fechaPago       DateTime   @map("fecha_pago") @db.Date
+  montoGs         BigInt     @map("monto_gs")
+  cuentaFondosId  String?    @map("cuenta_fondos_id") @db.Uuid
+  medioPago       MedioPago? @map("medio_pago")
+  comprobantePath String?    @map("comprobante_path")
+  creadoPor       String     @map("creado_por")
+  createdAt       DateTime   @default(now()) @map("created_at")
+
+  movimiento Movimiento @relation(fields: [movimientoId], references: [id], onDelete: Cascade)
+
+  @@index([movimientoId])
+  @@index([fechaPago])
+  @@map("pago_movimiento")
+}
+
+/// Hoja VENTAS
+model Venta {
+  id                    String    @id @default(uuid()) @db.Uuid
+  organizacionId        String    @map("organizacion_id")
+  unidadId              String    @map("unidad_id") @db.Uuid
+  granjaId              String?   @map("granja_id")
+  fechaSalida           DateTime  @map("fecha_salida") @db.Date
+  tipoVenta             String    @map("tipo_venta") // LECHONES | MATRIZ_DESCARTE | REPRODUCTOR | DOSIS_SEMINALES | CERDO_TERMINADO | OTRO
+  loteDesteteId         String?   @map("lote_destete_id")
+  loteEngordeId         String?   @map("lote_engorde_id")
+  edadPromDias          Int?      @map("edad_prom_dias")
+  cantidad              Int
+  kgTotales             Decimal   @map("kg_totales") @db.Decimal(12, 2)
+  modoPrecio            String    @default("POR_KG") @map("modo_precio") // POR_KG | POR_CABEZA
+  precioGsKg            BigInt?   @map("precio_gs_kg")
+  precioGsCabeza        BigInt?   @map("precio_gs_cabeza")
+  importeGs             BigInt    @map("importe_gs")
+  destino               String // ENGORDE | CONSUMO | CARNEADO | REPRODUCCION | FRIGORIFICO
+  clienteId             String    @map("cliente_id") @db.Uuid
+  recibePor             String?   @map("recibe_por")
+  remitoFactura         String?   @map("remito_factura")
+  guiaTraslado          String?   @map("guia_traslado")
+  fechaVencimientoCobro DateTime? @map("fecha_vencimiento_cobro") @db.Date
+  movimientoId          String    @map("movimiento_id") @db.Uuid
+  estado                String    @default("CONFIRMADA") // CONFIRMADA | ANULADA
+  creadoPor             String    @map("creado_por")
+  createdAt             DateTime  @default(now()) @map("created_at")
+
+  organizacion Tenant @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@index([organizacionId, fechaSalida])
+  @@map("venta")
+}
+
+/// Hoja DEUDAS Y FINANCIAMIENTO
+model Prestamo {
+  id                String   @id @default(uuid()) @db.Uuid
+  organizacionId    String   @map("organizacion_id")
+  unidadId          String   @map("unidad_id") @db.Uuid
+  acreedorId        String   @map("acreedor_id") @db.Uuid
+  concepto          String
+  montoRecibidoGs   BigInt   @map("monto_recibido_gs")
+  cuotaMensualGs    BigInt   @map("cuota_mensual_gs")
+  numeroCuotas      Int      @map("numero_cuotas")
+  primerVencimiento DateTime @map("primer_vencimiento") @db.Date
+  debitoAutomatico  Boolean  @default(false) @map("debito_automatico")
+  cuentaDebitoId    String?  @map("cuenta_debito_id") @db.Uuid
+  observacion       String?
+  estado            String   @default("VIGENTE") // VIGENTE | CANCELADO | REFINANCIADO
+  creadoPor         String   @map("creado_por")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  organizacion Tenant          @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  cuotas       CuotaPrestamo[]
+
+  @@map("prestamo")
+}
+
+model CuotaPrestamo {
+  id           String   @id @default(uuid()) @db.Uuid
+  prestamoId   String   @map("prestamo_id") @db.Uuid
+  numero       Int
+  vencimiento  DateTime @db.Date
+  montoGs      BigInt   @map("monto_gs")
+  movimientoId String?  @map("movimiento_id") @db.Uuid
+
+  prestamo Prestamo @relation(fields: [prestamoId], references: [id], onDelete: Cascade)
+
+  @@unique([prestamoId, numero])
+  @@map("cuota_prestamo")
+}
+
+/// Hoja PRESUPUESTO
+model Presupuesto {
+  id             String @id @default(uuid()) @db.Uuid
+  organizacionId String @map("organizacion_id")
+  unidadId       String @map("unidad_id") @db.Uuid
+  categoriaId    String @map("categoria_id") @db.Uuid
+  mes            Int
+  montoGs        BigInt @map("monto_gs")
+
+  organizacion Tenant @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@unique([organizacionId, unidadId, categoriaId, mes])
+  @@map("presupuesto")
+}
+
+/// PARÁMETROS, sección 6
+model AporteCapitalPrevisto {
+  id             String  @id @default(uuid()) @db.Uuid
+  organizacionId String  @map("organizacion_id")
+  mes            Int
+  montoGs        BigInt  @map("monto_gs")
+  descripcion    String?
+
+  organizacion Tenant @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@map("aporte_capital_previsto")
+}
+
+/// Hoja NUEVA INVERSIÓN
+model EvaluacionInversion {
+  id               String   @id @default(uuid()) @db.Uuid
+  organizacionId   String   @map("organizacion_id")
+  fechaPrevista    DateTime @map("fecha_prevista") @db.Date
+  concepto         String
+  categoriaId      String   @map("categoria_id") @db.Uuid
+  cantidad         Decimal  @db.Decimal(12, 2)
+  montoTotalGs     BigInt   @map("monto_total_gs")
+  formaPago        String   @map("forma_pago") // CONTADO | FINANCIADO | MIXTO
+  financiamientoGs BigInt   @default(0) @map("financiamiento_gs")
+  plazoMeses       Int      @default(0) @map("plazo_meses")
+  tasaAnual        Decimal? @map("tasa_anual") @db.Decimal(7, 4)
+  estado           String   @default("EN_EVALUACION") // EN_EVALUACION | APROBADA | DESCARTADA | EJECUTADA
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  organizacion Tenant @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@map("evaluacion_inversion")
+}
+
+/// Hoja PARÁMETROS (una fila por organización)
+model ParametrosFinancieros {
+  organizacionId           String  @id @map("organizacion_id")
+  precioReferenciaLechonGs BigInt  @default(435000) @map("precio_referencia_lechon_gs")
+  precioKgVivoGs           BigInt  @default(18500) @map("precio_kg_vivo_gs")
+  pesoVentaKg              Decimal @default(25) @map("peso_venta_kg") @db.Decimal(6, 2)
+  modoProyeccionVentas     String  @default("PARAMETRO") @map("modo_proyeccion_ventas") // PARAMETRO | CALENDARIO_BANDAS
+  lechonesAVenderMes       Int     @default(80) @map("lechones_a_vender_mes")
+  precioEsperadoLechonGs   BigInt  @default(435000) @map("precio_esperado_lechon_gs")
+  otrosIngresosMesGs       BigInt  @default(0) @map("otros_ingresos_mes_gs")
+  colchonMesesEgreso       Decimal @default(1) @map("colchon_meses_egreso") @db.Decimal(4, 2)
+  consumoGestacionKgDia    Decimal @default(2.5) @map("consumo_gestacion_kg_dia") @db.Decimal(5, 2)
+  consumoLactacionKgDia    Decimal @default(8) @map("consumo_lactacion_kg_dia") @db.Decimal(5, 2)
+  preInicial1KgLechon      Decimal @default(2) @map("pre_inicial1_kg_lechon") @db.Decimal(5, 2)
+  preInicial2KgLechon      Decimal @default(4) @map("pre_inicial2_kg_lechon") @db.Decimal(5, 2)
+  inicialKgLechon          Decimal @default(35) @map("inicial_kg_lechon") @db.Decimal(5, 2)
+  tasaDescuentoVan         Decimal @default(0.12) @map("tasa_descuento_van") @db.Decimal(5, 4)
+  crecimientoFlujoAnual    Decimal @default(0.10) @map("crecimiento_flujo_anual") @db.Decimal(5, 4)
+  metaCoberturaDias        Int     @default(30) @map("meta_cobertura_dias")
+  alertaCoberturaDias      Int     @default(20) @map("alerta_cobertura_dias")
+  metaDesvio               Decimal @default(0.05) @map("meta_desvio") @db.Decimal(5, 4)
+  alertaDesvio             Decimal @default(0.10) @map("alerta_desvio") @db.Decimal(5, 4)
+  vidaObraAnios            Int     @default(20) @map("vida_obra_anios")
+  vidaEquiposAnios         Int     @default(10) @map("vida_equipos_anios")
+  modoAmortizacion         String  @default("POR_ACTIVO") @map("modo_amortizacion") // PLANILLA | POR_ACTIVO
+  amortizarMatrices        Boolean @default(false) @map("amortizar_matrices")
+  vidaMatrizMeses          Int     @default(36) @map("vida_matriz_meses")
+  valorDescarteMatrizGs    BigInt  @default(2000000) @map("valor_descarte_matriz_gs")
+  imputacionSanidad        String  @default("USO") @map("imputacion_sanidad") // COMPRA | USO
+  tasaIpsPatronal          Decimal @default(0.165) @map("tasa_ips_patronal") @db.Decimal(5, 4)
+  provisionarAguinaldo     Boolean @default(true) @map("provisionar_aguinaldo")
+  limiteAprobacionPagoGs   BigInt? @map("limite_aprobacion_pago_gs") // pagos mayores requieren finanzas.pagar.aprobar
+  matricesActivasManual    Int?    @map("matrices_activas_manual") // si se carga, reemplaza al promedio de Plantel
+
+  organizacion Tenant @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@map("parametros_financieros")
+}
+
+model CierreMes {
+  id               String    @id @default(uuid()) @db.Uuid
+  organizacionId   String    @map("organizacion_id")
+  unidadId         String?   @map("unidad_id") @db.Uuid // null = toda la organización
+  mes              Int
+  estado           String    @default("ABIERTO") // ABIERTO | EN_REVISION | CERRADO
+  checklist        Json      @default("{}")
+  saldosDeclarados Json      @default("[]") @map("saldos_declarados") // [{cuentaFondosId, saldoGs, fecha}]
+  snapshot         Json?
+  cerradoPor       String?   @map("cerrado_por")
+  cerradoEn        DateTime? @map("cerrado_en")
+  motivoReapertura String?   @map("motivo_reapertura")
+
+  organizacion Tenant @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@unique([organizacionId, unidadId, mes])
+  @@map("cierre_mes")
+}
+
+/// Saldo contado (caja) o de extracto (banco) a una fecha
+model SaldoDeclarado {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizacionId String   @map("organizacion_id")
+  cuentaFondosId String   @map("cuenta_fondos_id") @db.Uuid
+  fecha          DateTime @db.Date
+  saldoGs        BigInt   @map("saldo_gs")
+  observacion    String?
+  declaradoPor   String   @map("declarado_por")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organizacion Tenant @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@index([organizacionId, cuentaFondosId, fecha])
+  @@map("saldo_declarado")
+}
+
+/// La causa escrita al lado del número
+model CausaDesvio {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizacionId String   @map("organizacion_id")
+  categoriaId    String   @map("categoria_id") @db.Uuid
+  mes            Int
+  causa          String
+  autorId        String   @map("autor_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organizacion Tenant @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@unique([organizacionId, categoriaId, mes])
+  @@map("causa_desvio")
+}
+
+/// Hoja MEJORAS, generada por reglas
+model Recomendacion {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizacionId String   @map("organizacion_id")
+  codigo         String
+  mes            Int
+  problema       String
+  situacion      String
+  mejora         String
+  impacto        String
+  prioridad      String // ALTA | MEDIA | BAJA
+  accion         String
+  estado         String   @default("ABIERTA") // ABIERTA | EN_CURSO | RESUELTA | DESCARTADA
+  generadaEn     DateTime @default(now()) @map("generada_en")
+
+  organizacion Tenant @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  @@unique([organizacionId, codigo, mes])
+  @@map("recomendacion")
+}
+
+/// Hoja DATOS ORIGINALES: copia fiel de lo importado, no se usa en cálculos
+model ImportacionFilaOriginal {
+  id             BigInt   @id @default(autoincrement())
+  organizacionId String   @map("organizacion_id")
+  importacionId  String   @map("importacion_id") @db.Uuid
+  archivo        String
+  hoja           String
+  fila           Int
+  datos          Json
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([organizacionId, importacionId])
+  @@map("importacion_fila_original")
 }

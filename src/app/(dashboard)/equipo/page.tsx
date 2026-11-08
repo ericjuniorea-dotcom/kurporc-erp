@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { IconUsersGroup } from "@tabler/icons-react";
-import { Topbar } from "@/components/layout/topbar";
+import { EncabezadoEquipo } from "./encabezado";
 import prisma from "@/lib/db/prisma";
 import { getPermisos, puede } from "@/lib/permisos/servidor";
 import { getSession } from "@/lib/auth/config";
@@ -53,7 +52,7 @@ export default async function EquipoPage() {
 
   return (
     <>
-      <Topbar title="Equipo" icon={IconUsersGroup} iconColor="var(--accent)" />
+      <EncabezadoEquipo />
       <div style={{ padding: "16px 20px" }}>
         <PanelEquipo
           yo={session.user.id}

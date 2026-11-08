@@ -62,6 +62,10 @@ jobs:
         run: npm run prueba:permisos
       - name: Aislamiento por organización con dbOrg (Fase 7)
         run: npm run prueba:dborg
+      - name: Reglas del libro de movimientos (Fase 8)
+        run: psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f supabase/tests/fase8_finanzas.sql
+      - name: Cálculos de Finanzas (Fase 8)
+        run: npm run prueba:finanzas
       - name: Las migraciones coinciden con el esquema
         run: |
           out=$(npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --script)
