@@ -4,7 +4,7 @@
 import { cache } from "react";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db/prisma";
-import { getSession, type AppSession } from "@/lib/auth/config";
+import { getSession, miembroActivo, SELECT_PERMISOS, type AppSession } from "@/lib/auth/config";
 import { CATALOGO_PERMISOS, type PermisoClave } from "./catalogo";
 
 export interface Permisos {
@@ -36,7 +36,9 @@ export function requiereSegundoFactor(clave: string): boolean {
 export const getPermisos = cache(async (): Promise<Permisos | null> => {
   const session = await getSession();
   if (!session) return null;
-  const p = await permisosDeMiembro(session.user.id, session.user.tenantId);
+  // getSession ya trajo la membresía activa con todo lo necesario: no hace falta otra consulta
+  const m = miembroActivo().valor as MiembroParaPermisos | null;
+  const p = m ? calcularPermisos(m, session.user.tenantId) : await permisosDeMiembro(session.user.id, session.user.tenantId);
   if (!p || session.aal === "aal2") return p;
   const sensibles = Array.from(p.claves).filter(requiereSegundoFactor);
   if (p.esPropietario) return { ...p, bloqueadosPorSegundoFactor: sensibles }; // solo aviso: nunca dejar afuera al dueño
@@ -44,18 +46,24 @@ export const getPermisos = cache(async (): Promise<Permisos | null> => {
   return { ...p, bloqueadosPorSegundoFactor: sensibles };
 });
 
+type MiembroParaPermisos = {
+  id: string; esPropietario: boolean; estado: string; alcanceGranjas: string; alcanceUnidades: string; limiteCompraGs: bigint | null;
+  rol: { codigo: string; permisos: { permisoClave: string }[] } | null;
+  permisosAjuste: { permisoClave: string; efecto: string }[];
+  granjas: { granjaId: string }[];
+  unidades: { unidadId: string }[];
+};
+
 export async function permisosDeMiembro(userId: string, organizacionId: string): Promise<Permisos | null> {
   const m = await prisma.miembro.findUnique({
     where: { organizacionId_userId: { organizacionId, userId } },
-    select: {
-      id: true, esPropietario: true, estado: true, alcanceGranjas: true, alcanceUnidades: true, limiteCompraGs: true,
-      rol: { select: { codigo: true, permisos: { select: { permisoClave: true } } } },
-      permisosAjuste: { select: { permisoClave: true, efecto: true } },
-      granjas: { select: { granjaId: true } },
-      unidades: { select: { unidadId: true } },
-    },
+    select: { ...SELECT_PERMISOS, rol: { select: { codigo: true, permisos: { select: { permisoClave: true } } } } },
   });
-  if (!m || m.estado !== "ACTIVO") return null;
+  return m ? calcularPermisos(m, organizacionId) : null;
+}
+
+function calcularPermisos(m: MiembroParaPermisos, organizacionId: string): Permisos | null {
+  if (m.estado !== "ACTIVO") return null;
 
   let claves: Set<string>;
   if (m.esPropietario) {

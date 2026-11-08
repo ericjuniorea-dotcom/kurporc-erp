@@ -16,10 +16,16 @@ export function unidadesDe(org: string) {
 }
 
 /** La primera vez que se entra a Finanzas: parámetros por defecto y una cuenta "Caja". */
+const listas = new Set<string>(); // organizaciones ya preparadas en esta instancia (evita consultas repetidas)
 export async function asegurarFinanzas(org: string) {
-  await prisma.parametrosFinancieros.upsert({ where: { organizacionId: org }, create: { organizacionId: org }, update: {} });
-  const hay = await prisma.cuentaFondos.count({ where: { organizacionId: org } });
-  if (hay === 0) await prisma.cuentaFondos.create({ data: { organizacionId: org, nombre: "Caja", tipo: "CAJA" } }).catch(() => {});
+  if (listas.has(org)) return;
+  const existe = await prisma.parametrosFinancieros.findUnique({ where: { organizacionId: org }, select: { organizacionId: true } });
+  if (!existe) {
+    await prisma.parametrosFinancieros.create({ data: { organizacionId: org } }).catch(() => {});
+    const hay = await prisma.cuentaFondos.count({ where: { organizacionId: org } });
+    if (hay === 0) await prisma.cuentaFondos.create({ data: { organizacionId: org, nombre: "Caja", tipo: "CAJA" } }).catch(() => {});
+  }
+  listas.add(org);
 }
 
 /** Pagos de la organización con el signo de su movimiento (para saldos y flujo de caja). */

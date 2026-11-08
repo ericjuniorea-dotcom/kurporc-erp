@@ -86,18 +86,19 @@ export const getUsuario = cache(async (): Promise<(UsuarioSesion & { aal: string
   const claims = data?.claims;
   if (!claims?.sub) return null;
 
-  // Tiene el segundo factor activado pero esta sesión todavía no lo verificó (aal1 → aal2)
-  const { data: nivel } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-  const faltaSegundoFactor = nivel?.currentLevel === "aal1" && nivel?.nextLevel === "aal2";
-
-  const u = await prisma.user.findUnique({
+  // En paralelo: nivel del segundo factor (aal1 → aal2) y el perfil
+  const [{ data: nivel }, u] = await Promise.all([
+    supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
+    prisma.user.findUnique({
     where: { authUserId: claims.sub },
     select: {
       id: true, email: true, name: true, avatarUrl: true, language: true, isActive: true,
       debeCambiarClave: true, onboardingCompleto: true, authUserId: true,
       adminPlataforma: { select: { userId: true } },
     },
-  });
+    }),
+  ]);
+  const faltaSegundoFactor = nivel?.currentLevel === "aal1" && nivel?.nextLevel === "aal2";
   if (!u || !u.isActive) return null;
 
   return {
@@ -111,6 +112,17 @@ export const getUsuario = cache(async (): Promise<(UsuarioSesion & { aal: string
   };
 });
 
+/** Campos de la membresía que necesita el cálculo de permisos (src/lib/permisos/servidor.ts). */
+export const SELECT_PERMISOS = {
+  id: true, esPropietario: true, estado: true, alcanceGranjas: true, alcanceUnidades: true, limiteCompraGs: true,
+  permisosAjuste: { select: { permisoClave: true, efecto: true } },
+  granjas: { select: { granjaId: true } },
+  unidades: { select: { unidadId: true } },
+} as const;
+
+/** Membresía activa de este request (la completa getSession; la lee getPermisos sin otra consulta). */
+export const miembroActivo = cache((): { valor: unknown } => ({ valor: null }));
+
 /**
  * Sesión del ERP: persona + organización activa validada.
  * null = sin sesión, perfil inactivo o sin ninguna membresía activa.
@@ -122,18 +134,17 @@ export const getSession = cache(async (): Promise<AppSession | null> => {
   // no hay acceso a datos del ERP
   if (!usuario || usuario.faltaSegundoFactor || usuario.faltaAceptarContrato) return null;
 
-  const [miembros, rolesLegados] = await Promise.all([
-    prisma.miembro.findMany({
+  // Una sola consulta: membresías + todo lo necesario para los permisos (lo reusa getPermisos)
+  const miembros = await prisma.miembro.findMany({
       where: { userId: usuario.id, estado: "ACTIVO", organizacion: { estado: "ACTIVA" } },
       select: {
-        organizacionId: true, esPropietario: true,
-        rol: { select: { nombre: true } },
+        ...SELECT_PERMISOS,
+        organizacionId: true,
+        rol: { select: { nombre: true, codigo: true, permisos: { select: { permisoClave: true } } } },
         organizacion: { select: { id: true, farmName: true, slug: true, tipo: true, plan: true } },
       },
       orderBy: [{ esPropietario: "desc" }, { createdAt: "asc" }],
-    }),
-    prisma.userRole.findMany({ where: { userId: usuario.id }, select: { roleId: true } }),
-  ]);
+    });
   if (miembros.length === 0) return null;
 
   const pedida = (await cookies()).get(COOKIE_ORG)?.value;
@@ -142,6 +153,7 @@ export const getSession = cache(async (): Promise<AppSession | null> => {
     ?? miembros.find(m => m.organizacion.tipo !== "VENDEDOR")
     ?? miembros[0];
 
+  miembroActivo().valor = activa;
   return {
     user: {
       id: usuario.id,
@@ -151,7 +163,7 @@ export const getSession = cache(async (): Promise<AppSession | null> => {
       tenantSlug: activa.organizacion.slug,
       farmName: activa.organizacion.farmName,
       plan: activa.organizacion.plan,
-      roles: rolesLegados.map(r => r.roleId),
+      roles: [], // roles legados: ya no se usan (Fase 7); los permisos están en getPermisos()
       language: usuario.language,
       avatarUrl: usuario.avatarUrl,
     },

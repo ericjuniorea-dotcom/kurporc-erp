@@ -86,12 +86,33 @@ export async function pendientesPersona(userId: string): Promise<DocumentoVisibl
 }
 
 /** ¿Le falta aceptar algo? Versión liviana para cada request. */
-export async function tienePendientes(userId: string): Promise<boolean> {
-  const vigentes = await prisma.documentoLegal.findMany({
+// Rendimiento: los documentos vigentes cambian muy poco (se releen cada 5 minutos) y quien ya
+// aceptó todo se recuerda por instancia hasta que se publique otra versión. Así, en el uso normal,
+// esta verificación no agrega ninguna consulta a cada pantalla.
+type Vigente = { id: string; codigo: string; requiereReaceptacion: boolean };
+let vigentesCache: { hasta: number; lista: Vigente[]; firma: string } | null = null;
+const alDia = new Map<string, string>(); // userId → firma de los vigentes que ya aceptó
+
+async function documentosVigentes() {
+  if (vigentesCache && vigentesCache.hasta > Date.now()) return vigentesCache;
+  const lista = await prisma.documentoLegal.findMany({
     where: { codigo: { in: [...CODIGOS_OBLIGATORIOS_PERSONA] }, estado: "PUBLICADO" },
     orderBy: [{ vigenteDesde: "desc" }, { createdAt: "desc" }],
     select: { id: true, codigo: true, requiereReaceptacion: true },
   });
+  vigentesCache = { hasta: Date.now() + 5 * 60_000, lista, firma: lista.map(v => v.id).join(",") };
+  return vigentesCache;
+}
+
+export async function tienePendientes(userId: string): Promise<boolean> {
+  const { lista: vigentes, firma } = await documentosVigentes();
+  if (alDia.get(userId) === firma) return false;
+  const pendiente = await calcularPendientes(userId, vigentes);
+  if (!pendiente) { if (alDia.size > 5000) alDia.clear(); alDia.set(userId, firma); }
+  return pendiente;
+}
+
+async function calcularPendientes(userId: string, vigentes: Vigente[]): Promise<boolean> {
   const ultimo = new Map<string, (typeof vigentes)[number]>();
   for (const v of vigentes) if (!ultimo.has(v.codigo)) ultimo.set(v.codigo, v);
   if (ultimo.size === 0) return false;
