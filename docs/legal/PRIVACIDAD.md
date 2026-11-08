@@ -1,6 +1,8 @@
 ---
 codigo: PRIVACIDAD
-version: "1.0"
+version: "1.1"
+requiere_reaceptacion: false
+resumen_cambios: "Datos de contacto del operador: KurPorc e info@kurporc.com"
 titulo: Política de Privacidad y Tratamiento de Datos
 resumen: |
   - Guardamos los datos de tu cuenta (nombre, correo, foto de Google) y lo que tu organización carga en KurPorc.
@@ -19,7 +21,7 @@ resumen: |
 
 ## 1. Responsable del tratamiento
 
-**{{razon_social}}**, RUC **{{ruc}}**, con domicilio en **{{domicilio}}**, República del Paraguay.
+**{{razon_social}}**, con domicilio en **{{domicilio}}**, República del Paraguay.
 
 Contacto de privacidad: **{{correo_privacidad}}**.
 

@@ -1,6 +1,8 @@
 ---
 codigo: TERMINOS
-version: "1.0"
+version: "1.1"
+requiere_reaceptacion: false
+resumen_cambios: "Datos de contacto del operador: KurPorc e info@kurporc.com"
 titulo: Términos y Condiciones de Uso
 resumen: |
   - KurPorc es un sistema para gestionar granjas porcinas y un mercado donde productores y proveedores se contactan.
@@ -20,7 +22,7 @@ resumen: |
 
 ## 1. Quiénes somos
 
-KurPorc es una plataforma operada por **{{razon_social}}**, RUC **{{ruc}}**, con domicilio en **{{domicilio}}**, República del Paraguay. Podés escribirnos a **{{correo_contacto}}**.
+KurPorc es una plataforma operada por **{{razon_social}}**, con domicilio en **{{domicilio}}**, República del Paraguay. Podés escribirnos a **{{correo_contacto}}**.
 
 En estos términos, "KurPorc", "nosotros" o "la plataforma" se refieren al operador indicado arriba. "Vos" o "el usuario" se refiere a la persona que usa la plataforma.
 

@@ -299,7 +299,7 @@ export default async function InicioPage() {
             <Link href="/login">Ingresar</Link>
           </div>
         </div>
-        <div>© {new Date().getFullYear()} KurPorc · {operador.razon_social} · RUC {operador.ruc} · {operador.correo_contacto}</div>
+        <div>© {new Date().getFullYear()} KurPorc · <a href={`mailto:${operador.correo_contacto}`} style={{ color: "inherit" }}>{operador.correo_contacto}</a></div>
       </footer>
     </div>
   );
