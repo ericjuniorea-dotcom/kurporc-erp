@@ -175,7 +175,7 @@ export function Asistente({ tipoInicial, perfil, acuerdos }: {
 
           {tipo === "EMPRESA" && (
             <div><label className="kp-label" htmlFor="nombreGranja">Nombre de la primera granja</label>
-              <input id="nombreGranja" name="nombreGranja" maxLength={80} placeholder="Ej. Granja Misiones" className="kp-input" />
+              <input id="nombreGranja" name="nombreGranja" maxLength={80} placeholder="Ej. Granja Norte" className="kp-input" />
               <div style={ayuda}>Si la dejás vacía, usamos el nombre de la empresa. Después podés agregar más granjas.</div></div>
           )}
 

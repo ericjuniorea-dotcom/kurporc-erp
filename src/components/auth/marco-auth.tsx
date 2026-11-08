@@ -21,7 +21,7 @@ export function MarcoAuth({ titulo, subtitulo, children }: { titulo: string; sub
           {children}
         </div>
         <div style={{ textAlign: "center", marginTop: 16, fontSize: 11, color: "var(--text-muted)" }}>
-          KurPorc · Gestión porcina · Paraguay
+          KurPorc · Inteligencia para la producción porcina
         </div>
       </div>
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>

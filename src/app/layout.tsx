@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
   title:       "KurPorc ERP",
-  description: "Sistema de gestión para granjas porcinas · Paraguay",
+  description: "La inteligencia que hace crecer tu granja porcina.",
   icons: { icon: "/favicon.svg" },
 };
 
