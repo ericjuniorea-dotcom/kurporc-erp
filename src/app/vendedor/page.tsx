@@ -19,19 +19,22 @@ export default async function VendedorPage() {
 
   const org = await prisma.tenant.findUnique({ where: { id: tienda.organizacionId }, select: { farmName: true, verificacion: true, ruc: true } });
   const tieneGranja = session?.membresias.some(m => m.tipo !== "VENDEDOR");
-  const estado = org?.verificacion === "VERIFICADA" ? "verificada" : org?.verificacion === "RECHAZADA" ? "rechazada" : "en revisión";
+  const verificada = org?.verificacion === "VERIFICADA";
+  const rechazada = org?.verificacion === "RECHAZADA";
 
   return (
-    <MarcoAuth titulo={org?.farmName ?? "Mi tienda"} subtitulo={`RUC ${org?.ruc ?? "—"} · Tienda ${estado}`}>
+    <MarcoAuth titulo={org?.farmName ?? "Mi tienda"} subtitulo={`RUC ${org?.ruc ?? "—"} · ${rechazada ? "Tienda suspendida" : verificada ? "Tienda activa · RUC verificado ✓" : "Tienda activa"}`}>
       <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 }}>
-        {estado === "en revisión" && (
+        {!rechazada && (
           <p style={{ margin: 0 }}>
-            Tu tienda está <strong>en revisión</strong>. Vamos a verificar tu RUC y te avisamos. Cuando el Mercado KurPorc esté
-            habilitado vas a poder cargar tus productos desde acá.
+            Tu tienda está <strong>activa</strong>.{" "}
+            {verificada
+              ? "Tu RUC figura activo en la DNIT: los compradores van a ver el sello de verificada."
+              : "Tu RUC todavía no figura activo en el padrón de la DNIT; cuando aparezca, la tienda se verifica sola."}
+            {" "}El panel para cargar tus productos llega con el Mercado KurPorc.
           </p>
         )}
-        {estado === "verificada" && <p style={{ margin: 0 }}>Tu tienda está verificada. El panel para cargar productos llega con el Mercado.</p>}
-        {estado === "rechazada" && <p style={{ margin: 0 }}>No pudimos verificar tu tienda. Escribinos para revisarlo.</p>}
+        {rechazada && <p style={{ margin: 0 }}>Tu tienda está suspendida. Escribinos para revisarlo.</p>}
         {tieneGranja && <Link href="/dashboard" className="btn" style={{ height: 34, justifyContent: "center" }}>Ir a mi granja</Link>}
         <BotonSalir />
       </div>

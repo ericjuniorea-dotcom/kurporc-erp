@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { IconArrowLeft, IconBuildingStore, IconBuildingWarehouse, IconKey, IconLoader2, IconPig, IconShoppingCart } from "@tabler/icons-react";
 import { Aviso } from "@/components/auth/marco-auth";
-import { crearMiOrganizacion, guardarDatosPersonales, pedirUnirme, terminarComoComprador } from "@/app/acciones/onboarding";
+import { consultarRuc, crearMiOrganizacion, guardarDatosPersonales, pedirUnirme, terminarComoComprador } from "@/app/acciones/onboarding";
 import { CATEGORIAS_VENTA, DEPARTAMENTOS, SISTEMAS_PRODUCTIVOS } from "@/lib/validaciones/paraguay";
 
 type Tipo = "COMPRADOR" | "INDIVIDUAL" | "EMPRESA" | "VENDEDOR";
@@ -36,6 +36,20 @@ export function Asistente({ tipoInicial, perfil, acuerdos }: {
   const [aceptaAcuerdo, setAceptaAcuerdo] = useState(false);
   const [categorias, setCategorias] = useState<string[]>([]);
   const [zonas, setZonas] = useState<string[]>([]);
+  // RUC → razón social desde el padrón de la DNIT
+  const [razonSocial, setRazonSocial] = useState("");
+  const [estadoRuc, setEstadoRuc] = useState<{ tipo: "buscando" | "ok" | "aviso" | "error"; texto: string } | null>(null);
+  const [rucConsultado, setRucConsultado] = useState("");
+  async function buscarRazonSocial(valor: string) {
+    const v = valor.trim();
+    if (!v || v === rucConsultado) return;
+    setRucConsultado(v);
+    setEstadoRuc({ tipo: "buscando", texto: "Buscando en la DNIT…" });
+    const r = await consultarRuc(v);
+    if (!r.valido) { setEstadoRuc({ tipo: "error", texto: r.mensaje }); return; }
+    if (r.activo) { setRazonSocial(r.razonSocial); setEstadoRuc({ tipo: "ok", texto: `✓ ${r.razonSocial} · activo en la DNIT` }); }
+    else setEstadoRuc({ tipo: "aviso", texto: r.mensaje });
+  }
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
   // Una clave por intento: si se reenvía el formulario no se duplica la organización
@@ -76,7 +90,7 @@ export function Asistente({ tipoInicial, perfil, acuerdos }: {
       const r = await crearMiOrganizacion({
         tipo: tipo as "INDIVIDUAL" | "EMPRESA" | "VENDEDOR",
         nombre: String(f.get("nombre") ?? ""),
-        razonSocial: String(f.get("razonSocial") ?? ""),
+        razonSocial,
         ruc: String(f.get("ruc") ?? ""),
         departamento: String(f.get("departamento") ?? ""),
         distrito: String(f.get("distrito") ?? ""),
@@ -164,14 +178,23 @@ export function Asistente({ tipoInicial, perfil, acuerdos }: {
           <div><label className="kp-label" htmlFor="org-nombre">{tipo === "VENDEDOR" ? "Nombre de la tienda" : tipo === "EMPRESA" ? "Nombre comercial" : "Nombre de la granja"}</label>
             <input id="org-nombre" name="nombre" required maxLength={80} className="kp-input" /></div>
 
-          {tipo !== "INDIVIDUAL" && (
+          {tipo !== "INDIVIDUAL" && (<>
             <div style={grid2}>
-              <div><label className="kp-label" htmlFor="razonSocial">Razón social{tipo === "VENDEDOR" ? "" : " (opcional)"}</label>
-                <input id="razonSocial" name="razonSocial" required={tipo === "VENDEDOR"} maxLength={120} className="kp-input" /></div>
               <div><label className="kp-label" htmlFor="ruc">RUC{tipo === "VENDEDOR" ? "" : " (opcional)"}</label>
-                <input id="ruc" name="ruc" required={tipo === "VENDEDOR"} placeholder="1234567-8" maxLength={15} className="kp-input" /></div>
+                <input id="ruc" name="ruc" required={tipo === "VENDEDOR"} placeholder="1234567-8" maxLength={15} className="kp-input"
+                  onBlur={e => buscarRazonSocial(e.target.value)}
+                  onChange={e => { if (/^d{5,8}-d$/.test(e.target.value.trim())) buscarRazonSocial(e.target.value); }} /></div>
+              <div><label className="kp-label" htmlFor="razonSocial">Razón social{tipo === "VENDEDOR" ? "" : " (opcional)"}</label>
+                <input id="razonSocial" name="razonSocial" required={tipo === "VENDEDOR"} maxLength={120} className="kp-input"
+                  value={razonSocial} onChange={e => setRazonSocial(e.target.value)} readOnly={estadoRuc?.tipo === "ok"}
+                  placeholder="Se completa sola con el RUC" /></div>
             </div>
-          )}
+            {estadoRuc && (
+              <div role="status" style={{ ...ayuda, marginTop: -4, color: estadoRuc.tipo === "ok" ? "var(--success-text)" : estadoRuc.tipo === "error" ? "var(--danger-text)" : estadoRuc.tipo === "aviso" ? "var(--warning-text)" : undefined }}>
+                {estadoRuc.texto}
+              </div>
+            )}
+          </>)}
 
           {tipo === "EMPRESA" && (
             <div><label className="kp-label" htmlFor="nombreGranja">Nombre de la primera granja</label>
@@ -229,7 +252,7 @@ export function Asistente({ tipoInicial, perfil, acuerdos }: {
                   ))}
                 </div>
               </fieldset>
-              <div style={ayuda}>Tu tienda queda en revisión hasta que verifiquemos el RUC. Mientras tanto podés ir preparándola.</div>
+              <div style={ayuda}>Tu tienda funciona apenas la creás. Con el RUC activo en la DNIT queda verificada al instante.</div>
             </>
           )}
 

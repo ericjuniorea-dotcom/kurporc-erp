@@ -6,6 +6,8 @@ import prisma from "@/lib/db/prisma";
 import { COOKIE_ORG, getUsuario } from "@/lib/auth/config";
 import { crearOrganizacion } from "@/lib/organizaciones/crear";
 import { normalizarRuc } from "@/lib/validaciones/ruc";
+import { buscarRuc, type ResultadoRuc } from "@/lib/validaciones/padron";
+import { consumirIntento } from "@/lib/seguridad/limites";
 import { documentoVigente, hashTexto } from "@/lib/legal/documentos";
 import { ipDe, registrarAuditoria, userAgentDe } from "@/lib/seguridad/auditoria";
 
@@ -84,9 +86,17 @@ export async function crearMiOrganizacion(datos: z.input<typeof esquemaOrg>): Pr
     ruc = normalizarRuc(d.ruc);
     if (!ruc) return { ok: false, error: "El RUC no es válido. Escribilo con guion y dígito verificador, ej. 4799016-3." };
   }
+  // El RUC se verifica contra el padrón de la DNIT: si está activo, la razón social sale de ahí
+  // y la tienda queda verificada; si todavía no figura, la tienda opera igual y se verifica sola después.
+  let razonSocial = d.razonSocial || null;
+  let verificada = false;
+  if (ruc) {
+    const p = await buscarRuc(ruc);
+    if (p.valido && p.activo) { razonSocial = p.razonSocial; verificada = true; }
+  }
   if (d.tipo === "VENDEDOR") {
     if (!ruc) return { ok: false, error: "Para vender en el Mercado el RUC es obligatorio." };
-    if (!d.razonSocial) return { ok: false, error: "Escribí la razón social como figura en la SET." };
+    if (!razonSocial) return { ok: false, error: "Escribí la razón social como figura en la DNIT." };
   }
 
   // El acuerdo aceptado tiene que ser exactamente el vigente que se mostró
@@ -96,7 +106,7 @@ export async function crearMiOrganizacion(datos: z.input<typeof esquemaOrg>): Pr
   if (acuerdo.hashMostrado !== d.hashAcuerdo) return { ok: false, error: "El acuerdo se actualizó. Recargá la página para ver la versión nueva." };
 
   const { id, creada } = await crearOrganizacion(r.u.id, {
-    tipo: d.tipo, nombre: d.nombre, razonSocial: d.razonSocial || null, ruc,
+    tipo: d.tipo, nombre: d.nombre, razonSocial, ruc, rucVerificado: verificada,
     departamento: d.departamento, distrito: d.distrito || null, whatsapp: normalizarTelefono(d.whatsapp),
     nombreGranja: d.nombreGranja || null, madresAprox: d.madresAprox ?? null, sistemaProductivo: d.sistemaProductivo ?? null,
     categoriasVenta: d.categoriasVenta, zonasEntrega: d.zonasEntrega, claveCreacion: d.claveCreacion,
@@ -147,4 +157,12 @@ export async function pedirUnirme(datos: z.input<typeof esquemaUnion>): Promise<
   });
   await prisma.user.update({ where: { id: r.u.id }, data: { onboardingCompleto: true } });
   return { ok: true, destino: "/cuenta/sin-organizacion?solicitud=enviada" };
+}
+
+/** Busca el RUC en el padrón de la DNIT para completar la razón social en el formulario. */
+export async function consultarRuc(texto: string): Promise<ResultadoRuc | { valido: false; mensaje: string }> {
+  const u = await getUsuario();
+  if (!u) return { valido: false, mensaje: "Iniciá sesión." };
+  if (!(await consumirIntento("consultaRuc", u.id))) return { valido: false, mensaje: "Demasiadas consultas. Probá en un rato." };
+  return buscarRuc(String(texto).slice(0, 20));
 }

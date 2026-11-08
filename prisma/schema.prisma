@@ -3106,3 +3106,13 @@ model AccesoPlataforma {
   @@index([adminId, createdAt])
   @@map("acceso_plataforma")
 }
+
+/// Padrón de contribuyentes ACTIVOS de la DNIT (datos públicos), para validar el RUC y completar la razón social.
+/// Se recarga con `npm run db:padron-ruc`. Solo lo lee el servidor. Un RUC que no está acá no figura como activo.
+model RucDnit {
+  ruc         Int    @id // sin dígito verificador
+  dv          Int    @db.SmallInt
+  razonSocial String @map("razon_social")
+
+  @@map("ruc_dnit")
+}

@@ -10,6 +10,7 @@ export const LIMITES = {
   invitaciones:     { maximo: 30, ventana: "1 day" },      // por organización (Fase 7)
   cotizaciones:     { maximo: 20, ventana: "1 day" },      // por usuario (Fase 13)
   exportaciones:    { maximo: 10, ventana: "1 day" },      // por usuario
+  consultaRuc:      { maximo: 60, ventana: "1 hour" },     // por usuario (padrón de la DNIT)
 } as const;
 
 export type TipoLimite = keyof typeof LIMITES;

@@ -15,6 +15,7 @@
     "db:migrar-orgs": "ts-node --transpile-only -P scripts/tsconfig.json scripts/migrar_a_organizaciones.ts",
     "db:migrar-auth": "ts-node --transpile-only -P scripts/tsconfig.json scripts/migrar_usuarios_a_supabase_auth.ts",
     "db:superadmin": "ts-node --transpile-only -P scripts/tsconfig.json scripts/asignar_superadmin.ts",
+    "db:padron-ruc": "ts-node --transpile-only -P scripts/tsconfig.json scripts/cargar_padron_ruc.ts",
     "db:legales": "ts-node --transpile-only -P scripts/tsconfig.json scripts/cargar_documentos_legales.ts",
     "prueba:alta": "ts-node --transpile-only -r tsconfig-paths/register -P scripts/tsconfig.json scripts/pruebas/alta_organizacion.ts",
     "prueba:permisos": "ts-node --transpile-only -r tsconfig-paths/register -P scripts/tsconfig.json scripts/pruebas/permisos.ts",

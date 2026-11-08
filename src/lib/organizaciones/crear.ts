@@ -14,6 +14,8 @@ export interface DatosAlta {
   nombre: string;              // nombre de la granja, empresa o tienda
   razonSocial?: string | null;
   ruc?: string | null;
+  /** El RUC figura activo en el padrón de la DNIT (una tienda queda verificada al crearse). */
+  rucVerificado?: boolean;
   rubro?: string | null;
   departamento?: string | null;
   distrito?: string | null;
@@ -92,7 +94,7 @@ export async function crearOrganizacion(userId: string, d: DatosAlta): Promise<{
         departamento: d.departamento || null,
         distrito: d.distrito || null,
         whatsapp: d.whatsapp || null,
-        verificacion: esTienda ? "PENDIENTE" : "NO_APLICA",
+        verificacion: esTienda ? (d.rucVerificado ? "VERIFICADA" : "PENDIENTE") : "NO_APLICA",
         creadoPor: userId,
         config: {
           ...(esTienda ? {} : CONFIG_INICIAL),
