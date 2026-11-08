@@ -16,6 +16,7 @@
     "db:migrar-auth": "ts-node --transpile-only -P scripts/tsconfig.json scripts/migrar_usuarios_a_supabase_auth.ts",
     "db:superadmin": "ts-node --transpile-only -P scripts/tsconfig.json scripts/asignar_superadmin.ts",
     "db:legales": "ts-node --transpile-only -P scripts/tsconfig.json scripts/cargar_documentos_legales.ts",
+    "prueba:alta": "ts-node --transpile-only -r tsconfig-paths/register -P scripts/tsconfig.json scripts/pruebas/alta_organizacion.ts",
     "db:seed": "ts-node --transpile-only -P scripts/tsconfig.json prisma/seed.ts",
     "db:setup": "prisma migrate deploy && ts-node --transpile-only -P scripts/tsconfig.json prisma/seed.ts",
     "infra:up": "docker compose up -d",
@@ -72,6 +73,7 @@
     "prisma": "^5.18.0",
     "tailwindcss": "^3.4.9",
     "ts-node": "^10.9.2",
+    "tsconfig-paths": "4.2.0",
     "typescript": "^5.5.4"
   }
 }

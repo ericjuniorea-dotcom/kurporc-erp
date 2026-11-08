@@ -134,7 +134,10 @@ export const getSession = cache(async (): Promise<AppSession | null> => {
   if (miembros.length === 0) return null;
 
   const pedida = (await cookies()).get(COOKIE_ORG)?.value;
-  const activa = miembros.find(m => m.organizacionId === pedida) ?? miembros[0];
+  // Sin cookie válida: primero una granja o empresa (el ERP), después una tienda
+  const activa = miembros.find(m => m.organizacionId === pedida)
+    ?? miembros.find(m => m.organizacion.tipo !== "VENDEDOR")
+    ?? miembros[0];
 
   return {
     user: {

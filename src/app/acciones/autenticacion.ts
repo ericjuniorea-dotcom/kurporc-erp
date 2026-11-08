@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUsuario } from "@/lib/auth/config";
 import { ipDe, registrarAuditoria, userAgentDe } from "@/lib/seguridad/auditoria";
 import { bloqueadoHasta, consumirIntento, limpiarIntentos } from "@/lib/seguridad/limites";
+import { pendientesPersona, registrarAceptaciones } from "@/lib/legal/documentos";
 
 export type Resultado = { ok: true; destino?: string } | { ok: false; error: string };
 
@@ -151,4 +152,56 @@ export async function cambiarClave(datos: { clave: string; repetir: string }): P
   await prisma.user.update({ where: { id: usuario.id }, data: { debeCambiarClave: false } });
   await registrarAuditoria("LOGIN", "users", usuario.id, { tipo: "clave_cambiada" }, { ...(await contexto()), actorId: usuario.id });
   return { ok: true, destino: "/dashboard" };
+}
+
+const esquemaRegistro = z.object({
+  nombre: z.string().trim().min(2, "Escribí tu nombre").max(120),
+  email: z.string().trim().toLowerCase().email("Correo inválido").max(254),
+  clave: z.string().min(10, "La contraseña debe tener al menos 10 caracteres").max(200),
+  acepta: z.literal(true, { errorMap: () => ({ message: "Tenés que tildar la casilla para crear la cuenta" }) }),
+  tipo: z.enum(["COMPRADOR", "INDIVIDUAL", "EMPRESA", "VENDEDOR"]).optional(),
+}).strict();
+
+/**
+ * Registro con correo y contraseña (Fase 6). Sin la casilla tildada no se crea la cuenta.
+ * La respuesta es la misma exista o no el correo (no revela qué cuentas existen).
+ */
+export async function registrarConCorreo(datos: z.input<typeof esquemaRegistro>): Promise<Resultado> {
+  const p = esquemaRegistro.safeParse(datos);
+  if (!p.success) return { ok: false, error: p.error.issues[0]?.message ?? "Datos inválidos" };
+  if (p.data.email.endsWith(`@${DOMINIO_GESTIONADAS}`)) return { ok: false, error: "Ese correo no se puede usar" };
+
+  const ctx = await contexto();
+  if (!(await consumirIntento("registro", ctx.ip ?? "sin-ip"))) {
+    return { ok: false, error: "Se crearon demasiadas cuentas desde esta conexión. Probá de nuevo en una hora." };
+  }
+
+  const next = `/onboarding${p.data.tipo ? `?tipo=${p.data.tipo}` : ""}`;
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signUp({
+    email: p.data.email,
+    password: p.data.clave,
+    options: {
+      emailRedirectTo: `${await origen()}/auth/callback?next=${encodeURIComponent(next)}`,
+      data: { full_name: p.data.nombre },
+    },
+  });
+  if (error) {
+    if (error.code === "weak_password") return { ok: false, error: "Esa contraseña es muy débil o aparece en filtraciones conocidas. Elegí otra." };
+    if (error.code === "over_email_send_rate_limit") return { ok: false, error: "Se enviaron muchos correos en poco tiempo. Probá de nuevo en un rato o registrate con Google." };
+    console.error("[registro]", diagnostico(error));
+    return { ok: false, error: "No se pudo crear la cuenta. Probá de nuevo." };
+  }
+
+  // Cuenta nueva (identities vacío = el correo ya existía): se guarda la aceptación ya mismo
+  if (data.user && (data.user.identities?.length ?? 0) > 0) {
+    const u = await prisma.user.findUnique({ where: { authUserId: data.user.id }, select: { id: true } });
+    if (u) {
+      const pendientes = await pendientesPersona(u.id);
+      await registrarAceptaciones(u.id, pendientes, { ...ctx, metodo: "CASILLA_REGISTRO" });
+      await registrarAuditoria("CONTRATO_ACEPTADO", "documento_legal", null,
+        { documentos: pendientes.map(d => `${d.codigo} ${d.version}`), metodo: "registro_correo" }, { ...ctx, actorId: u.id });
+    }
+  }
+  return { ok: true };
 }

@@ -3,12 +3,11 @@ import { useState, useTransition } from "react";
 import { Aviso } from "@/components/auth/marco-auth";
 import { actualizarPerfil, cancelarBaja, crearSolicitud, pedirBaja } from "@/app/acciones/privacidad";
 import { TIPOS_SOLICITUD } from "@/lib/legal/privacidad";
+import { DEPARTAMENTOS } from "@/lib/validaciones/paraguay";
 
 type Msg = { tipo: "ok" | "error"; texto: string } | null;
 const fila: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 };
 
-const DEPARTAMENTOS = ["Asunción", "Concepción", "San Pedro", "Cordillera", "Guairá", "Caaguazú", "Caazapá", "Itapúa", "Misiones",
-  "Paraguarí", "Alto Paraná", "Central", "Ñeembucú", "Amambay", "Canindeyú", "Presidente Hayes", "Boquerón", "Alto Paraguay"];
 
 function useAccion() {
   const [msg, setMsg] = useState<Msg>(null);

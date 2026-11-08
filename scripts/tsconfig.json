@@ -1,5 +1,18 @@
 {
   "extends": "../tsconfig.json",
-  "compilerOptions": { "module": "CommonJS", "moduleResolution": "node", "noEmit": true },
-  "include": ["./**/*.ts", "../src/lib/permisos/**/*.ts"]
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "noEmit": true,
+    "baseUrl": "..",
+    "paths": {
+      "@/*": [
+        "src/*"
+      ]
+    }
+  },
+  "include": [
+    "./**/*.ts",
+    "../src/lib/**/*.ts"
+  ]
 }

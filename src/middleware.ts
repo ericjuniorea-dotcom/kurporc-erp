@@ -12,7 +12,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const RUTAS_PUBLICAS = [
   "/login", "/registro", "/recuperar", "/auth/", "/invitacion/",
   "/terminos", "/privacidad", "/legal/", "/precios", "/mercado", "/tienda/",
-  "/api/whatsapp/webhook", "/api/csp-report",
+  "/api/whatsapp/webhook", "/api/csp-report", "/sitemap.xml", "/robots.txt",
 ];
 
 function esPublica(pathname: string) {

@@ -18,8 +18,11 @@ export default async function DashboardLayout({
   if (usuario.debeCambiarClave) redirect("/cuenta/cambiar-clave");
 
   const session = await getSession();
-  // Autenticado pero sin ninguna organización activa (registro y onboarding: Fase 6)
-  if (!session) redirect("/cuenta/sin-organizacion");
+  // Autenticado pero sin ninguna organización activa: primeros pasos o su cuenta (Fase 6)
+  if (!session) redirect(usuario.onboardingCompleto ? "/cuenta/sin-organizacion" : "/onboarding");
+  // Una tienda no usa el ERP productivo: tiene su propio panel
+  const activa = session.membresias.find(m => m.organizacionId === session.user.tenantId);
+  if (activa?.tipo === "VENDEDOR") redirect("/vendedor");
 
   return (
     <SesionProvider session={session}>

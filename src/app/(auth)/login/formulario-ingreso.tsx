@@ -13,7 +13,7 @@ import { Aviso } from "@/components/auth/marco-auth";
 type Modo = "correo" | "usuario";
 
 const ERRORES_URL: Record<string, string> = {
-  auth: "No se pudo completar el ingreso. Probá de nuevo.",
+  auth: "No se pudo completar el ingreso. Si acabás de confirmar tu correo, ingresá con tu correo y contraseña.",
   inactiva: "Tu cuenta está desactivada. Hablá con el administrador de tu organización.",
 };
 
@@ -142,6 +142,9 @@ export function FormularioIngreso() {
           Olvidé mi contraseña
         </Link>
       )}
+      <p style={{ fontSize: 12, color: "var(--text-secondary)", textAlign: "center", margin: 0 }}>
+        ¿No tenés cuenta? <Link href="/registro" style={{ color: "var(--text-primary)", fontWeight: 500 }}>Creá una gratis</Link>
+      </p>
     </div>
   );
 }
