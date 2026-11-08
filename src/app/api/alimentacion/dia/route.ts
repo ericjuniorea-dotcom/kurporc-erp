@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 // kg recomendados por fase
 function kgRec(fase: string, count: number, piglets = 0): number {
@@ -19,6 +20,7 @@ function kgRec(fase: string, count: number, piglets = 0): number {
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puede(await getPermisos(), "alimentacion.consumos.ver")) return NextResponse.json({ error: "No tenés permiso para ver esto", permiso: "alimentacion.consumos.ver" }, { status: 403 });
   const { tenantId } = session.user;
 
   const fechaParam = req.nextUrl.searchParams.get("fecha");

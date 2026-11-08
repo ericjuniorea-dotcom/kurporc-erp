@@ -16,16 +16,32 @@ export interface Permisos {
   unidades: "TODAS" | string[];
   limiteCompraGs: bigint | null;
   rol: string | null;
+  /** Permisos sensibles que tiene pero que no aplican hasta que verifique el segundo factor. */
+  bloqueadosPorSegundoFactor: string[];
 }
 
 const SOLO_PROPIETARIO = new Set(CATALOGO_PERMISOS.filter(p => p.soloPropietario).map(p => p.clave));
 const TODAS = CATALOGO_PERMISOS.map(p => p.clave);
 
+/**
+ * Permisos que exigen segundo factor (Fase 7.6): plata, sueldos, datos personales y quién puede qué.
+ * A un miembro sin segundo factor verificado en esta sesión no se le aplican (el propietario ve un aviso).
+ */
+export function requiereSegundoFactor(clave: string): boolean {
+  return clave.startsWith("finanzas.") || clave.startsWith("rrhh.sueldos.") || clave === "rrhh.datos_personales.ver"
+    || clave === "equipo.permisos.editar" || clave === "equipo.roles.editar" || clave === "configuracion.datos.exportar";
+}
+
 /** Permisos efectivos de la persona en su organización activa. Se calcula una vez por request. */
 export const getPermisos = cache(async (): Promise<Permisos | null> => {
   const session = await getSession();
   if (!session) return null;
-  return permisosDeMiembro(session.user.id, session.user.tenantId);
+  const p = await permisosDeMiembro(session.user.id, session.user.tenantId);
+  if (!p || session.aal === "aal2") return p;
+  const sensibles = Array.from(p.claves).filter(requiereSegundoFactor);
+  if (p.esPropietario) return { ...p, bloqueadosPorSegundoFactor: sensibles }; // solo aviso: nunca dejar afuera al dueño
+  for (const c of sensibles) p.claves.delete(c);
+  return { ...p, bloqueadosPorSegundoFactor: sensibles };
 });
 
 export async function permisosDeMiembro(userId: string, organizacionId: string): Promise<Permisos | null> {
@@ -54,7 +70,7 @@ export async function permisosDeMiembro(userId: string, organizacionId: string):
     organizacionId, miembroId: m.id, esPropietario: m.esPropietario, claves,
     granjas: m.esPropietario || m.alcanceGranjas === "TODAS" ? "TODAS" : m.granjas.map(g => g.granjaId),
     unidades: m.esPropietario || m.alcanceUnidades === "TODAS" ? "TODAS" : m.unidades.map(u => u.unidadId),
-    limiteCompraGs: m.limiteCompraGs, rol: m.rol?.codigo ?? null,
+    limiteCompraGs: m.limiteCompraGs, rol: m.rol?.codigo ?? null, bloqueadosPorSegundoFactor: [],
   };
 }
 
@@ -100,4 +116,9 @@ export async function algunPermisoApi(claves: (PermisoClave | string)[]): Promis
     return NextResponse.json({ error: "No tenés permiso para esta acción", permiso: claves.join(" | ") }, { status: 403 });
   }
   return { session, permisos };
+}
+
+/** ¿Tiene al menos uno de estos permisos? (APIs de lectura que sirven a varias pantallas). */
+export function puedeAlguno(p: Permisos | null, claves: (PermisoClave | string)[]): boolean {
+  return claves.some(c => puede(p, c));
 }

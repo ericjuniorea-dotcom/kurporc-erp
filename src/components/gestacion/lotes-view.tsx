@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { useSession } from "@/lib/auth/sesion-cliente";
+import { useSession, usePermisos } from "@/lib/auth/sesion-cliente";
 import {
   IconChevronDown, IconChevronUp, IconLoader2, IconLayoutGrid,
   IconCircleCheck, IconClock, IconX, IconVaccine, IconArrowLeft,
@@ -197,7 +197,8 @@ function CerdaRow({ cerda, isFirst, onVerFicha }: { cerda: CerdaLote; isFirst: b
 
 export function LotesView({ onBack }: { onBack?: () => void }) {
   const { data: session } = useSession();
-  const canDelete = !!session?.user.roles.some((r) => DELETE_LOTE_ROLES.includes(r));
+  const { alguno } = usePermisos();
+  const canDelete = alguno(["gestacion.lotes_reproductivos.editar"]);
 
   const [lotes,   setLotes]   = useState<Lote[]>([]);
   const [loading, setLoading] = useState(true);

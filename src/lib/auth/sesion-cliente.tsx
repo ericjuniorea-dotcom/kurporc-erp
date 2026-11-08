@@ -3,7 +3,7 @@
 // con la misma forma ({ data, status }) para que las pantallas no cambien.
 // La sesión se arma en el servidor (layout) y se pasa como prop: no hay fetch extra.
 
-import { createContext, useContext } from "react";
+import { createContext, useContext, useMemo } from "react";
 import type { AppSession } from "./config";
 
 // Igual que NextAuth: si status es "authenticated", data nunca es null. "loading" no ocurre
@@ -28,8 +28,11 @@ export function useSession(): ValorSesion {
 /** Permisos de la persona en la organización activa (para mostrar u ocultar; la seguridad está en el servidor). */
 export function usePermisos() {
   const { data } = useContext(Ctx);
-  const lista = data?.permisos ?? [];
-  return { puede: (clave: string) => !!data?.esPropietario || lista.includes(clave), esPropietario: !!data?.esPropietario };
+  return useMemo(() => {
+    const lista = new Set(data?.permisos ?? []);
+    const puede = (clave: string) => !!data?.esPropietario || lista.has(clave);
+    return { puede, alguno: (claves: string[]) => claves.some(puede), esPropietario: !!data?.esPropietario };
+  }, [data]);
 }
 
 /** <Can permiso="gestacion.servicios.crear">…</Can> */

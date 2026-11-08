@@ -1,6 +1,6 @@
 "use client";
 import { useEffect } from "react";
-import { useSession } from "@/lib/auth/sesion-cliente";
+import { useSession, usePermisos } from "@/lib/auth/sesion-cliente";
 import { useRouter } from "next/navigation";
 import { Topbar } from "@/components/layout/topbar";
 import { IconCoin, IconTools } from "@tabler/icons-react";
@@ -9,6 +9,7 @@ const ALLOWED = [1, 2, 9];
 
 export default function FinancieroPage() {
   const { data: session, status } = useSession();
+  const { alguno } = usePermisos();
   const router = useRouter();
 
   useEffect(() => {
@@ -16,10 +17,10 @@ export default function FinancieroPage() {
       router.push("/login");
       return;
     }
-    if (status === "authenticated" && !session.user.roles.some((r) => ALLOWED.includes(r))) {
+    if (status === "authenticated" && !alguno(["finanzas.tablero.ver"])) {
       router.push("/dashboard");
     }
-  }, [session, status, router]);
+  }, [session, status, router, alguno]);
 
   if (status === "loading" || !session) return null;
 

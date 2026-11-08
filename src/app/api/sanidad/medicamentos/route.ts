@@ -2,11 +2,13 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
-import { getPermisos, puede } from "@/lib/permisos/servidor";
+import { getPermisos, puede, puedeAlguno } from "@/lib/permisos/servidor";
+import { jsonConMontos } from "@/lib/permisos/montos";
 
 export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puedeAlguno(await getPermisos(), ["sanidad.botiquin.ver", "stock.items.ver", "sanidad.aplicaciones.ver", "sanidad.tratamientos.ver"])) return NextResponse.json({ error: "No tenés permiso para ver esto" }, { status: 403 });
   const { tenantId } = session.user;
 
   const medicamentos = await prisma.medicine.findMany({
@@ -14,7 +16,7 @@ export async function GET() {
     orderBy: { name: "asc" },
   });
 
-  return NextResponse.json(medicamentos.map(m => ({
+  return jsonConMontos(medicamentos.map(m => ({
     id: m.id, name: m.name, activeIngredient: m.activeIngredient,
     defaultDoseMl: m.defaultDoseMl ? Number(m.defaultDoseMl) : null,
     withdrawalDays: m.withdrawalDays,

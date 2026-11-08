@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
-import { getPermisos, puede } from "@/lib/permisos/servidor";
+import { getPermisos, puede, puedeAlguno } from "@/lib/permisos/servidor";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +68,7 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
   const params = await props.params;
   const session = await getSession();
   if (!session?.user?.tenantId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puedeAlguno(await getPermisos(), ["destete.lotes.ver", "maternidad.destetes.ver"])) return NextResponse.json({ error: "No tenés permiso para ver esto" }, { status: 403 });
   const tenantId = session.user.tenantId;
 
   const events = await prisma.animalEvent.findMany({

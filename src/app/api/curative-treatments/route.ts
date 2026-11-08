@@ -7,6 +7,7 @@ import { getPermisos, puede } from "@/lib/permisos/servidor";
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  if (!puede(await getPermisos(), "sanidad.tratamientos.ver")) return NextResponse.json({ error: "No tenés permiso para ver esto", permiso: "sanidad.tratamientos.ver" }, { status: 403 });
 
   const { searchParams } = new URL(req.url);
   const farrowingId = searchParams.get("farrowingId");

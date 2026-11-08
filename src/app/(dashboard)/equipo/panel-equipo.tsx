@@ -8,6 +8,7 @@ import {
   resolverSolicitud, restablecerClaveGestionada, revocarInvitacion,
 } from "@/app/acciones/equipo";
 import { MatrizPermisos, resumenPermisos, type PermisoUI } from "./matriz-permisos";
+import { PestanaActividad, PestanaRoles, TransferirPropiedad, type EventoActividad, type RolFila } from "./pestanas-extra";
 
 type Rol = { id: string; codigo: string; nombre: string; descripcion: string; permisos: string[] };
 type Miembro = {
@@ -23,6 +24,10 @@ type Props = {
   miembros: Miembro[];
   invitaciones: { id: string; email: string; cargo: string | null; expiraEn: string; rol: string }[];
   solicitudes: { id: string; nombre: string; email: string; mensaje: string; fecha: string }[];
+  rolesDetalle: RolFila[];
+  puedeEditarRoles: boolean;
+  actividad: EventoActividad[] | null;   // null = sin permiso de ver la auditoría
+  transferir: { candidatos: { id: string; nombre: string }[]; nombreOrg: string; tieneSegundoFactor: boolean } | null;
 };
 
 const tarjeta: React.CSSProperties = { background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-lg)" };
@@ -32,7 +37,7 @@ const gs = (v: string | null) => v === null ? "Sin límite" : v === "0" ? "Requi
 function copiar(texto: string) { navigator.clipboard?.writeText(texto).catch(() => {}); }
 
 export function PanelEquipo(p: Props) {
-  const [pestana, setPestana] = useState<"miembros" | "invitaciones" | "pedidos">("miembros");
+  const [pestana, setPestana] = useState<"miembros" | "invitaciones" | "pedidos" | "roles" | "actividad">("miembros");
   const [formulario, setFormulario] = useState<{ modo: "nuevo" } | { modo: "editar"; miembro: Miembro } | null>(null);
   const [msg, setMsg] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
   const [pendiente, iniciar] = useTransition();
@@ -49,6 +54,8 @@ export function PanelEquipo(p: Props) {
     { id: "miembros", label: `Miembros (${p.miembros.length})` },
     { id: "invitaciones", label: `Invitaciones (${p.invitaciones.length})` },
     { id: "pedidos", label: `Pedidos para unirse (${p.solicitudes.length})` },
+    { id: "roles", label: `Roles (${p.rolesDetalle.length})` },
+    ...(p.actividad ? [{ id: "actividad", label: "Actividad" }] as const : []),
   ] as const;
 
   return (
@@ -150,6 +157,12 @@ export function PanelEquipo(p: Props) {
           </table>
         </div>
       )}
+      {pestana === "miembros" && p.transferir && <TransferirPropiedad {...p.transferir} />}
+
+      {pestana === "roles" && (
+        <PestanaRoles roles={p.rolesDetalle} catalogo={p.catalogo} puedeEditar={p.puedeEditarRoles} misPermisos={p.misPermisos} />
+      )}
+      {pestana === "actividad" && p.actividad && <PestanaActividad eventos={p.actividad} />}
 
       {pestana === "invitaciones" && (
         <div style={{ ...tarjeta, padding: 4 }}>

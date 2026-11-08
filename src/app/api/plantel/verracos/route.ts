@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import prisma from "@/lib/db/prisma";
-import { getPermisos, puede } from "@/lib/permisos/servidor";
+import { getPermisos, puede, puedeAlguno } from "@/lib/permisos/servidor";
+import { jsonConMontos } from "@/lib/permisos/montos";
 
 export async function GET(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puedeAlguno(await getPermisos(), ["plantel.animales.ver", "gestacion.servicios.ver"])) return NextResponse.json({ error: "No tenés permiso para ver esto" }, { status: 403 });
   const tenantId = (session.user as any).tenantId as string;
 
   const { searchParams } = new URL(req.url);
@@ -39,7 +41,7 @@ export async function GET(req: Request) {
     },
   });
 
-  return NextResponse.json(boars);
+  return jsonConMontos(boars);
 }
 
 export async function POST(req: Request) {

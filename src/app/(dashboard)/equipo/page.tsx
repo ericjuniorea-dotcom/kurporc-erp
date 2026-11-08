@@ -17,7 +17,7 @@ export default async function EquipoPage() {
   const o = session.user.tenantId;
 
   const [org, miembros, invitaciones, solicitudes, roles, granjas, unidades] = await Promise.all([
-    prisma.tenant.findUnique({ where: { id: o }, select: { tipo: true, codigoUnion: true } }),
+    prisma.tenant.findUnique({ where: { id: o }, select: { tipo: true, codigoUnion: true, farmName: true } }),
     prisma.miembro.findMany({
       where: { organizacionId: o },
       orderBy: [{ esPropietario: "desc" }, { createdAt: "asc" }],
@@ -33,10 +33,18 @@ export default async function EquipoPage() {
       select: { id: true, email: true, cargo: true, expiraEn: true, rolId: true } }),
     prisma.solicitudUnion.findMany({ where: { organizacionId: o, estado: "PENDIENTE" }, orderBy: { createdAt: "asc" } }),
     prisma.rol.findMany({ where: { organizacionId: o }, orderBy: { createdAt: "asc" },
-      select: { id: true, codigo: true, nombre: true, descripcion: true, permisos: { select: { permisoClave: true } } } }),
+      select: { id: true, codigo: true, nombre: true, descripcion: true, permisos: { select: { permisoClave: true } }, _count: { select: { miembros: true } } } }),
     prisma.granja.findMany({ where: { organizacionId: o, activa: true }, select: { id: true, nombre: true } }),
     prisma.unidadNegocio.findMany({ where: { organizacionId: o, activa: true }, select: { id: true, nombre: true, codigo: true } }),
   ]);
+  const veActividad = puede(permisos, "equipo.auditoria.ver");
+  const eventos = veActividad
+    ? await prisma.auditoria.findMany({ where: { organizacionId: o }, orderBy: { createdAt: "desc" }, take: 300,
+        select: { id: true, createdAt: true, actorId: true, accion: true, entidad: true, detalle: true, ip: true } })
+    : [];
+  const actorIds = Array.from(new Set(eventos.map(e => e.actorId).filter((x): x is string => !!x)));
+  const actores = actorIds.length ? await prisma.user.findMany({ where: { id: { in: actorIds } }, select: { id: true, name: true } }) : [];
+  const nombreActor = new Map(actores.map(a => [a.id, a.name]));
   const perfilesSolicitud = solicitudes.length
     ? await prisma.user.findMany({ where: { id: { in: solicitudes.map(s => s.userId) } }, select: { id: true, name: true, email: true } })
     : [];
@@ -78,6 +86,18 @@ export default async function EquipoPage() {
             ultimoAcceso: m.perfil.ultimoAcceso?.toISOString() ?? null,
           }))}
           invitaciones={invitaciones.map(i => ({ ...i, expiraEn: i.expiraEn.toISOString(), rol: roles.find(r => r.id === i.rolId)?.nombre ?? "—" }))}
+          rolesDetalle={roles.map(r => ({ id: r.id, codigo: r.codigo, nombre: r.nombre, descripcion: r.descripcion ?? "", permisos: r.permisos.map(p => p.permisoClave), miembros: r._count.miembros }))}
+          puedeEditarRoles={puede(permisos, "equipo.roles.editar")}
+          actividad={veActividad ? eventos.map(e => ({
+            id: e.id, fecha: e.createdAt.toISOString(), actor: e.actorId ? (nombreActor.get(e.actorId) ?? "Persona eliminada") : "Sistema",
+            accion: e.accion, entidad: e.entidad, ip: e.ip,
+            detalle: e.detalle && typeof e.detalle === "object" && !Array.isArray(e.detalle) ? e.detalle as Record<string, unknown> : {},
+          })) : null}
+          transferir={permisos.esPropietario ? {
+            nombreOrg: org?.farmName ?? "",
+            tieneSegundoFactor: session.aal === "aal2",
+            candidatos: miembros.filter(m => !m.esPropietario && m.estado === "ACTIVO" && m.perfil.tipoAcceso !== "GESTIONADA").map(m => ({ id: m.id, nombre: m.perfil.name })),
+          } : null}
           solicitudes={solicitudes.map(s => {
             const p = perfilesSolicitud.find(x => x.id === s.userId);
             return { id: s.id, nombre: p?.name ?? "—", email: p?.email ?? "", mensaje: s.mensaje ?? "", fecha: s.createdAt.toISOString() };

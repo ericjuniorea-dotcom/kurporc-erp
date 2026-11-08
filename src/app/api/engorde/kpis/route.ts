@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { diffDays, addDays } from "@/lib/utils";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 export async function GET() {
   const session = await getSession();
   if (!session?.user?.tenantId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puede(await getPermisos(), "engorde.lotes.ver")) return NextResponse.json({ error: "No tenés permiso para ver esto", permiso: "engorde.lotes.ver" }, { status: 403 });
   const tenantId = session.user.tenantId;
 
   const today = new Date();

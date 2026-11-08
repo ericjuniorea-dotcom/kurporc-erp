@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession, canApproveStockAdjustments } from "@/lib/auth/config";
+import { getSession } from "@/lib/auth/config";
 import prisma from "@/lib/db/prisma";
 import { z } from "zod";
 import { getPermisos, puede } from "@/lib/permisos/servidor";
@@ -15,13 +15,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   if (!puede(await getPermisos(), "stock.ajustes.crear")) return NextResponse.json({ error: "No tenés permiso para esta acción", permiso: "stock.ajustes.crear" }, { status: 403 });
 
-  // REGLA 2: Solo Jefe de producción, Admin o Super Admin puede aprobar
-  if (!canApproveStockAdjustments(session.user.roles)) {
-    return NextResponse.json(
-      { error: "Solo el Jefe de Producción puede aprobar ajustes de stock" },
-      { status: 403 }
-    );
-  }
+  // REGLA 2: aprobar ajustes exige stock.ajustes.crear (chequeado arriba).
 
   const body   = await req.json();
   const parsed = reviewSchema.safeParse(body);

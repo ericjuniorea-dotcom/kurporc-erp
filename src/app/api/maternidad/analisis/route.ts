@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
+import { getPermisos, puedeAlguno } from "@/lib/permisos/servidor";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,7 @@ function periodKey(d: Date, periodo: string): string {
 export async function GET(req: Request) {
   const session = await getSession();
   if (!session?.user?.tenantId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puedeAlguno(await getPermisos(), ["maternidad.partos.ver", "maternidad.lechones.ver", "maternidad.destetes.ver"])) return NextResponse.json({ error: "No tenés permiso para ver esto" }, { status: 403 });
   const tenantId = session.user.tenantId;
 
   const { searchParams } = new URL(req.url);

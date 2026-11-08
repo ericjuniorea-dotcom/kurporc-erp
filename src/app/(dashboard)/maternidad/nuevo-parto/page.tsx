@@ -1,13 +1,13 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/config";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 import { FormNuevoParto } from "@/components/maternidad/form-nuevo-parto";
 
 export default async function NuevoPartoPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const allowed = [1, 2, 3, 4, 5, 10, 13];
-  if (!session.user.roles.some((r) => allowed.includes(r))) redirect("/maternidad");
+  if (!puede(await getPermisos(), "maternidad.partos.crear")) redirect("/maternidad");
 
   return (
     <div className="p-6">

@@ -2,7 +2,7 @@
 export const dynamic = "force-dynamic";
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { useSession } from "@/lib/auth/sesion-cliente";
+import { usePermisos } from "@/lib/auth/sesion-cliente";
 import {
   IconShoppingCart, IconSearch, IconPlus, IconFileText,
   IconLoader2, IconPackage, IconCheck, IconAlertCircle,
@@ -40,7 +40,7 @@ function fmtGs(v: string | number) {
 /* ─── Página ─────────────────────────────────────────────────── */
 
 export default function MarketplacePage() {
-  const { data: session } = useSession();
+  const { alguno } = usePermisos();
   const searchParams = useSearchParams();
   const [vendors,    setVendors]    = useState<Vendor[]>([]);
   const [productos,  setProductos]  = useState<Producto[]>([]);
@@ -63,7 +63,7 @@ export default function MarketplacePage() {
   const [vendorForm, setVendorForm] = useState({ empresaNombre: "", ruc: "", contactoNombre: "", email: "", telefono: "", ciudad: "", descripcion: "" });
   const [productForm, setProductForm] = useState({ vendorId: "", nombreProducto: "", categoria: "VACUNA", principioActivo: "", enfermedadObjetivo: "", viaAplicacion: "IM", dosisMl: "", presentacion: "", stockDisponible: "", precioGs: "", paisProcedencia: "", fichaTecnicaUrl: "", descripcion: "", requiereReceta: false });
 
-  const isAdmin = session?.user?.roles?.some((r: number) => [1, 2].includes(r)) ?? false;
+  const isAdmin = alguno(["compras.proveedores.editar"]);
 
   const loadAll = useCallback(async () => {
     setLoading(true);

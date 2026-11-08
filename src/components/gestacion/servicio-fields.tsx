@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useSession } from "@/lib/auth/sesion-cliente";
+import { useSession, usePermisos } from "@/lib/auth/sesion-cliente";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { serviceEventSchema, type ServiceEventInput } from "@/lib/validations/gestacion";
@@ -172,7 +172,8 @@ export function ServicioFields({
   onCancel: () => void;
 }) {
   const { data: session } = useSession();
-  const canForce = !!session?.user.roles.some((r) => FORCE_OVERRIDE_ROLES.includes(r));
+  const { alguno } = usePermisos();
+  const canForce = alguno(["sanidad.carencias.liberar"]);
   const [forceOverride, setForceOverride]       = useState(false);
 
   const [doseExpiredAlert, setDoseExpiredAlert] = useState(false);

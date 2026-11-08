@@ -2,7 +2,7 @@
 export const dynamic = "force-dynamic";
 
 import { useState, useEffect, useCallback } from "react";
-import { useSession } from "@/lib/auth/sesion-cliente";
+import { useSession, usePermisos } from "@/lib/auth/sesion-cliente";
 import { useRouter } from "next/navigation";
 import { Topbar } from "@/components/layout/topbar";
 import { IconChartLine } from "@tabler/icons-react";
@@ -47,6 +47,7 @@ interface KpiData {
 
 export default function EngordePage() {
   const { data: session, status } = useSession();
+  const { alguno } = usePermisos();
   const router = useRouter();
 
   const [tab, setTab]         = useState("general");
@@ -59,10 +60,10 @@ export default function EngordePage() {
 
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }
-    if (status === "authenticated" && !session.user.roles.some(r => ALLOWED.includes(r))) {
+    if (status === "authenticated" && !alguno(["engorde.lotes.ver"])) {
       router.push("/dashboard");
     }
-  }, [session, status, router]);
+  }, [session, status, router, alguno]);
 
   const loadKpis = useCallback(async () => {
     setLoadingKpi(true);

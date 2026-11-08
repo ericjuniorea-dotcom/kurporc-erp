@@ -16,7 +16,7 @@ const CATEGORIA_LABEL: Record<string, string> = {
   BALANCEADO: "Balanceado", EQUIPAMIENTO: "Equipamiento",
 };
 
-function fmtGs(v: number) { return `₲ ${Math.round(v).toLocaleString("es-PY")}`; }
+function fmtGs(v: number | null | undefined) { return v == null ? "—" : `₲ ${Math.round(v).toLocaleString("es-PY")}`; }
 
 function Spinner() {
   return (
@@ -145,6 +145,7 @@ function CostosPanel({ onBack: _ }: { onBack: () => void }) {
   const { data, loading } = useLogisticaAnalisis();
 
   function recs(): Recomendacion[] {
+    if (data && data.costos === null) return [{ nivel: "info", titulo: "Montos ocultos", descripcion: "Para ver costos y valor del stock necesitás el permiso «Costos» de Finanzas." }];
     if (!data?.costos?.length) return [{ nivel: "info", titulo: "Sin costos cargados todavía", descripcion: "Cargá el «Costo unitario» al registrar una compra o un lote para poder ver cuánto te sale cada producto." }];
     const top = data.costos[0];
     return [{ nivel: "info", titulo: `${top.nombre} concentra el mayor valor en stock`, descripcion: `${fmtGs(top.valorInvertido)} invertidos en ${top.stockNoVencido} ${top.unidadMedida === "KG" ? "kg" : "unidades"} disponibles.` }];
@@ -158,7 +159,7 @@ function CostosPanel({ onBack: _ }: { onBack: () => void }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-lg)", padding: "12px 16px" }}>
         <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Valor total invertido en stock</div>
-        <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text-primary)" }}>{fmtGs(data?.valorTotalInventario ?? 0)}</div>
+        <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text-primary)" }}>{fmtGs(data ? data.valorTotalInventario : 0)}</div>
       </div>
 
       {costos.length === 0 ? (

@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { isoWeekLabel, diffDays } from "@/lib/utils";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
+import { jsonConMontos } from "@/lib/permisos/montos";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session?.user?.tenantId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puede(await getPermisos(), "engorde.lotes.ver")) return NextResponse.json({ error: "No tenés permiso para ver esto", permiso: "engorde.lotes.ver" }, { status: 403 });
   const tenantId = session.user.tenantId;
 
   const sp = req.nextUrl.searchParams;
@@ -127,5 +130,5 @@ export async function GET(req: NextRequest) {
     pesosActuales: curvaPeso.map(c => c.pesoActual),
   };
 
-  return NextResponse.json({ kpis, gdpSemanal, mortalidadSemanal, causasMortalidad, curvaPeso, rendimientoLotes });
+  return jsonConMontos({ kpis, gdpSemanal, mortalidadSemanal, causasMortalidad, curvaPeso, rendimientoLotes });
 }

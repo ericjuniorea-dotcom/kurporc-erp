@@ -3,11 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { cached, invalidateInventario } from "@/lib/cache";
-import { getPermisos, puede } from "@/lib/permisos/servidor";
+import { getPermisos, puede, puedeAlguno } from "@/lib/permisos/servidor";
+import { jsonConMontos } from "@/lib/permisos/montos";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puedeAlguno(await getPermisos(), ["sanidad.botiquin.ver", "stock.items.ver", "sanidad.aplicaciones.ver", "sanidad.tratamientos.ver"])) return NextResponse.json({ error: "No tenés permiso para ver esto" }, { status: 403 });
   const { tenantId } = session.user;
 
   const result = await cached(`vacunas:${tenantId}`, 8_000, async () => {
@@ -37,7 +39,7 @@ export async function GET(req: NextRequest) {
     }));
   });
 
-  return NextResponse.json(result);
+  return jsonConMontos(result);
 }
 
 const PREFIJO_POR_CATEGORIA: Record<string, string> = {

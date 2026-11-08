@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { useSession } from "@/lib/auth/sesion-cliente";
+import { useSession, usePermisos } from "@/lib/auth/sesion-cliente";
 import { IconPlus, IconLoader2, IconX, IconAlertTriangle, IconFlame } from "@tabler/icons-react";
 import { SowPicker } from "./sow-picker";
 
@@ -18,7 +18,8 @@ interface NecropsiaRow {
 
 export function PanelNecropsias() {
   const { data: session } = useSession();
-  const canConfirmarBrote = !!session?.user.roles.some((r) => CONFIRMA_BROTE_ROLES.includes(r));
+  const { alguno } = usePermisos();
+  const canConfirmarBrote = alguno(["sanidad.protocolos.editar"]);
 
   const [necropsias, setNecropsias] = useState<NecropsiaRow[]>([]);
   const [loading, setLoading] = useState(true);

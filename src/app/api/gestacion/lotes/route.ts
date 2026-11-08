@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { addDays } from "@/lib/utils";
+import { getPermisos, puedeAlguno } from "@/lib/permisos/servidor";
 
 // Gestación estándar usada para proyectar la fecha de parto del lote a
 // partir de su fecha de servicio (misma convención que /api/gestacion/prenadas-detail).
@@ -15,6 +16,7 @@ type Estado =
 export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puedeAlguno(await getPermisos(), ["gestacion.servicios.ver", "gestacion.diagnosticos.ver", "gestacion.lotes_reproductivos.ver"])) return NextResponse.json({ error: "No tenés permiso para ver esto" }, { status: 403 });
   const { tenantId } = session.user;
 
   const batches = await prisma.serviceBatch.findMany({

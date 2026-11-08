@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useSession } from "@/lib/auth/sesion-cliente";
+import { useSession, usePermisos } from "@/lib/auth/sesion-cliente";
 import { useRouter } from "next/navigation";
 import { Topbar } from "@/components/layout/topbar";
 import {
@@ -69,7 +69,7 @@ const ORIGEN_LABEL: Record<string, string> = {
 };
 
 function todayPlusYears(y: number) { const d = new Date(); d.setFullYear(d.getFullYear() + y); return d.toISOString().slice(0, 10); }
-function fmtGs(v: number) { return `₲ ${Math.round(v).toLocaleString("es-PY")}`; }
+function fmtGs(v: number | null | undefined) { return v == null ? "—" : `₲ ${Math.round(v).toLocaleString("es-PY")}`; }
 
 function KpiCard({ label, value, color, onClick, active }: { label: string; value: string; color: string; onClick?: () => void; active?: boolean }) {
   return (
@@ -89,6 +89,7 @@ function KpiCard({ label, value, color, onClick, active }: { label: string; valu
 
 export default function LogisticaPage() {
   const { data: session, status } = useSession();
+  const { alguno } = usePermisos();
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -106,7 +107,7 @@ export default function LogisticaPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
 
-  const canEdit = session?.user.roles.some(r => ALLOWED.includes(r)) ?? false;
+  const canEdit = alguno(["stock.entradas.crear", "stock.items.editar"]);
   const showMsg = (m: string) => { setMsg(m); setTimeout(() => setMsg(null), 3500); };
 
   const load = useCallback(async () => {

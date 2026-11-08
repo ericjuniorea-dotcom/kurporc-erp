@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { getSession, getUsuario } from "@/lib/auth/config";
 import { SesionProvider } from "@/lib/auth/sesion-cliente";
 import { getPermisos } from "@/lib/permisos/servidor";
-import { rolesLegadosDesdePermisos } from "@/lib/permisos/legado";
 import { Sidebar } from "@/components/layout/sidebar";
 
 export const dynamic = "force-dynamic";
@@ -28,9 +27,7 @@ export default async function DashboardLayout({
 
   const permisos = await getPermisos();
   const claves = permisos ? Array.from(permisos.claves) : [];
-  // Roles legados derivados de los permisos (puente para pantallas que todavía los consultan)
-  const roles = Array.from(new Set([...session.user.roles, ...rolesLegadosDesdePermisos(claves, !!permisos?.esPropietario)]));
-  const sesionCliente = { ...session, user: { ...session.user, roles }, permisos: claves, esPropietario: !!permisos?.esPropietario };
+  const sesionCliente = { ...session, permisos: claves, esPropietario: !!permisos?.esPropietario };
 
   return (
     <SesionProvider session={sesionCliente}>
@@ -45,6 +42,14 @@ export default async function DashboardLayout({
           className="sidebar-main"
           style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}
         >
+          {permisos && permisos.bloqueadosPorSegundoFactor.length > 0 && (
+            <div role="status" style={{ padding: "8px 20px", fontSize: 12, background: "var(--warning-subtle)", color: "var(--warning-text)", borderBottom: "0.5px solid var(--border-default)" }}>
+              {permisos.esPropietario
+                ? "Tenés acceso a plata, sueldos y permisos del equipo. Protegé tu cuenta activando el segundo factor."
+                : `${permisos.bloqueadosPorSegundoFactor.length} permiso(s) sensibles (finanzas, sueldos o equipo) están en pausa hasta que actives el segundo factor.`}{" "}
+              <a href="/cuenta/seguridad" style={{ color: "inherit", fontWeight: 500 }}>Activarlo ahora</a>
+            </div>
+          )}
           {/* Cada página incluye su propio Topbar + contenido */}
           <div style={{ flex: 1, overflowY: "auto" }}>
             {children}

@@ -2,10 +2,12 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puede(await getPermisos(), "stock.items.ver")) return NextResponse.json({ error: "No tenés permiso para ver esto", permiso: "stock.items.ver" }, { status: 403 });
   const { tenantId } = session.user;
 
   const productoId = req.nextUrl.searchParams.get("productoId") ?? undefined;

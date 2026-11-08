@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useSession } from "@/lib/auth/sesion-cliente";
+import { useSession, usePermisos } from "@/lib/auth/sesion-cliente";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ListaMaternidad }           from "@/components/maternidad/lista-maternidad";
@@ -17,21 +17,22 @@ const CAN_APPROVE  = [1, 2, 5];
 
 export default function MaternidadPage() {
   const { data: session, status } = useSession();
+  const { alguno } = usePermisos();
   const router = useRouter();
   const [tab,        setTab]        = useState("vision");
   const [ingresoTab, setIngresoTab] = useState<"partos" | "datos">("partos");
 
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }
-    if (status === "authenticated" && !session.user.roles.some(r => ALLOWED.includes(r))) {
+    if (status === "authenticated" && !alguno(["maternidad.partos.ver", "maternidad.lechones.ver", "maternidad.destetes.ver"])) {
       router.push("/dashboard");
     }
-  }, [session, status, router]);
+  }, [session, status, router, alguno]);
 
   if (status === "loading" || !session) return null;
 
-  const canRegister           = session.user.roles.some(r => CAN_REGISTER.includes(r));
-  const canApproveAdjustments = session.user.roles.some(r => CAN_APPROVE.includes(r));
+  const canRegister           = alguno(["maternidad.partos.crear", "maternidad.lechones.crear", "maternidad.destetes.crear"]);
+  const canApproveAdjustments = alguno(["stock.ajustes.crear"]);
 
   return (
     <>

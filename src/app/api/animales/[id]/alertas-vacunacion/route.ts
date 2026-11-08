@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import prisma from "@/lib/db/prisma";
+import { getPermisos, puedeAlguno } from "@/lib/permisos/servidor";
 
 /**
  * Alertas de vacunación de gestación para UNA cerda, basadas en día exacto
@@ -12,6 +13,7 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
   const params = await props.params;
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  if (!puedeAlguno(await getPermisos(), ["sanidad.aplicaciones.ver", "sanidad.tratamientos.ver", "sanidad.protocolos.ver", "sanidad.necropsias.ver", "sanidad.botiquin.ver", "plantel.animales.ver"])) return NextResponse.json({ error: "No tenés permiso para ver esto" }, { status: 403 });
   const tenantId = session.user.tenantId;
 
   const sow = await prisma.sow.findFirst({ where: { id: params.id, tenantId }, select: { id: true, identCode: true } });

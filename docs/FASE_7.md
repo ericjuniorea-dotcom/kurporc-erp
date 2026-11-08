@@ -1,6 +1,6 @@
 # Fase 7 — Equipo y permisos
 
-Estado: **parte 1 en producción desde el 08/11/2026**. Sin cambios en la base de datos.
+Estado: **partes 1 y 2 en producción desde el 08/11/2026**. Sin cambios en la base de datos.
 
 ## Parte 1 (hecha)
 
@@ -24,13 +24,23 @@ Estado: **parte 1 en producción desde el 08/11/2026**. Sin cambios en la base d
 - [x] Una cuenta de operario entra con usuario + código de empresa + contraseña, y se le exige cambiarla.
 - [x] Un operario sin `gestacion.servicios.editar` recibe 403 aunque fuerce el request (`permisoApi` en todas las APIs de escritura).
 - [x] Un miembro limitado a una granja no tiene permisos en otra (prueba del motor).
-- [ ] Sin `finanzas.costos.ver`, el valor del stock aparece como "—" → parte 2.
-- [ ] Test de aislamiento con `dbOrg` → parte 2.
+- [x] Sin `finanzas.costos.ver`, el valor del stock aparece como "—" (la API ni siquiera lo manda).
+- [x] Test de aislamiento con `dbOrg` (`npm run prueba:dborg`, 14 controles, en la CI).
 
-## Parte 2 (pendiente)
-1. `dbOrg(orgId, actorId)`: extensión de Prisma que filtra por organización y por granjas/unidades permitidas en todas las consultas, y fija el actor del historial. Regla de ESLint que prohíbe el cliente Prisma directo en las rutas.
-2. Chequeos de **lectura** por permiso en las APIs GET (hoy filtran por organización, pero no por permiso `ver` del módulo).
-3. Montos en pantallas productivas solo con `finanzas.costos.ver`.
-4. Reemplazar los chequeos de roles que quedan en las pantallas y quitar el puente de roles legados.
-5. Editar las plantillas de roles de la organización (pestaña Roles) y la actividad del equipo (auditoría filtrable).
-6. Transferir la propiedad (con segundo factor) y exigir segundo factor a quien tenga permisos de finanzas, sueldos o equipo.
+## Parte 2 (hecha)
+
+| Punto | Implementación |
+|---|---|
+| Lectura por permiso | Las **62** APIs GET de datos productivos exigen el `ver` de su módulo (`puede` / `puedeAlguno`). Las que alimentan varias pantallas aceptan cualquiera de los módulos que las usan (p. ej. la lista de cerdas: plantel, gestación, maternidad, sanidad o destete). Quedan abiertas a cualquier miembro: `/api/dashboard/*` y `/api/config/*` (lectura de parámetros) |
+| Montos | [src/lib/permisos/montos.ts](../src/lib/permisos/montos.ts): `jsonConMontos()` pone en `null` precios, costos y valores en 12 APIs si falta `finanzas.costos.ver`. Las pantallas muestran "—" |
+| Roles viejos | Ninguna pantalla ni API consulta ya `session.user.roles`; se borró el puente `legado.ts`. `usePermisos()` suma `alguno([...])` |
+| `dbOrg` | [src/lib/db/org.ts](../src/lib/db/org.ts): extensión de Prisma que agrega `tenantId`/`organizacionId` a toda consulta, completa la organización en las altas, rechaza escribir o mover datos a otra organización y fija el actor del historial. Para código nuevo: `dbDeSesion()` |
+| Pestaña Roles | Crear, editar y eliminar roles de la organización con la misma matriz. Nadie arma un rol con permisos que no tiene; Administrador General es fijo; no se elimina un rol en uso |
+| Pestaña Actividad | Últimos 300 eventos de la auditoría, filtrables por acción y persona (con `equipo.auditoria.ver`) |
+| Transferir propiedad | Solo el propietario, con segundo factor verificado en la sesión y escribiendo el nombre de la organización. El anterior queda como Administrador General. Auditado (`PROPIEDAD_TRANSFERIDA`) y notificado |
+| Segundo factor | Finanzas, sueldos, datos personales, permisos/roles del equipo y exportación quedan **en pausa** para un miembro sin segundo factor en esa sesión, con aviso arriba de todo. Al propietario solo se le avisa (nunca se lo deja afuera) |
+
+## Pendiente (para más adelante)
+- Pasar las APIs existentes de `prisma` a `dbOrg` de a poco (hoy filtran a mano por `tenantId`, verificado) y entonces activar la regla de ESLint que prohíbe el cliente directo en `src/app/api`. No se hizo de una vez porque son ~130 archivos y varios usan transacciones interactivas.
+- Alcance por granja en las consultas (hoy el motor lo calcula y las acciones lo respetan, pero los listados todavía muestran todas las granjas de la organización).
+- Que la función SQL `tiene_permiso()` también pida segundo factor para los permisos sensibles (hoy solo se usa si en el futuro se abren las APIs de Supabase).

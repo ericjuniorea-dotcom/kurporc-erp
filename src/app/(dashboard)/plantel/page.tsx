@@ -1,7 +1,7 @@
 "use client";
 export const dynamic = "force-dynamic";
 import React, { useState, useEffect, useCallback } from "react";
-import { useSession } from "@/lib/auth/sesion-cliente";
+import { useSession, usePermisos } from "@/lib/auth/sesion-cliente";
 import {
   IconUsers, IconUser, IconHeart, IconHeartbeat,
   IconBabyCarriage, IconMars, IconShieldCheck,
@@ -43,6 +43,7 @@ interface HembraMaternidad {
 
 export default function PlantelPage() {
   const { data: session, status } = useSession();
+  const { alguno } = usePermisos();
   const [tab, setTab]               = useState<Tab>("Hembras");
   const [stats, setStats]           = useState<Stats | null>(null);
   const [selectedSowId, setSelectedSowId] = useState<string | null>(null);
@@ -60,7 +61,7 @@ export default function PlantelPage() {
     setMatLoading(false);
   }, [matData]);
 
-  const canEdit = session?.user.roles.some((r) => [1, 2].includes(r)) ?? false;
+  const canEdit = alguno(["plantel.animales.editar"]);
 
   useEffect(() => {
     fetch("/api/plantel/stats")

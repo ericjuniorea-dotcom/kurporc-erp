@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { computeStockYFaltantes } from "@/lib/inventario/proyeccion";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
+import { jsonConMontos } from "@/lib/permisos/montos";
 
 function getWeek(date: Date): number {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -17,6 +19,7 @@ function addDays(d: Date, n: number) { const r = new Date(d); r.setDate(r.getDat
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puede(await getPermisos(), "stock.items.ver")) return NextResponse.json({ error: "No tenés permiso para ver esto", permiso: "stock.items.ver" }, { status: 403 });
   const { tenantId } = session.user;
 
   const sp    = req.nextUrl.searchParams;
@@ -58,5 +61,5 @@ export async function GET(req: NextRequest) {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([semana, v]) => ({ semana: semana.replace(/^\d{4}-/, ""), ...v }));
 
-  return NextResponse.json({ costos, valorTotalInventario, movimientosTendencia });
+  return jsonConMontos({ costos, valorTotalInventario, movimientosTendencia });
 }

@@ -6,6 +6,7 @@ import { getPermisos, puede } from "@/lib/permisos/servidor";
 export async function GET() {
   const session = await getSession();
   if (!session?.user?.tenantId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puede(await getPermisos(), "compras.pedidos.ver")) return NextResponse.json({ error: "No tenés permiso para ver esto", permiso: "compras.pedidos.ver" }, { status: 403 });
 
   const pedidos = await prisma.marketplacePedido.findMany({
     where: { tenantId: session.user.tenantId },

@@ -11,6 +11,7 @@ import { getPermisos, puede } from "@/lib/permisos/servidor";
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puede(await getPermisos(), "sanidad.necropsias.ver")) return NextResponse.json({ error: "No tenés permiso para ver esto", permiso: "sanidad.necropsias.ver" }, { status: 403 });
   const { tenantId } = session.user;
 
   const necropsias = await prisma.necropsia.findMany({

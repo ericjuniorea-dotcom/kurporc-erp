@@ -3,11 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { invalidateInventario } from "@/lib/cache";
-import { getPermisos, puede } from "@/lib/permisos/servidor";
+import { getPermisos, puede, puedeAlguno } from "@/lib/permisos/servidor";
+import { jsonConMontos } from "@/lib/permisos/montos";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puedeAlguno(await getPermisos(), ["sanidad.botiquin.ver", "stock.items.ver", "sanidad.aplicaciones.ver", "sanidad.tratamientos.ver"])) return NextResponse.json({ error: "No tenés permiso para ver esto" }, { status: 403 });
   const { tenantId } = session.user;
 
   const sp       = req.nextUrl.searchParams;
@@ -31,7 +33,7 @@ export async function GET(req: NextRequest) {
     alertaVencimiento: Math.floor((l.fechaVencimiento.getTime() - today.getTime()) / 86400000) <= 30,
   }));
 
-  return NextResponse.json(result);
+  return jsonConMontos(result);
 }
 
 export async function POST(req: NextRequest) {

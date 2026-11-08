@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { useSession } from "@/lib/auth/sesion-cliente";
+import { useSession, usePermisos } from "@/lib/auth/sesion-cliente";
 import { useRouter }        from "next/navigation";
 import { IconClipboardCheck, IconCheck, IconLoader2, IconRefresh, IconPlus, IconX, IconUserSearch } from "@tabler/icons-react";
 import { Topbar }           from "@/components/layout/topbar";
@@ -303,6 +303,7 @@ function ReasignarModal({
 
 export default function TareasPage() {
   const { data: session, status } = useSession();
+  const { alguno } = usePermisos();
   const router = useRouter();
 
   const [periodo,    setPeriodo]    = useState("semana");
@@ -322,10 +323,10 @@ export default function TareasPage() {
 
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }
-    if (status === "authenticated" && !session.user.roles.some(r => ALLOWED.includes(r))) {
+    if (status === "authenticated" && !alguno(["tareas.tareas.ver"])) {
       router.push("/dashboard");
     }
-  }, [session, status, router]);
+  }, [session, status, router, alguno]);
 
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
@@ -379,7 +380,7 @@ export default function TareasPage() {
 
   if (status === "loading" || !session) return null;
 
-  const canAdmin = session.user.roles.some(r => [1, 2, 5].includes(r));
+  const canAdmin = alguno(["tareas.tareas.asignar"]);
 
   const pending    = tasks.filter(t => !t.fechaCompletada);
   const done       = tasks.filter(t =>  t.fechaCompletada);

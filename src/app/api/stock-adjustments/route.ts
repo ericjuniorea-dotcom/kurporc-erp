@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession, canApproveStockAdjustments } from "@/lib/auth/config";
+import { getSession } from "@/lib/auth/config";
 import prisma from "@/lib/db/prisma";
 import { stockAdjustmentSchema } from "@/lib/validations/maternidad";
 import { calculateSowStock } from "@/lib/maternidad/stock";
-import { getPermisos, puede } from "@/lib/permisos/servidor";
+import { getPermisos, puede, puedeAlguno } from "@/lib/permisos/servidor";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  if (!puedeAlguno(await getPermisos(), ["stock.items.ver", "maternidad.lechones.ver"])) return NextResponse.json({ error: "No tenés permiso para ver esto" }, { status: 403 });
 
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status") ?? "PENDING";

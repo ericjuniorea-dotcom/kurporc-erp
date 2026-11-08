@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useSession } from "@/lib/auth/sesion-cliente";
+import { useSession, usePermisos } from "@/lib/auth/sesion-cliente";
 import { useRouter } from "next/navigation";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -329,19 +329,20 @@ const INGRESO_SUBTABS: { key: IngresoSubTab; label: string }[] = [
 
 export default function GestacionPage() {
   const { data: session, status } = useSession();
+  const { alguno } = usePermisos();
   const router = useRouter();
   const [tab,        setTab]        = useState("vision");
   const [ingresoTab, setIngresoTab] = useState<IngresoSubTab>("servicios");
 
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }
-    if (status === "authenticated" && !session.user.roles.some(r => ALLOWED.includes(r))) {
+    if (status === "authenticated" && !alguno(["gestacion.servicios.ver", "gestacion.diagnosticos.ver", "gestacion.lotes_reproductivos.ver"])) {
       router.push("/dashboard");
     }
-  }, [session, status, router]);
+  }, [session, status, router, alguno]);
 
   if (status === "loading" || !session) return null;
-  const canRegister = session.user.roles.some(r => CAN_REGISTER.includes(r));
+  const canRegister = alguno(["gestacion.servicios.crear", "gestacion.diagnosticos.crear"]);
 
   return (
     <>

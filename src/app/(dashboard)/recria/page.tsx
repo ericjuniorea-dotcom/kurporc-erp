@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { useSession } from "@/lib/auth/sesion-cliente";
+import { useSession, usePermisos } from "@/lib/auth/sesion-cliente";
 import { useRouter }         from "next/navigation";
 import { BatchCard }         from "@/components/recria/batch-card";
 import { TareasModuloPanel } from "@/components/shared/tareas-modulo-panel";
@@ -22,6 +22,7 @@ interface Batch {
 
 export default function RecriaPage() {
   const { data: session, status } = useSession();
+  const { alguno } = usePermisos();
   const router = useRouter();
   const [tab,         setTab]         = useState("vision");
   const [batches,     setBatches]     = useState<Batch[]>([]);
@@ -33,7 +34,7 @@ export default function RecriaPage() {
     if (status === "unauthenticated") { router.push("/login"); return; }
   }, [status, router]);
 
-  const canEdit = session?.user.roles.some(r => [1, 2, 4, 5, 12, 13].includes(r)) ?? false;
+  const canEdit = alguno(["destete.lotes.editar", "destete.eventos.crear"]);
 
   const load = useCallback(() => {
     setLoading(true);

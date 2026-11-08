@@ -3,10 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { generarTareasDiarias } from "@/lib/tasks/generate";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puede(await getPermisos(), "tareas.tareas.ver")) return NextResponse.json({ error: "No tenés permiso para ver esto", permiso: "tareas.tareas.ver" }, { status: 403 });
   const { tenantId } = session.user;
 
   const sector  = req.nextUrl.searchParams.get("sector") ?? undefined;

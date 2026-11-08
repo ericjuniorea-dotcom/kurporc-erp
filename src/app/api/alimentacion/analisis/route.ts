@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 function getWeek(date: Date): number {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -16,6 +17,7 @@ function addDays(d: Date, n: number) { const r = new Date(d); r.setDate(r.getDat
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puede(await getPermisos(), "alimentacion.consumos.ver")) return NextResponse.json({ error: "No tenés permiso para ver esto", permiso: "alimentacion.consumos.ver" }, { status: 403 });
   const { tenantId } = session.user;
 
   const sp    = req.nextUrl.searchParams;

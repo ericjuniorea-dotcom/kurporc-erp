@@ -5,7 +5,6 @@
 import { PrismaClient } from "@prisma/client";
 import { crearOrganizacion } from "@/lib/organizaciones/crear";
 import { permisosDeMiembro, puede } from "@/lib/permisos/servidor";
-import { rolesLegadosDesdePermisos } from "@/lib/permisos/legado";
 
 const prisma = new PrismaClient();
 function check(cond: unknown, msg: string) { if (!cond) throw new Error(`FALLA: ${msg}`); console.log(`  ✓ ${msg}`); }
@@ -19,7 +18,7 @@ async function main() {
   try {
     const pd = await permisosDeMiembro(dueno.id, org);
     check(pd?.esPropietario && puede(pd, "equipo.propiedad.transferir"), "el propietario tiene todo, incluso lo que es solo de propietario");
-    check(rolesLegadosDesdePermisos(pd!.claves, true).includes(2), "propietario → rol legado Admin de granja");
+    check(puede(pd, "finanzas.tablero.ver") && puede(pd, "equipo.propiedad.transferir"), "propietario → incluso permisos solo-propietario");
 
     const rolOp = await prisma.rol.findFirst({ where: { organizacionId: org, codigo: "OPERARIO" } });
     const m = await prisma.miembro.create({ data: { organizacionId: org, userId: op.id, rolId: rolOp!.id } });
@@ -28,7 +27,7 @@ async function main() {
     check(!puede(po, "gestacion.servicios.editar"), "operario NO puede corregir servicios");
     check(!puede(po, "finanzas.tablero.ver"), "operario NO ve finanzas");
     check(!puede(po, "sanidad.carencias.liberar"), "operario NO libera carencias");
-    check(rolesLegadosDesdePermisos(po!.claves, false).includes(11), "operario con permisos de gestación → ve Gestación (rol legado 11)");
+    check(puede(po, "gestacion.servicios.ver"), "operario con permisos de gestación → ve Gestación");
 
     await prisma.miembroPermiso.createMany({ data: [
       { miembroId: m.id, permisoClave: "gestacion.servicios.crear", efecto: "DENEGAR" },

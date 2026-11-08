@@ -3,10 +3,12 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { getGestacionStates } from "@/lib/gestacion/sow-state";
+import { getPermisos, puedeAlguno } from "@/lib/permisos/servidor";
 
 export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puedeAlguno(await getPermisos(), ["gestacion.servicios.ver", "gestacion.diagnosticos.ver", "gestacion.lotes_reproductivos.ver"])) return NextResponse.json({ error: "No tenés permiso para ver esto" }, { status: 403 });
   const { tenantId } = session.user;
 
   // Configuración de plazos de seguimiento

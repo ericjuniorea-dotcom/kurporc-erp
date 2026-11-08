@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
-import { getPermisos, puede } from "@/lib/permisos/servidor";
+import { getPermisos, puede, puedeAlguno } from "@/lib/permisos/servidor";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session?.user?.tenantId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puedeAlguno(await getPermisos(), ["compras.pedidos.ver", "compras.proveedores.ver"])) return NextResponse.json({ error: "No tenés permiso para ver esto" }, { status: 403 });
 
   const vendorId  = req.nextUrl.searchParams.get("vendorId");
   const categoria = req.nextUrl.searchParams.get("categoria");

@@ -4,10 +4,12 @@ import { getSession } from "@/lib/auth/config";
 import prisma from "@/lib/db/prisma";
 import { addDays } from "@/lib/utils";
 import { getGestacionStates } from "@/lib/gestacion/sow-state";
+import { getPermisos, puedeAlguno } from "@/lib/permisos/servidor";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  if (!puedeAlguno(await getPermisos(), ["gestacion.servicios.ver", "gestacion.diagnosticos.ver", "gestacion.lotes_reproductivos.ver"])) return NextResponse.json({ error: "No tenés permiso para ver esto" }, { status: 403 });
   const tenantId = session.user.tenantId;
   const today    = new Date();
   const cutoff30 = addDays(today, -30);

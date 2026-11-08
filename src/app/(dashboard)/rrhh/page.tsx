@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { useSession } from "@/lib/auth/sesion-cliente";
+import { useSession, usePermisos } from "@/lib/auth/sesion-cliente";
 import { useRouter }  from "next/navigation";
 import { Topbar }     from "@/components/layout/topbar";
 import { IconUsers, IconPlus, IconLoader2, IconPlayerPlay } from "@tabler/icons-react";
@@ -82,6 +82,7 @@ function FuncionarioCard({ f }: { f: Funcionario }) {
 
 export default function RRHHPage() {
   const { data: session, status } = useSession();
+  const { alguno } = usePermisos();
   const router = useRouter();
 
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
@@ -91,10 +92,10 @@ export default function RRHHPage() {
 
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }
-    if (status === "authenticated" && !session.user.roles.some(r => ALLOWED.includes(r))) {
+    if (status === "authenticated" && !alguno(["rrhh.funcionarios.ver"])) {
       router.push("/dashboard");
     }
-  }, [session, status, router]);
+  }, [session, status, router, alguno]);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -126,7 +127,7 @@ export default function RRHHPage() {
 
   if (status === "loading" || !session) return null;
 
-  const canAdmin = session.user.roles.some(r => [1, 2, 5].includes(r));
+  const canAdmin = alguno(["rrhh.funcionarios.crear"]);
 
   return (
     <>

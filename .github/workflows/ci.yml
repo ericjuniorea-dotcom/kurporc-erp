@@ -60,6 +60,8 @@ jobs:
         run: npm run prueba:alta
       - name: Permisos efectivos (Fase 7)
         run: npm run prueba:permisos
+      - name: Aislamiento por organización con dbOrg (Fase 7)
+        run: npm run prueba:dborg
       - name: Las migraciones coinciden con el esquema
         run: |
           out=$(npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --script)
