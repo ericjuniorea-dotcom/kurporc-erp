@@ -28,8 +28,8 @@ Estado: **aplicada en producción el 07/11/2026**.
 - [x] Pruebas en verde contra producción: `supabase/tests/fase4_contratos.sql`.
 
 ## Pendiente
-1. **Datos del operador** (razón social, RUC, domicilio, correo de contacto y de privacidad): hoy los documentos muestran "[a completar]".
-2. **Publicar la app de Google**: cargar en Google Auth Platform → Información de la marca la página principal `https://www.kurporc.com`, privacidad `https://www.kurporc.com/privacidad` y términos `https://www.kurporc.com/terminos`, y tocar "Publicar app".
+1. ~~Datos del operador~~ — cargados el 07/11/2026 (razón social, RUC, domicilio, correos; jurisdicción: San Juan Bautista, Misiones, a confirmar con el abogado).
+2. ~~Publicar la app de Google~~ — publicada el 07/11/2026: cualquier persona con cuenta de Google puede ingresar (siempre aceptando antes el contrato).
 3. **Revisión del abogado** de los textos (Anexo B, puntos B.0).
 4. Consentimientos opcionales (comunicaciones y comparativas) y Acuerdo de la Organización al crear una organización → Fase 6.
 5. Exportar y cerrar una organización y "Accesos de la plataforma a tu cuenta" (4.4) → Fases 7 y 11.

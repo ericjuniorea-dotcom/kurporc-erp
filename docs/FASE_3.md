@@ -20,7 +20,7 @@ Estado: **aplicada en producción el 07/11/2026**.
 | Dependencias | Fuera: `next-auth`, `@auth/prisma-adapter`, `firebase-admin`, `bull`, `@aws-sdk/*` (sin uso). `openai` actualizado |
 
 ## Criterios de aceptación
-- [ ] Registro e ingreso con Google funcionan en local y en `kurporc.com` → **la app de Google está en modo "Prueba"**: solo entran los correos cargados como usuarios de prueba. Se publica en la Fase 4, cuando existan `/privacidad` y `/terminos`.
+- [x] Registro e ingreso con Google funcionan en `kurporc.com` (app de Google publicada el 07/11/2026, después de la Fase 4).
 - [x] Al primer ingreso con Google se crea el perfil con nombre y foto — prueba 1 de `supabase/tests/fase3_auth.sql`.
 - [x] `?next=https://otro-sitio.com` no redirige afuera — validado en `/auth/callback` y en las acciones de ingreso.
 - [x] Un usuario con dos membresías cambia de perfil sin volver a ingresar y no puede forzar una `kp_org` ajena: la cookie se valida contra `miembro` en `getSession()` y en `cambiarOrganizacion()`.
@@ -30,7 +30,7 @@ Estado: **aplicada en producción el 07/11/2026**.
 - [x] Pruebas de las Fases 1 y 2 en verde contra producción después de migrar.
 
 ## Pendiente
-1. **Publicar la app de Google** (Fase 4): cargar en Google Auth Platform → Información de la marca los enlaces a `/privacidad` y `/terminos` y tocar "Publicar app".
+1. ~~Publicar la app de Google~~ — hecho en la Fase 4.
 2. **CAPTCHA** (Turnstile) en registro, recuperación e ingreso: se activa en Supabase Auth junto con el registro público (Fase 6).
 3. **Correo propio (SMTP):** el plan gratuito de Supabase manda ~2 correos por hora. Antes de abrir el registro: Resend u otro SMTP (Fase 6).
 4. **Aviso de ingreso desde un dispositivo nuevo** por correo: requiere el SMTP del punto 3.
