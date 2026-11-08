@@ -2,10 +2,10 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 // Super Admin (1), Admin de granja (2), Jefe de Producción (5) — únicos
 // roles que pueden eliminar un lote reproductivo.
-const DELETE_LOTE_ROLES = [1, 2, 5];
 
 /**
  * Elimina un lote de servicio (código explícito). Las cerdas que ya fueron
@@ -20,7 +20,7 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: s
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
-  if (!session.user.roles.some((r: number) => DELETE_LOTE_ROLES.includes(r))) {
+  if (!puede(await getPermisos(), "gestacion.lotes_reproductivos.editar")) {
     return NextResponse.json({ error: "Solo un Administrador o el Jefe de Producción puede eliminar lotes" }, { status: 403 });
   }
 

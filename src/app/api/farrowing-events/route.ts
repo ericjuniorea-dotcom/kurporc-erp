@@ -6,6 +6,7 @@ import { generateHealthTasks, checkFarrowingAlerts } from "@/lib/maternidad/stoc
 import { generarTareasParto } from "@/lib/tasks/generate";
 import { generarEventosParto } from "@/lib/sanidad/generate-eventos";
 import { addDays, diffDays } from "@/lib/utils";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
@@ -73,9 +74,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-
-  const allowed = [1, 2, 3, 4, 5, 10, 13];
-  if (!session.user.roles.some((r) => allowed.includes(r))) {
+  if (!puede(await getPermisos(), "maternidad.partos.crear")) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
   }
 

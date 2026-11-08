@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import prisma from "@/lib/db/prisma";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 export async function GET(req: Request) {
   const session = await getSession();
@@ -62,6 +63,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puede(await getPermisos(), "plantel.animales.crear")) return NextResponse.json({ error: "No tenés permiso para esta acción", permiso: "plantel.animales.crear" }, { status: 403 });
   const tenantId = (session.user as any).tenantId as string;
   const userId   = (session.user as any).id as string;
 

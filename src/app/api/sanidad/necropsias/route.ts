@@ -2,11 +2,11 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 // Super Admin (1), Admin de granja (2) — únicos roles que pueden confirmar
 // manualmente que una baja corresponde a un brote (marcado administrativo,
 // separado del disparador automático del heatmap).
-const CONFIRMA_BROTE_ROLES = [1, 2];
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
 
   // El marcado manual de "confirma brote" queda restringido a roles autorizados,
   // aunque el disparo automático del heatmap sigue siendo independiente de esto.
-  const canConfirmarBrote = session.user.roles.some((r: number) => CONFIRMA_BROTE_ROLES.includes(r));
+  const canConfirmarBrote = puede(await getPermisos(), "sanidad.protocolos.editar");
   if (bajaConfirmaBrote === true && !canConfirmarBrote) {
     return NextResponse.json({ error: "Solo un Administrador puede confirmar manualmente un brote" }, { status: 403 });
   }

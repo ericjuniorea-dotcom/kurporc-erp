@@ -71,6 +71,9 @@ export interface AppSession {
   };
   membresias: Membresia[];
   aal: string | null;      // "aal1" | "aal2" (segundo factor)
+  /** Permisos efectivos (solo para la UI; los arma el layout del ERP). */
+  permisos?: string[];
+  esPropietario?: boolean;
 }
 
 /**

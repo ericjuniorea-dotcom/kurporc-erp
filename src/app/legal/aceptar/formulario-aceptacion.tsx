@@ -8,7 +8,7 @@ import { signOut } from "@/lib/auth/sesion-cliente";
 
 type Doc = { id: string; hash: string; codigo: string; titulo: string; version: string };
 
-export function FormularioAceptacion({ documentos }: { documentos: Doc[] }) {
+export function FormularioAceptacion({ documentos, destino = "/dashboard" }: { documentos: Doc[]; destino?: string }) {
   const [acepta, setAcepta] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
@@ -17,7 +17,7 @@ export function FormularioAceptacion({ documentos }: { documentos: Doc[] }) {
     setError(null);
     iniciar(async () => {
       const r = await aceptarContrato({ acepta, documentos: documentos.map(d => ({ id: d.id, hash: d.hash })) });
-      if (r.ok) { window.location.href = "/dashboard"; return; }
+      if (r.ok) { window.location.href = destino; return; }
       setError(r.error);
       if (r.recargar) setTimeout(() => window.location.reload(), 2500);
     });

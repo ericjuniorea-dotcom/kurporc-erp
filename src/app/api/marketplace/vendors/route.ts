@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 export async function GET() {
   const session = await getSession();
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session?.user?.tenantId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const isAdmin = session.user.roles.some((r: number) => [1, 2].includes(r));
+  const isAdmin = puede(await getPermisos(), "compras.proveedores.editar");
   if (!isAdmin) return NextResponse.json({ error: "Solo administradores pueden registrar proveedores" }, { status: 403 });
 
   const body = await req.json();

@@ -30,7 +30,8 @@ export function FormularioRegistro() {
   const [conGoogle, setConGoogle] = useState(false);
   const [pendiente, iniciar] = useTransition();
 
-  const next = `/onboarding${tipo ? `?tipo=${tipo}` : ""}`;
+  const nextParam = params.get("next");
+  const next = nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : `/onboarding${tipo ? `?tipo=${tipo}` : ""}`;
 
   async function google() {
     setError(null); setConGoogle(true);
@@ -50,7 +51,7 @@ export function FormularioRegistro() {
     iniciar(async () => {
       const r = await registrarConCorreo({
         nombre: String(f.get("nombre") ?? ""), email, clave: String(f.get("clave") ?? ""),
-        acepta: acepta as true, tipo: tipo ?? undefined,
+        acepta: acepta as true, tipo: tipo ?? undefined, next,
       });
       if (r.ok) setEnviado(email); else setError(r.error);
     });

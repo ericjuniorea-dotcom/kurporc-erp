@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import prisma from "@/lib/db/prisma";
 import { serviceEventSchema } from "@/lib/validations/gestacion";
-import { createServiceEventForSow, FORCE_OVERRIDE_ROLES } from "@/lib/gestacion/create-service-event";
+import { createServiceEventForSow } from "@/lib/gestacion/create-service-event";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
@@ -51,9 +52,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-
-  const allowed = [1, 2, 3, 4, 5, 11, 13];
-  if (!session.user.roles.some((r) => allowed.includes(r))) {
+  if (!puede(await getPermisos(), "gestacion.servicios.crear")) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
   }
 
@@ -65,7 +64,7 @@ export async function POST(req: NextRequest) {
 
   // El flag "force" solo se respeta si el usuario tiene un rol autorizado —
   // nunca se confía en el valor enviado por el cliente sin verificarlo acá.
-  const canForce = session.user.roles.some((r) => FORCE_OVERRIDE_ROLES.includes(r));
+  const canForce = puede(await getPermisos(), "sanidad.carencias.liberar"); // forzar un servicio bloqueado: veterinario o propietario
   const forceOverride = canForce && body.force === true;
 
   // Si viene de "Crear lote", el cliente pasa el batchId para que este

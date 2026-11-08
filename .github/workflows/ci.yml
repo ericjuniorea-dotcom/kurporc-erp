@@ -58,6 +58,8 @@ jobs:
         run: psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f supabase/tests/fase4_contratos.sql
       - name: Alta de organizaciones (Fase 6)
         run: npm run prueba:alta
+      - name: Permisos efectivos (Fase 7)
+        run: npm run prueba:permisos
       - name: Las migraciones coinciden con el esquema
         run: |
           out=$(npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --script)

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import prisma from "@/lib/db/prisma";
 import { addDays, isoWeekLabel } from "@/lib/utils";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
@@ -157,9 +158,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-
-  const allowed = [1, 2, 3, 4, 5, 11, 13];
-  if (!session.user.roles.some((r) => allowed.includes(r))) {
+  if (!puede(await getPermisos(), "gestacion.lotes_reproductivos.crear")) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
   }
 

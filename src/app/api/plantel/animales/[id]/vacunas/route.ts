@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import prisma from "@/lib/db/prisma";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -83,6 +84,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   const params = await props.params;
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  if (!puede(await getPermisos(), "sanidad.aplicaciones.crear")) return NextResponse.json({ error: "No tenés permiso para esta acción", permiso: "sanidad.aplicaciones.crear" }, { status: 403 });
   const tenantId = session.user.tenantId;
 
   const sow = await prisma.sow.findFirst({

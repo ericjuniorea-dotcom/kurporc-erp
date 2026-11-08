@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { invalidateInventario } from "@/lib/cache";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 // Registro de compra unificado — mismo mecanismo para materia prima, vacunas,
 // medicamentos o suplementos: crea/incrementa un LoteInventario y dispara un
@@ -11,6 +12,7 @@ import { invalidateInventario } from "@/lib/cache";
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puede(await getPermisos(), "stock.entradas.crear")) return NextResponse.json({ error: "No tenés permiso para esta acción", permiso: "stock.entradas.crear" }, { status: 403 });
   const { tenantId } = session.user;
 
   const body = await req.json();

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 const DEFAULT_METAS = [
   { modulo: "MATERNIDAD", kpiKey: "nacidos_vivos_meta",    valor: 13.5 },
@@ -233,6 +234,7 @@ const DEFAULT_ALERTAS = [
 export async function POST() {
   const session = await getSession();
   if (!session?.user?.tenantId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puede(await getPermisos(), "configuracion.parametros_productivos.editar")) return NextResponse.json({ error: "No tenés permiso para esta acción", permiso: "configuracion.parametros_productivos.editar" }, { status: 403 });
   const tenantId = session.user.tenantId;
   const userId = session.user.id;
 

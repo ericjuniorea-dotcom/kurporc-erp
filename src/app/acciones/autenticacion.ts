@@ -160,6 +160,7 @@ const esquemaRegistro = z.object({
   clave: z.string().min(10, "La contraseña debe tener al menos 10 caracteres").max(200),
   acepta: z.literal(true, { errorMap: () => ({ message: "Tenés que tildar la casilla para crear la cuenta" }) }),
   tipo: z.enum(["COMPRADOR", "INDIVIDUAL", "EMPRESA", "VENDEDOR"]).optional(),
+  next: z.string().max(500).optional(),
 }).strict();
 
 /**
@@ -176,7 +177,7 @@ export async function registrarConCorreo(datos: z.input<typeof esquemaRegistro>)
     return { ok: false, error: "Se crearon demasiadas cuentas desde esta conexión. Probá de nuevo en una hora." };
   }
 
-  const next = `/onboarding${p.data.tipo ? `?tipo=${p.data.tipo}` : ""}`;
+  const next = await destinoSeguro(p.data.next, `/onboarding${p.data.tipo ? `?tipo=${p.data.tipo}` : ""}`);
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email: p.data.email,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { addDays, diffDays } from "@/lib/utils";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
@@ -107,6 +108,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session?.user?.tenantId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puede(await getPermisos(), "engorde.lotes.crear")) return NextResponse.json({ error: "No tenés permiso para esta acción", permiso: "engorde.lotes.crear" }, { status: 403 });
   const tenantId = session.user.tenantId;
 
   const body = await req.json();

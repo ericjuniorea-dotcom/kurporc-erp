@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import prisma from "@/lib/db/prisma";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puede(await getPermisos(), "plantel.animales.editar")) return NextResponse.json({ error: "No tenés permiso para esta acción", permiso: "plantel.animales.editar" }, { status: 403 });
   const tenantId = (session.user as any).tenantId as string;
   const userId   = (session.user as any).id as string;
 

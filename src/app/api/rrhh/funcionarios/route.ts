@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db/prisma";
 import { conActor } from "@/lib/db/actor";
 import { cifrar, descifrar, enmascarar, huella, ErrorCifrado } from "@/lib/seguridad/cifrado";
 import { ipDe, registrarAuditoria, userAgentDe } from "@/lib/seguridad/auditoria";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 export const dynamic = "force-dynamic";
 
@@ -66,9 +67,7 @@ const FUNCIONARIOS_INICIALES = [
   },
 ];
 
-// Ven la cédula completa: Super Admin, Admin de granja y Jefe de RRHH
-// (equivale a rrhh.datos_personales.ver; se reemplaza por requirePermiso en la Fase 7).
-const ROLES_DATOS_PERSONALES = [1, 2, 8];
+// Ven la cédula completa quienes tienen rrhh.datos_personales.ver (Fase 7).
 
 const funcionarioSchema = z.object({
   name:        z.string().trim().min(1, "Nombre requerido").max(120),
@@ -97,7 +96,7 @@ export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   const tenantId = session.user.tenantId;
-  const completa = session.user.roles.some((r: number) => ROLES_DATOS_PERSONALES.includes(r));
+  const completa = puede(await getPermisos(), "rrhh.datos_personales.ver");
 
   const employees = await prisma.employee.findMany({
     where:   { tenantId, isActive: true },
@@ -121,9 +120,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-
-  const allowedRoles = [1, 2, 5];
-  if (!session.user.roles.some((r: number) => allowedRoles.includes(r))) {
+  if (!puede(await getPermisos(), "rrhh.funcionarios.crear")) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
   }
 

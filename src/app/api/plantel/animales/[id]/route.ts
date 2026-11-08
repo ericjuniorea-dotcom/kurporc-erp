@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import prisma from "@/lib/db/prisma";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -28,7 +29,7 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
   const params = await props.params;
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  const canEdit = session.user.roles.some((r: number) => [1, 2].includes(r));
+  const canEdit = puede(await getPermisos(), "plantel.animales.editar");
   if (!canEdit) return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
 
   const tenantId = session.user.tenantId;

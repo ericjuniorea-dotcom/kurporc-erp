@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { invalidateInventario } from "@/lib/cache";
 import { z } from "zod";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 const schema = z.object({
   feedTypeId:     z.string().min(1),
@@ -19,6 +20,7 @@ const schema = z.object({
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puede(await getPermisos(), "alimentacion.consumos.crear")) return NextResponse.json({ error: "No tenés permiso para esta acción", permiso: "alimentacion.consumos.crear" }, { status: 403 });
   const { tenantId } = session.user;
 
   const body = await req.json();

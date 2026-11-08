@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { invalidateInventario } from "@/lib/cache";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 /**
  * Aplica una vacuna a varios EventoVacunacion a la vez (incluso de distintos
@@ -15,6 +16,7 @@ import { invalidateInventario } from "@/lib/cache";
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puede(await getPermisos(), "sanidad.aplicaciones.crear")) return NextResponse.json({ error: "No tenés permiso para esta acción", permiso: "sanidad.aplicaciones.crear" }, { status: 403 });
   const { tenantId, id: userId } = session.user;
 
   const body = await req.json();

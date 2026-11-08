@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { addDays } from "@/lib/utils";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 const DIAGNOSIS_TYPES = ["DIARRHEA", "ARTHRITIS", "PNEUMONIA", "OTHER"];
 const ESTADOS = ["ACTIVO", "EN_SEGUIMIENTO", "FINALIZADO", "ABANDONADO"];
@@ -51,6 +52,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puede(await getPermisos(), "sanidad.tratamientos.crear")) return NextResponse.json({ error: "No tenés permiso para esta acción", permiso: "sanidad.tratamientos.crear" }, { status: 403 });
   const { tenantId, id: userId } = session.user;
 
   const body = await req.json();
@@ -123,6 +125,7 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puede(await getPermisos(), "sanidad.tratamientos.crear")) return NextResponse.json({ error: "No tenés permiso para esta acción", permiso: "sanidad.tratamientos.crear" }, { status: 403 });
   const { tenantId } = session.user;
 
   const body = await req.json();

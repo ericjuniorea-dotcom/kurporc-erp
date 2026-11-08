@@ -7,11 +7,13 @@ import { FormularioAceptacion } from "./formulario-aceptacion";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Términos y Privacidad · KurPorc" };
 
-export default async function AceptarPage() {
+export default async function AceptarPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
+  const { next } = await searchParams;
+  const destino = next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
   const usuario = await getUsuario();
   if (!usuario) redirect("/login?next=/legal/aceptar");
   const pendientes = await pendientesPersona(usuario.id);
-  if (pendientes.length === 0) redirect("/dashboard");
+  if (pendientes.length === 0) redirect(destino);
 
   const actualizacion = pendientes.some(p => p.version !== "1.0");
   return (
@@ -21,7 +23,7 @@ export default async function AceptarPage() {
         ? "Para seguir usando KurPorc, aceptá la versión nueva."
         : "Para usar KurPorc necesitamos que aceptes nuestros términos."}
     >
-      <FormularioAceptacion documentos={pendientes.map(p => ({ id: p.id, hash: p.hashMostrado, codigo: p.codigo, titulo: p.titulo, version: p.version }))} />
+      <FormularioAceptacion destino={destino} documentos={pendientes.map(p => ({ id: p.id, hash: p.hashMostrado, codigo: p.codigo, titulo: p.titulo, version: p.version }))} />
     </MarcoAuth>
   );
 }

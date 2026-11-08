@@ -12,7 +12,7 @@ import {
   IconWheat, IconTruck, IconUsers, IconCalculator,
   IconLayoutDashboard, IconBrandWhatsapp, IconShield,
   IconChartLine, IconLogout, IconDna, IconSettings, IconBuildingStore,
-  IconClipboardCheck, IconMenu2, IconX, IconShieldLock, IconLock,
+  IconClipboardCheck, IconMenu2, IconX, IconShieldLock, IconLock, IconUsersGroup,
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 
@@ -21,51 +21,54 @@ const NAV_GROUPS = [
     key:   "principal",
     label: "Principal",
     items: [
-      { label: "Dashboard",    href: "/dashboard",   icon: IconLayoutDashboard, roles: [1,2,3,4,5,6,7,8,9,10,11,12,13] },
+      { label: "Dashboard",    href: "/dashboard",   icon: IconLayoutDashboard, permiso: "*" },
     ],
   },
   {
     key:   "produccion",
     label: "Producción",
     items: [
-      { label: "Plantel Reproductivo", href: "/plantel", icon: IconDna,              roles: [1,2,3,4,5,11] },
-      { label: "Gestación",   href: "/gestacion",   icon: IconHeart,              roles: [1,2,3,4,5,11] },
-      { label: "Maternidad",  href: "/maternidad",  icon: IconHeartPlus,          roles: [1,2,3,4,5,10] },
-      { label: "Iniciación",   href: "/recria",      icon: IconBuildingWarehouse,  roles: [1,2,3,4,5,12] },
-      { label: "Engorde",     href: "/engorde",     icon: IconChartLine,          roles: [1,2,3,4,5] },
-      { label: "Sanidad",     href: "/sanidad",     icon: IconShield,             roles: [1,2,3,4,5,10,11,12,13] },
-      { label: "Tareas",      href: "/tareas",      icon: IconClipboardCheck,     roles: [1,2,3,4,5,10,11,12,13] },
+      { label: "Plantel Reproductivo", href: "/plantel", icon: IconDna,              permiso: "plantel.animales.ver" },
+      { label: "Gestación",   href: "/gestacion",   icon: IconHeart,              permiso: "gestacion.servicios.ver" },
+      { label: "Maternidad",  href: "/maternidad",  icon: IconHeartPlus,          permiso: "maternidad.partos.ver" },
+      { label: "Iniciación",   href: "/recria",      icon: IconBuildingWarehouse,  permiso: "destete.lotes.ver" },
+      { label: "Engorde",     href: "/engorde",     icon: IconChartLine,          permiso: "engorde.lotes.ver" },
+      { label: "Sanidad",     href: "/sanidad",     icon: IconShield,             permiso: "sanidad.aplicaciones.ver" },
+      { label: "Tareas",      href: "/tareas",      icon: IconClipboardCheck,     permiso: "tareas.tareas.ver" },
     ],
   },
   {
     key:   "operaciones",
     label: "Operaciones",
     items: [
-      { label: "Alimentación", href: "/alimentacion", icon: IconWheat,      roles: [1,2,3,4,5,6,10,11,12,13] },
-      { label: "Logística",    href: "/logistica",    icon: IconTruck,      roles: [1,2,3,7] },
+      { label: "Alimentación", href: "/alimentacion", icon: IconWheat,      permiso: "alimentacion.consumos.ver" },
+      { label: "Logística",    href: "/logistica",    icon: IconTruck,      permiso: "stock.items.ver" },
     ],
   },
   {
     key:   "admin",
     label: "Administración",
     items: [
-      { label: "RRHH",           href: "/rrhh",          icon: IconUsers,          roles: [1,2,8] },
-      { label: "Financiero",     href: "/financiero",    icon: IconCalculator,     roles: [1,2,9] },
-      { label: "WhatsApp Bot",   href: "/whatsapp",      icon: IconBrandWhatsapp,  roles: [1,2] },
-      { label: "Mercado de Insumos", href: "/marketplace", icon: IconBuildingStore, roles: [1,2,3,4,5,6,7,8,9,10,11,12,13] },
-      { label: "Configuración",  href: "/configuracion", icon: IconSettings,       roles: [1,2,3,4,5,6,7,8,9,10,11,12,13] },
+      { label: "RRHH",           href: "/rrhh",          icon: IconUsers,          permiso: "rrhh.funcionarios.ver" },
+      { label: "Financiero",     href: "/financiero",    icon: IconCalculator,     permiso: "finanzas.tablero.ver" },
+      { label: "WhatsApp Bot",   href: "/whatsapp",      icon: IconBrandWhatsapp,  permiso: "configuracion.integraciones.editar" },
+      { label: "Mercado de Insumos", href: "/marketplace", icon: IconBuildingStore, permiso: "compras.pedidos.ver" },
+      { label: "Equipo",         href: "/equipo",        icon: IconUsersGroup,     permiso: "equipo.miembros.ver" },
+      { label: "Configuración",  href: "/configuracion", icon: IconSettings,       permiso: "configuracion.organizacion.ver" },
     ],
   },
 ];
 
 interface SidebarProps {
   farmName:  string;
-  userRoles: number[];
+  /** Permisos efectivos en la organización activa (Fase 7). El menú solo muestra lo permitido. */
+  permisos: string[];
   organizacionActiva: string;
   membresias: Membresia[];
 }
 
-export function Sidebar({ farmName, userRoles, organizacionActiva, membresias }: SidebarProps) {
+export function Sidebar({ farmName, permisos, organizacionActiva, membresias }: SidebarProps) {
+  const tiene = (p: string) => p === "*" || permisos.includes(p);
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -137,7 +140,7 @@ export function Sidebar({ farmName, userRoles, organizacionActiva, membresias }:
         <nav style={{ flex: 1, padding: "8px 0", overflowY: "auto" }}>
           {NAV_GROUPS.map((group) => {
             const visible = group.items.filter((item) =>
-              item.roles.some((r) => userRoles.includes(r))
+              tiene(item.permiso)
             );
             if (!visible.length) return null;
             return (

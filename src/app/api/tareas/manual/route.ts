@@ -2,10 +2,12 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puede(await getPermisos(), "tareas.tareas.crear")) return NextResponse.json({ error: "No tenés permiso para esta acción", permiso: "tareas.tareas.crear" }, { status: 403 });
   const { tenantId } = session.user;
 
   const body = await req.json();

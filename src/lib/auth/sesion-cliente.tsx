@@ -25,6 +25,18 @@ export function useSession(): ValorSesion {
   return useContext(Ctx);
 }
 
+/** Permisos de la persona en la organización activa (para mostrar u ocultar; la seguridad está en el servidor). */
+export function usePermisos() {
+  const { data } = useContext(Ctx);
+  const lista = data?.permisos ?? [];
+  return { puede: (clave: string) => !!data?.esPropietario || lista.includes(clave), esPropietario: !!data?.esPropietario };
+}
+
+/** <Can permiso="gestacion.servicios.crear">…</Can> */
+export function Can({ permiso, children, sino = null }: { permiso: string; children: React.ReactNode; sino?: React.ReactNode }) {
+  return <>{usePermisos().puede(permiso) ? children : sino}</>;
+}
+
 /** Cierra la sesión. `global: true` la cierra en todos los dispositivos. */
 export async function signOut(opciones: { callbackUrl?: string; global?: boolean } = {}) {
   await fetch(`/auth/salir${opciones.global ? "?alcance=global" : ""}`, { method: "POST" }).catch(() => {});

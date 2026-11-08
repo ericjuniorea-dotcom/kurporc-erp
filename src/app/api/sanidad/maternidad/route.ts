@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 const PROCEDIMIENTO_LABEL: Record<string, string> = {
   DESCOLMILLADO:  "Descolmillado",
@@ -42,6 +43,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!puede(await getPermisos(), "sanidad.aplicaciones.crear")) return NextResponse.json({ error: "No tenés permiso para esta acción", permiso: "sanidad.aplicaciones.crear" }, { status: 403 });
   const { tenantId, id: userId } = session.user;
 
   const body = await req.json();

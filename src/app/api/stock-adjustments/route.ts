@@ -3,6 +3,7 @@ import { getSession, canApproveStockAdjustments } from "@/lib/auth/config";
 import prisma from "@/lib/db/prisma";
 import { stockAdjustmentSchema } from "@/lib/validations/maternidad";
 import { calculateSowStock } from "@/lib/maternidad/stock";
+import { getPermisos, puede } from "@/lib/permisos/servidor";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
@@ -30,6 +31,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  if (!puede(await getPermisos(), "maternidad.lechones.editar")) return NextResponse.json({ error: "No tenés permiso para esta acción", permiso: "maternidad.lechones.editar" }, { status: 403 });
 
   const body   = await req.json();
   const parsed = stockAdjustmentSchema.safeParse(body);
