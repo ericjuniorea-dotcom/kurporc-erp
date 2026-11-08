@@ -159,3 +159,43 @@ export function coberturaDias(saldo: bigint, egresoPromedioMensual: number): num
   if (egresoPromedioMensual <= 0) return null;
   return Number(saldo) / (egresoPromedioMensual / 30);
 }
+
+// ── 8.22 · Retorno de la inversión y punto de equilibrio ──────────
+/** Valor actual neto de flujos anuales (el índice 0 es el año 0, sin descontar). */
+export function van(flujos: number[], tasa: number): number {
+  return flujos.reduce((s, f, i) => s + f / Math.pow(1 + tasa, i), 0);
+}
+/** Tasa interna de retorno por bisección; null si los flujos no cambian de signo. */
+export function tir(flujos: number[]): number | null {
+  const hayNeg = flujos.some(f => f < 0), hayPos = flujos.some(f => f > 0);
+  if (!hayNeg || !hayPos) return null;
+  let lo = -0.99, hi = 10;
+  if (van(flujos, lo) * van(flujos, hi) > 0) return null;
+  for (let i = 0; i < 200; i++) {
+    const mid = (lo + hi) / 2;
+    if (van(flujos, lo) * van(flujos, mid) <= 0) hi = mid; else lo = mid;
+    if (hi - lo < 1e-9) break;
+  }
+  return (lo + hi) / 2;
+}
+/** Años hasta recuperar la inversión (con fracción); null si no se recupera en el horizonte. */
+export function payback(flujos: number[]): number | null {
+  let acum = 0;
+  for (let i = 0; i < flujos.length; i++) {
+    const antes = acum;
+    acum += flujos[i];
+    if (i > 0 && antes < 0 && acum >= 0) return i - 1 + -antes / flujos[i];
+  }
+  return null;
+}
+/** Flujos para el retorno: año 0 = −inversión; año 1 = proyectado; años 2 a 5 crecen a la tasa. */
+export function flujosRetorno(inversion: number, anio1: number, crecimiento: number, anios = 5): number[] {
+  return [-inversion, ...Array.from({ length: anios }, (_, i) => anio1 * Math.pow(1 + crecimiento, i))];
+}
+/** Punto de equilibrio en lechones por mes = gasto fijo ÷ (precio − gasto variable por lechón). */
+export function puntoEquilibrio(fijoMes: number, variableMes: number, entregadosMes: number, precioRef: number): { valor: number | null; mensaje?: string } {
+  if (entregadosMes <= 0) return { valor: null, mensaje: "Sin ventas en el mes" };
+  const contribucion = precioRef - variableMes / entregadosMes;
+  if (contribucion <= 0) return { valor: null, mensaje: "No calculable: el costo variable por lechón supera al precio" };
+  return { valor: fijoMes / contribucion };
+}

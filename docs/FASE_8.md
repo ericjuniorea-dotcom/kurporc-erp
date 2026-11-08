@@ -47,5 +47,21 @@ Pendiente de esta parte: conteo físico de sanidad (hoy el stock es el teórico 
 
 Pendiente: proyección de ventas por calendario de bandas (hoy, por parámetro), gráficos.
 
+## Parte 4a — Control y análisis (hecha, sin cambios en la base)
+
+| Punto | Implementación |
+|---|---|
+| Menú | Agrupado en Día a día · Análisis · Planificación · Control |
+| `/finanzas` | Tablero con semáforo (cobertura, caja disponible, margen, vencidos, mes sin caja, dinero que necesito, Sanidad al día, controles), el mes que viene y aviso de controles que no dan cero |
+| `/finanzas/estado` | Activos, obligaciones, posición neta, caja realmente disponible, resultado del año, inversiones y conciliación "¿de dónde salió la plata?" con la diferencia a conciliar |
+| `/finanzas/indicadores` | Operación, producción y margen (con punto de equilibrio), caja/deuda/liquidez y retorno (ROI, VAN, TIR, payback), cada uno con cómo se calcula, meta y estado |
+| `/finanzas/analisis` | El año mes a mes y la distribución del gasto por categoría |
+| `/finanzas/cierre` | Los 11 controles del libro ([control.ts](../src/lib/finanzas/control.ts)) y el checklist de cierre; al cerrar: bloqueo del mes (lo exige la base), foto de los indicadores, recomendaciones, aviso al equipo y auditoría. Reabrir con motivo |
+| `/finanzas/recomendaciones` | Reglas REC-01, 02, 03, 05, 06, 07, 08, 09, 11, 12 y 14 con los números del momento; estados abierta, en curso, resuelta, descartada |
+| `/finanzas/buenas-practicas` | Las prácticas, sin cifras de terceros (el documento pide verificarlas antes de mostrarlas) |
+| Pruebas | `prueba:finanzas` suma VAN, TIR, payback, flujos del retorno y punto de equilibrio |
+
+Sin fábrica no aplican los controles 3 y 4 ni REC-13 y REC-15. REC-04 (inventario físico) y REC-10 (desvío de tres meses seguidos) quedan para cuando haya conteo físico e historial de presupuesto.
+
 ## Próximas partes
-- **Parte 4:** Estado financiero, indicadores (VAN, TIR, payback), análisis del año, tablero completo, controles del libro, cierre de mes, recomendaciones, buenas prácticas e importación de la planilla con el informe contra el Anexo H.
+- **Parte 4b:** importación de la planilla de Administración y Finanzas y el informe de validación contra el Anexo H.

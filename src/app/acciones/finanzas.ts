@@ -626,3 +626,84 @@ export async function cambiarEstadoEvaluacion(id: string, estado: "APROBADA" | "
     return { ok: true };
   } catch (e) { return manejar(e); }
 }
+
+// ── Cierre de mes (8.27) y recomendaciones (8.25) ────────────────────
+async function guardarRecomendaciones(org: string, mes: number) {
+  const { calcularRecomendaciones } = await import("@/lib/finanzas/control");
+  const recs = await calcularRecomendaciones(org, mes);
+  for (const r of recs) {
+    await prisma.recomendacion.upsert({
+      where: { organizacionId_codigo_mes: { organizacionId: org, codigo: r.codigo, mes } },
+      create: { organizacionId: org, mes, ...r },
+      update: { problema: r.problema, situacion: r.situacion, mejora: r.mejora, impacto: r.impacto, prioridad: r.prioridad, accion: r.accion, generadaEn: new Date() },
+    });
+  }
+  return recs.length;
+}
+
+export async function cerrarMes(mes: number, manual: { produccion: boolean; balanceado: boolean; pendientes: boolean }): Promise<R<{ recomendaciones: number }>> {
+  try {
+    const { session, permisos } = await requirePermiso("finanzas.cierre.cerrar");
+    const org = permisos.organizacionId;
+    z.number().int().min(200001).max(210012).parse(mes);
+    const { evaluarCierre, estadoFinanciero, indicadores } = await import("@/lib/finanzas/control");
+    const pasos = await evaluarCierre(org, mes, manual);
+    const faltan = pasos.filter(p => !p.ok);
+    if (faltan.length) throw new Error(`•Falta completar: ${faltan.map(p => p.nombre.toLowerCase()).join("; ")}.`);
+    const [e, ind] = await Promise.all([estadoFinanciero(org), indicadores(org)]);
+    const snapshot = JSON.parse(JSON.stringify({ estado: e, indicadores: { operacion: ind.operacion, produccion: ind.produccion, caja: ind.caja, retorno: ind.retorno }, pasos }, (_k, v) => (typeof v === "bigint" ? v.toString() : v)));
+    const checklist = Object.fromEntries(pasos.map(p => [p.clave, p.ok]));
+    const existente = await prisma.cierreMes.findFirst({ where: { organizacionId: org, unidadId: null, mes } });
+    if (existente?.estado === "CERRADO") throw new Error("•Ese mes ya está cerrado.");
+    await conActor(session.user.id, async tx => {
+      if (existente) await tx.cierreMes.update({ where: { id: existente.id }, data: { estado: "CERRADO", checklist, snapshot, cerradoPor: session.user.id, cerradoEn: new Date() } });
+      else await tx.cierreMes.create({ data: { organizacionId: org, mes, estado: "CERRADO", checklist, snapshot, cerradoPor: session.user.id, cerradoEn: new Date() } });
+    });
+    const recs = await guardarRecomendaciones(org, mes);
+    // Aviso a quienes ven el tablero financiero
+    const miembros = await prisma.miembro.findMany({ where: { organizacionId: org, estado: "ACTIVO" }, select: { userId: true, esPropietario: true, rol: { select: { permisos: { where: { permisoClave: "finanzas.tablero.ver" }, select: { permisoClave: true } } } } } });
+    const destinatarios = miembros.filter(m => m.esPropietario || (m.rol?.permisos.length ?? 0) > 0).map(m => m.userId);
+    const { nombreMes } = await import("@/lib/finanzas/calculos");
+    if (destinatarios.length) await prisma.notificacion.createMany({ data: destinatarios.map(userId => ({ userId, organizacionId: org, tipo: "MES_CERRADO", titulo: `Se cerró ${nombreMes(mes)}`, cuerpo: `${recs} recomendación(es) nuevas.`, enlace: "/finanzas/recomendaciones" })) });
+    await registrarAuditoria("MES_CERRADO", "cierre_mes", String(mes), { mes, recomendaciones: recs }, await ctx(session.user.id, org));
+    revalidatePath("/finanzas", "layout");
+    return { ok: true, recomendaciones: recs };
+  } catch (e) { return manejar(e); }
+}
+
+export async function reabrirMes(mes: number, motivo: string): Promise<R> {
+  try {
+    const { session, permisos } = await requirePermiso("finanzas.cierre.reabrir");
+    const org = permisos.organizacionId;
+    const texto = motivo.trim();
+    if (texto.length < 5) throw new Error("•Escribí el motivo (al menos 5 letras).");
+    const c = await prisma.cierreMes.findFirst({ where: { organizacionId: org, unidadId: null, mes, estado: "CERRADO" } });
+    if (!c) throw new Error("•Ese mes no está cerrado.");
+    await conActor(session.user.id, tx => tx.cierreMes.update({ where: { id: c.id }, data: { estado: "ABIERTO", motivoReapertura: texto } }));
+    await registrarAuditoria("MES_REABIERTO", "cierre_mes", String(mes), { mes, motivo: texto }, await ctx(session.user.id, org));
+    revalidatePath("/finanzas", "layout");
+    return { ok: true };
+  } catch (e) { return manejar(e); }
+}
+
+export async function generarRecomendaciones(mes: number): Promise<R<{ cantidad: number }>> {
+  try {
+    const { permisos } = await requirePermiso("finanzas.recomendaciones.gestionar");
+    z.number().int().min(200001).max(210012).parse(mes);
+    const n = await guardarRecomendaciones(permisos.organizacionId, mes);
+    revalidatePath("/finanzas/recomendaciones");
+    return { ok: true, cantidad: n };
+  } catch (e) { return manejar(e); }
+}
+
+export async function cambiarEstadoRecomendacion(id: string, estado: "ABIERTA" | "EN_CURSO" | "RESUELTA" | "DESCARTADA"): Promise<R> {
+  try {
+    const { session, permisos } = await requirePermiso("finanzas.recomendaciones.gestionar");
+    z.enum(["ABIERTA", "EN_CURSO", "RESUELTA", "DESCARTADA"]).parse(estado);
+    const r = await prisma.recomendacion.findFirst({ where: { id, organizacionId: permisos.organizacionId } });
+    if (!r) throw new Error("•Esa recomendación no existe.");
+    await conActor(session.user.id, tx => tx.recomendacion.update({ where: { id }, data: { estado } }));
+    revalidatePath("/finanzas/recomendaciones");
+    return { ok: true };
+  } catch (e) { return manejar(e); }
+}

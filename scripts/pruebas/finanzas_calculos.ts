@@ -119,3 +119,15 @@ const fl = flujoReal([
 check(fl[0].flujoNeto === 3_000_000n && fl[1].flujoNeto === 2_000_000n && fl[1].saldoFinal === 5_000_100n, "flujo de caja real: flujo neto y saldo");
 check(coberturaDias(3_000_000n, 3_000_000) === 30, "cobertura de caja en días");
 console.log("\nOK — planificación (parte 3) verificada");
+
+// ── Parte 4: retorno y equilibrio ─────────────────────────────────
+import { flujosRetorno, payback, puntoEquilibrio, tir, van } from "@/lib/finanzas/planificacion";
+const fr = flujosRetorno(1000, 300, 0.1);
+check(fr.length === 6 && fr[0] === -1000 && Math.abs(fr[2] - 330) < 1e-9, "flujos del retorno: año 0 y crecimiento");
+check(Math.abs(van([-1000, 500, 600], 0.1) - (-1000 + 500 / 1.1 + 600 / 1.21)) < 1e-9, "VAN");
+const t = tir([-1000, 500, 600])!;
+check(Math.abs(van([-1000, 500, 600], t)) < 1e-6 && tir([100, 200]) === null, "TIR (y no calculable sin cambio de signo)");
+check(Math.abs(payback([-1000, 400, 400, 400])! - 2.5) < 1e-9 && payback([-1000, 100, 100]) === null, "payback con fracción y sin recupero");
+const pe = puntoEquilibrio(10_000_000, 4_000_000, 20, 450_000);
+check(pe.valor === 40 && puntoEquilibrio(1, 1, 0, 1).mensaje === "Sin ventas en el mes" && puntoEquilibrio(1, 10_000_000, 1, 100).valor === null, "punto de equilibrio y sus mensajes");
+console.log("\nOK — retorno de la inversión (parte 4) verificado");
