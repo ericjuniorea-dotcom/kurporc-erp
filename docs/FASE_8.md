@@ -32,6 +32,20 @@ Réplica de la planilla de Administración y Finanzas, por partes. Sin fábrica 
 
 Pendiente de esta parte: conteo físico de sanidad (hoy el stock es el teórico de los lotes), matrices activas promedio por mes (hoy se usan las activas de hoy o el número fijo de Parámetros) y gráficos.
 
+## Parte 3 — Planificación (hecha, sin cambios en la base)
+
+| Punto | Implementación |
+|---|---|
+| `/finanzas/presupuesto` | Grilla categoría × mes con subtotales de gasto operativo e inversión, acumulado al corte; "= todos", copiar el año anterior, promedio real de 6 meses, cargas sociales (aguinaldo + IPS sobre los sueldos presupuestados) |
+| `/finanzas/presupuesto-vs-real` | Acumulado y mes: diferencia, desvío y semáforo (OK / Atención / Explicar según Parámetros) y la causa escrita al lado del número |
+| `/finanzas/proyeccion` | 15 meses: ventas (parámetros), otros ingresos, aportes previstos, gasto e inversión presupuestados, cuotas, cuentas por pagar por mes de pago; saldo, meses cubiertos, alerta y las preguntas (cuánto necesito, en qué mes me quedo sin caja, capital de trabajo). Aportes previstos editables |
+| `/finanzas/flujo-caja` | Real (por fecha de pago, desde los saldos iniciales) + proyectado; flujo neto, saldo, acumulado del año, cobertura de caja en días |
+| `/finanzas/inversiones` | Histórica y nueva por categoría y detalle, granja y común, inversión por matriz, fichas de activo con amortización acumulada y valor neto |
+| `/finanzas/nueva-inversion` | Cuota (simple o francesa), "¿entra en la caja?" con la corrección respecto de la planilla (y el valor de la planilla al lado); aprobar → presupuesto, ejecutar → libro |
+| `/finanzas/deudas` | Préstamos con cuotas pagadas, atrasadas, saldo, costo financiero, tasa mensual y anual implícitas (como RATE), próximo pago; calendario de 12 meses; resumen; ranking para refinanciar. Cada cuota que vence genera sola su movimiento (pagado si es débito automático) |
+| Pruebas | `prueba:finanzas` suma 10 controles de planificación (tasa implícita, cuota francesa, vencimientos, semáforo, proyección, flujo, cobertura) |
+
+Pendiente: proyección de ventas por calendario de bandas (hoy, por parámetro), gráficos.
+
 ## Próximas partes
-- **Parte 3:** Presupuesto, presupuesto contra real con causas, proyección de caja, flujo de caja, inversiones, evaluación de nueva inversión, deudas y calendario de cuotas, aportes de capital.
 - **Parte 4:** Estado financiero, indicadores (VAN, TIR, payback), análisis del año, tablero completo, controles del libro, cierre de mes, recomendaciones, buenas prácticas e importación de la planilla con el informe contra el Anexo H.

@@ -357,3 +357,272 @@ export async function guardarParametros(valores: Record<string, string>): Promis
     return { ok: true };
   } catch (e) { return manejar(e); }
 }
+
+// ── Deudas y financiamiento (8.19) ───────────────────────────────────
+const prestamoSchema = z.object({
+  acreedor: z.string().trim().min(2, "Escribí el acreedor").max(120),
+  concepto: z.string().trim().min(2, "Escribí el concepto").max(160),
+  montoRecibidoGs: montoTxt,
+  cuotaMensualGs: montoTxt,
+  numeroCuotas: z.coerce.number().int().min(1, "Al menos 1 cuota").max(600),
+  primerVencimiento: fecha,
+  debitoAutomatico: z.boolean(),
+  cuentaDebitoId: z.string().uuid().nullable().default(null),
+  registrarIngreso: z.boolean(),             // cargar el "Préstamo recibido" en el libro
+  fechaRecibido: fecha.optional().or(z.literal("")),
+  cuotasYaPagadas: z.coerce.number().int().min(0).max(600).default(0),
+  observacion: z.string().trim().max(300).optional().default(""),
+}).strict();
+
+export async function crearPrestamo(datos: z.input<typeof prestamoSchema>): Promise<R> {
+  try {
+    const { session, permisos } = await requirePermiso("finanzas.deudas.crear");
+    const d = prestamoSchema.parse(datos);
+    const org = permisos.organizacionId;
+    if (d.cuotasYaPagadas > d.numeroCuotas) throw new Error("•Hay más cuotas pagadas que cuotas.");
+    if (d.cuentaDebitoId && !(await prisma.cuentaFondos.findFirst({ where: { id: d.cuentaDebitoId, organizacionId: org } }))) throw new Error("•Esa cuenta no es de tu organización.");
+    const { unidadParaCategoria } = await import("@/lib/finanzas/plan-datos");
+    const { vencimientos } = await import("@/lib/finanzas/planificacion");
+    const unidad = await unidadParaCategoria(org, "COMUN");
+    if (!unidad) throw new Error("•Tu organización no tiene unidades de negocio.");
+    const [catRecibido, catCuota] = await Promise.all([
+      prisma.categoriaFinanciera.findFirst({ where: { nombre: "Préstamo recibido", organizacionId: null } }),
+      prisma.categoriaFinanciera.findFirst({ where: { nombre: "Pago de cuota de préstamo", organizacionId: null } }),
+    ]);
+    if (!catRecibido || !catCuota) throw new Error("•Faltan las categorías de financiamiento.");
+    const fechas = vencimientos(fechaISO(d.primerVencimiento), d.numeroCuotas);
+    const cuota = BigInt(d.cuotaMensualGs);
+    await conActor(session.user.id, async tx => {
+      const acreedor = await tx.contraparte.upsert({
+        where: { organizacionId_nombre: { organizacionId: org, nombre: d.acreedor } },
+        create: { organizacionId: org, nombre: d.acreedor, tipo: "ACREEDOR" }, update: {},
+      });
+      const p = await tx.prestamo.create({
+        data: {
+          organizacionId: org, unidadId: unidad.id, acreedorId: acreedor.id, concepto: d.concepto, montoRecibidoGs: BigInt(d.montoRecibidoGs),
+          cuotaMensualGs: cuota, numeroCuotas: d.numeroCuotas, primerVencimiento: fechas[0], debitoAutomatico: d.debitoAutomatico,
+          cuentaDebitoId: d.cuentaDebitoId, observacion: d.observacion || null, creadoPor: session.user.id,
+        },
+      });
+      for (let i = 0; i < fechas.length; i++) {
+        const c = await tx.cuotaPrestamo.create({ data: { prestamoId: p.id, numero: i + 1, vencimiento: fechas[i], montoGs: cuota } });
+        // Préstamo que ya venía pagándose: las primeras cuotas quedan pagadas en su vencimiento
+        if (i < d.cuotasYaPagadas) {
+          const m = await tx.movimiento.create({
+            data: {
+              organizacionId: org, unidadId: unidad.id, fecha: fechas[i], tipo: "FINANCIAMIENTO", concepto: `Cuota ${i + 1}/${d.numeroCuotas} · ${d.concepto}`,
+              categoriaId: catCuota.id, contraparteId: acreedor.id, montoGs: cuota, estado: "PENDIENTE", origen: "CUOTA_PRESTAMO", origenId: c.id,
+              cuentaFondosId: d.cuentaDebitoId, creadoPor: session.user.id,
+            },
+          });
+          await tx.pagoMovimiento.create({ data: { movimientoId: m.id, fechaPago: fechas[i], montoGs: cuota, cuentaFondosId: d.cuentaDebitoId, creadoPor: session.user.id } });
+          await tx.cuotaPrestamo.update({ where: { id: c.id }, data: { movimientoId: m.id } });
+        }
+      }
+      if (d.registrarIngreso) {
+        const f = fechaISO(d.fechaRecibido || d.primerVencimiento);
+        const m = await tx.movimiento.create({
+          data: {
+            organizacionId: org, unidadId: unidad.id, fecha: f, tipo: "FINANCIAMIENTO", concepto: `Préstamo recibido · ${d.concepto}`,
+            categoriaId: catRecibido.id, contraparteId: acreedor.id, montoGs: BigInt(d.montoRecibidoGs), estado: "POR_COBRAR",
+            cuentaFondosId: d.cuentaDebitoId, creadoPor: session.user.id,
+          },
+        });
+        await tx.pagoMovimiento.create({ data: { movimientoId: m.id, fechaPago: f, montoGs: BigInt(d.montoRecibidoGs), cuentaFondosId: d.cuentaDebitoId, creadoPor: session.user.id } });
+      }
+    });
+    revalidatePath("/finanzas", "layout");
+    return { ok: true };
+  } catch (e) { return manejar(e); }
+}
+
+// ── Presupuesto (8.13) ───────────────────────────────────────────────
+const cambioPresupuesto = z.object({ categoriaId: z.string().uuid(), mes: z.number().int().min(200001).max(210012), montoGs: z.string().regex(/^\d{0,15}$/) });
+
+async function escribirPresupuesto(org: string, actorId: string, cambios: { categoriaId: string; mes: number; montoGs: bigint }[]) {
+  const { unidadParaCategoria } = await import("@/lib/finanzas/plan-datos");
+  const cats = await prisma.categoriaFinanciera.findMany({ where: { id: { in: Array.from(new Set(cambios.map(c => c.categoriaId))) }, OR: [{ organizacionId: null }, { organizacionId: org }] }, select: { id: true, unidadDefault: true, tipo: true } });
+  const cat = new Map(cats.map(c => [c.id, c]));
+  const unidades = new Map<string, string>();
+  for (const c of cats) {
+    if (c.tipo !== "GASTO" && c.tipo !== "INVERSION") throw new Error("•Solo se presupuestan gastos e inversiones.");
+    if (!unidades.has(c.unidadDefault)) { const u = await unidadParaCategoria(org, c.unidadDefault); if (!u) throw new Error("•Sin unidades de negocio."); unidades.set(c.unidadDefault, u.id); }
+  }
+  await conActor(actorId, async tx => {
+    for (const c of cambios) {
+      const k = cat.get(c.categoriaId);
+      if (!k) throw new Error("•Categoría inválida.");
+      const unidadId = unidades.get(k.unidadDefault)!;
+      const where = { organizacionId_unidadId_categoriaId_mes: { organizacionId: org, unidadId, categoriaId: c.categoriaId, mes: c.mes } };
+      if (c.montoGs === 0n) await tx.presupuesto.deleteMany({ where: { organizacionId: org, unidadId, categoriaId: c.categoriaId, mes: c.mes } });
+      else await tx.presupuesto.upsert({ where, create: { organizacionId: org, unidadId, categoriaId: c.categoriaId, mes: c.mes, montoGs: c.montoGs }, update: { montoGs: c.montoGs } });
+    }
+  });
+}
+
+export async function guardarPresupuesto(cambios: z.input<typeof cambioPresupuesto>[]): Promise<R> {
+  try {
+    const { session, permisos } = await requirePermiso("finanzas.presupuesto.editar");
+    const lista = z.array(cambioPresupuesto).max(2000).parse(cambios);
+    await escribirPresupuesto(permisos.organizacionId, session.user.id, lista.map(c => ({ ...c, montoGs: BigInt(c.montoGs || "0") })));
+    revalidatePath("/finanzas", "layout");
+    return { ok: true };
+  } catch (e) { return manejar(e); }
+}
+
+/** Herramientas del presupuesto: copiar el año anterior, promedio real de 6 meses, cargas sociales. */
+export async function herramientaPresupuesto(d: { accion: "copiar_anio_anterior" | "promedio_real" | "cargas_sociales"; anio: number; categoriaId?: string; desdeMes?: number }): Promise<R<{ cambios: number }>> {
+  try {
+    const { session, permisos } = await requirePermiso("finanzas.presupuesto.editar");
+    const org = permisos.organizacionId;
+    const anio = z.number().int().min(2000).max(2100).parse(d.anio);
+    const meses = Array.from({ length: 12 }, (_, i) => anio * 100 + i + 1);
+    const cambios: { categoriaId: string; mes: number; montoGs: bigint }[] = [];
+    if (d.accion === "copiar_anio_anterior") {
+      const previo = await prisma.presupuesto.findMany({ where: { organizacionId: org, mes: { gte: (anio - 1) * 100 + 1, lte: (anio - 1) * 100 + 12 } } });
+      if (!previo.length) throw new Error(`•No hay presupuesto de ${anio - 1} para copiar.`);
+      for (const p of previo) cambios.push({ categoriaId: p.categoriaId, mes: p.mes + 100, montoGs: p.montoGs });
+    } else if (d.accion === "promedio_real") {
+      // Promedio real de los últimos 6 meses cerrados de cada categoría (mejora N° 10)
+      const { hoyUTC, mesDe } = await import("@/lib/finanzas/calculos");
+      const { sumarMeses } = await import("@/lib/finanzas/planificacion");
+      const hasta = sumarMeses(mesDe(hoyUTC()), -1), desde = sumarMeses(hasta, -5);
+      const reales = await prisma.movimiento.groupBy({
+        by: ["categoriaId"], where: { organizacionId: org, estado: { not: "ANULADO" }, tipo: "GASTO", mes: { gte: desde, lte: hasta }, ...(d.categoriaId ? { categoriaId: d.categoriaId } : {}) },
+        _sum: { montoGs: true },
+      });
+      for (const r of reales) {
+        const prom = (r._sum.montoGs ?? 0n) / 6n;
+        if (prom > 0n) for (const mes of meses) cambios.push({ categoriaId: r.categoriaId, mes, montoGs: prom });
+      }
+      if (!cambios.length) throw new Error("•No hay gastos reales en los últimos 6 meses.");
+    } else {
+      // Cargas sociales: aguinaldo (1/12 de los sueldos) + IPS patronal sobre los sueldos presupuestados (mejora N° 9)
+      const params = await prisma.parametrosFinancieros.findUnique({ where: { organizacionId: org } });
+      const sueldos = await prisma.categoriaFinanciera.findMany({ where: { organizacionId: null, nombre: { in: ["Personal producción", "Personal administración"] } }, select: { id: true } });
+      const cargas = await prisma.categoriaFinanciera.findFirst({ where: { organizacionId: null, nombre: "Cargas sociales (IPS y aguinaldo)" } });
+      if (!cargas) throw new Error("•Falta la categoría de cargas sociales.");
+      const desde = d.desdeMes ?? anio * 100 + 1;
+      const pres = await prisma.presupuesto.groupBy({ by: ["mes"], where: { organizacionId: org, categoriaId: { in: sueldos.map(s => s.id) }, mes: { gte: desde, lte: anio * 100 + 12 } }, _sum: { montoGs: true } });
+      const tasa = Number(params?.tasaIpsPatronal ?? 0.165);
+      for (const p of pres) {
+        const s = p._sum.montoGs ?? 0n;
+        const monto = (params?.provisionarAguinaldo === false ? 0n : s / 12n) + BigInt(Math.round(Number(s) * tasa));
+        if (monto > 0n) cambios.push({ categoriaId: cargas.id, mes: p.mes, montoGs: monto });
+      }
+      if (!cambios.length) throw new Error("•Primero presupuestá los sueldos (Personal producción y administración).");
+    }
+    await escribirPresupuesto(org, session.user.id, cambios);
+    revalidatePath("/finanzas", "layout");
+    return { ok: true, cambios: cambios.length };
+  } catch (e) { return manejar(e); }
+}
+
+/** Causa escrita al lado del desvío (8.14). */
+export async function guardarCausa(categoriaId: string, mes: number, causa: string): Promise<R> {
+  try {
+    const { session, permisos } = await requirePermiso("finanzas.presupuesto_real.escribir_causa");
+    const texto = causa.trim().slice(0, 500);
+    const org = permisos.organizacionId;
+    z.string().uuid().parse(categoriaId);
+    z.number().int().min(200001).max(210012).parse(mes);
+    await conActor(session.user.id, async tx => {
+      if (!texto) await tx.causaDesvio.deleteMany({ where: { organizacionId: org, categoriaId, mes } });
+      else await tx.causaDesvio.upsert({
+        where: { organizacionId_categoriaId_mes: { organizacionId: org, categoriaId, mes } },
+        create: { organizacionId: org, categoriaId, mes, causa: texto, autorId: session.user.id }, update: { causa: texto, autorId: session.user.id },
+      });
+    });
+    revalidatePath("/finanzas/presupuesto-vs-real");
+    return { ok: true };
+  } catch (e) { return manejar(e); }
+}
+
+// ── Aportes de capital previstos (8.20) ──────────────────────────────
+export async function crearAporte(d: { mes: number; montoGs: string; descripcion: string }): Promise<R> {
+  try {
+    const { session, permisos } = await requirePermiso("finanzas.proyeccion.editar_supuestos");
+    const mes = z.number().int().min(200001).max(210012).parse(d.mes);
+    const monto = montoTxt.parse(d.montoGs);
+    await conActor(session.user.id, tx => tx.aporteCapitalPrevisto.create({ data: { organizacionId: permisos.organizacionId, mes, montoGs: BigInt(monto), descripcion: d.descripcion.trim().slice(0, 200) || null } }));
+    revalidatePath("/finanzas", "layout");
+    return { ok: true };
+  } catch (e) { return manejar(e); }
+}
+
+export async function borrarAporte(id: string): Promise<R> {
+  try {
+    const { session, permisos } = await requirePermiso("finanzas.proyeccion.editar_supuestos");
+    await conActor(session.user.id, tx => tx.aporteCapitalPrevisto.deleteMany({ where: { id, organizacionId: permisos.organizacionId } }));
+    revalidatePath("/finanzas", "layout");
+    return { ok: true };
+  } catch (e) { return manejar(e); }
+}
+
+// ── Evaluación de nueva inversión (8.18) ─────────────────────────────
+const evaluacionSchema = z.object({
+  fechaPrevista: fecha,
+  concepto: z.string().trim().min(2, "Escribí el concepto").max(160),
+  categoriaId: z.string().uuid("Elegí una categoría"),
+  cantidad: z.string().trim().regex(/^\d{1,8}([.,]\d{1,2})?$/, "Cantidad inválida"),
+  montoTotalGs: montoTxt,
+  formaPago: z.enum(["CONTADO", "FINANCIADO", "MIXTO"]),
+  financiamientoGs: z.string().trim().regex(/^\d{0,15}$/).default("0"),
+  plazoMeses: z.coerce.number().int().min(0).max(600).default(0),
+  tasaAnual: z.string().trim().regex(/^(\d{1,3}([.,]\d{1,2})?)?$/, "Tasa inválida").default(""),
+}).strict();
+
+export async function crearEvaluacion(datos: z.input<typeof evaluacionSchema>): Promise<R> {
+  try {
+    const { session, permisos } = await requirePermiso("finanzas.inversiones.evaluar");
+    const d = evaluacionSchema.parse(datos);
+    const cat = await prisma.categoriaFinanciera.findFirst({ where: { id: d.categoriaId, tipo: "INVERSION", OR: [{ organizacionId: null }, { organizacionId: permisos.organizacionId }] } });
+    if (!cat) throw new Error("•Elegí una categoría de inversión.");
+    const fin = BigInt(d.financiamientoGs || "0");
+    if (fin > BigInt(d.montoTotalGs)) throw new Error("•El financiamiento no puede superar el monto.");
+    if (d.formaPago !== "CONTADO" && (fin === 0n || d.plazoMeses === 0)) throw new Error("•Cargá el monto financiado y el plazo.");
+    await conActor(session.user.id, tx => tx.evaluacionInversion.create({
+      data: {
+        organizacionId: permisos.organizacionId, fechaPrevista: fechaISO(d.fechaPrevista), concepto: d.concepto, categoriaId: cat.id,
+        cantidad: d.cantidad.replace(",", "."), montoTotalGs: BigInt(d.montoTotalGs), formaPago: d.formaPago,
+        financiamientoGs: d.formaPago === "CONTADO" ? 0n : fin, plazoMeses: d.formaPago === "CONTADO" ? 0 : d.plazoMeses,
+        tasaAnual: d.tasaAnual ? Number(d.tasaAnual.replace(",", ".")) / 100 : null,
+      },
+    }));
+    revalidatePath("/finanzas/nueva-inversion");
+    return { ok: true };
+  } catch (e) { return manejar(e); }
+}
+
+/** Aprobar = entra al presupuesto del mes previsto; Ejecutar = pasa al libro como pendiente; Descartar. */
+export async function cambiarEstadoEvaluacion(id: string, estado: "APROBADA" | "DESCARTADA" | "EJECUTADA"): Promise<R> {
+  try {
+    const { session, permisos } = await requirePermiso(estado === "EJECUTADA" ? "finanzas.inversiones.crear" : "finanzas.inversiones.evaluar");
+    const org = permisos.organizacionId;
+    const ev = await prisma.evaluacionInversion.findFirst({ where: { id, organizacionId: org } });
+    if (!ev) throw new Error("•Esa evaluación no existe.");
+    if (ev.estado === "EJECUTADA" || ev.estado === "DESCARTADA") throw new Error("•Esa evaluación ya está cerrada.");
+    const { mesDe } = await import("@/lib/finanzas/calculos");
+    if (estado === "APROBADA") {
+      const mes = mesDe(ev.fechaPrevista);
+      const previo = await prisma.presupuesto.aggregate({ where: { organizacionId: org, categoriaId: ev.categoriaId, mes }, _sum: { montoGs: true } });
+      await escribirPresupuesto(org, session.user.id, [{ categoriaId: ev.categoriaId, mes, montoGs: (previo._sum.montoGs ?? 0n) + ev.montoTotalGs }]);
+    }
+    if (estado === "EJECUTADA") {
+      const cat = await prisma.categoriaFinanciera.findUnique({ where: { id: ev.categoriaId } });
+      const { unidadParaCategoria } = await import("@/lib/finanzas/plan-datos");
+      const u = await unidadParaCategoria(org, cat?.unidadDefault ?? "GRANJA");
+      if (!u) throw new Error("•Sin unidades de negocio.");
+      await conActor(session.user.id, tx => tx.movimiento.create({
+        data: {
+          organizacionId: org, unidadId: u.id, granjaId: u.granjaId, fecha: ev.fechaPrevista, fechaVencimiento: ev.fechaPrevista, tipo: "INVERSION",
+          concepto: ev.concepto, categoriaId: ev.categoriaId, cantidad: ev.cantidad, montoGs: ev.montoTotalGs, estado: "PENDIENTE", creadoPor: session.user.id,
+          observacion: "Desde la evaluación de nueva inversión",
+        },
+      }));
+    }
+    await conActor(session.user.id, tx => tx.evaluacionInversion.update({ where: { id }, data: { estado } }));
+    revalidatePath("/finanzas", "layout");
+    return { ok: true };
+  } catch (e) { return manejar(e); }
+}

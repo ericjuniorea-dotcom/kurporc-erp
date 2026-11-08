@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getPermisos, puede } from "@/lib/permisos/servidor";
 import { getSession } from "@/lib/auth/config";
 import { asegurarFinanzas } from "@/lib/finanzas/datos";
+import { materializarCuotas } from "@/lib/finanzas/plan-datos";
 import { NavegacionFinanzas, type SeccionFinanzas } from "./navegacion";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,13 @@ const SECCIONES: (SeccionFinanzas & { permiso: string })[] = [
   { href: "/finanzas/sanidad", label: "Sanidad", permiso: "finanzas.sanidad_valorizada.ver" },
   { href: "/finanzas/costos", label: "Costos", permiso: "finanzas.costos.ver" },
   { href: "/finanzas/fijos-variables", label: "Fijos y variables", permiso: "finanzas.fijos_variables.ver" },
+  { href: "/finanzas/presupuesto", label: "Presupuesto", permiso: "finanzas.presupuesto.ver" },
+  { href: "/finanzas/presupuesto-vs-real", label: "Presupuesto vs real", permiso: "finanzas.presupuesto_real.ver" },
+  { href: "/finanzas/proyeccion", label: "Proyección", permiso: "finanzas.proyeccion.ver" },
+  { href: "/finanzas/flujo-caja", label: "Flujo de caja", permiso: "finanzas.flujo_caja.ver" },
+  { href: "/finanzas/inversiones", label: "Inversiones", permiso: "finanzas.inversiones.ver" },
+  { href: "/finanzas/nueva-inversion", label: "Nueva inversión", permiso: "finanzas.inversiones.evaluar" },
+  { href: "/finanzas/deudas", label: "Deudas", permiso: "finanzas.deudas.ver" },
   { href: "/finanzas/parametros", label: "Parámetros", permiso: "finanzas.parametros.ver" },
 ];
 
@@ -27,6 +35,7 @@ export default async function FinanzasLayout({ children }: { children: React.Rea
   const visibles = SECCIONES.filter(s => puede(permisos, s.permiso));
   if (visibles.length === 0) redirect("/dashboard");
   await asegurarFinanzas(session.user.tenantId);
+  await materializarCuotas(session.user.tenantId, session.user.id);
   return (
     <>
       <NavegacionFinanzas secciones={visibles.map(({ href, label }) => ({ href, label }))} />

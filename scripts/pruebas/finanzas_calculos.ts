@@ -89,3 +89,33 @@ check(s2.estado === "FALTAN los ml por unidad", "sanidad: compra sin ml por unid
 const pDec = PARAMETROS.find(p => p.clave === "pesoVentaKg")!, pGs = PARAMETROS.find(p => p.clave === "precioKgVivoGs")!, pPct = PARAMETROS.find(p => p.clave === "tasaIpsPatronal")!;
 check(convertirParametro(pDec, "2,5") === 2.5 && convertirParametro(pGs, "18.500") === 18500n && convertirParametro(pPct, "16,5") === 0.165, "parámetros: coma decimal y puntos de miles");
 console.log("\nOK — hojas de Finanzas (parte 2) verificadas");
+
+// ── Parte 3: planificación ────────────────────────────────────────
+import { coberturaDias, cuotaFrancesa, flujoReal, preguntasProyeccion, proyectar, rangoMeses, resumenPrestamo, semaforoDesvio, sumarMeses, tasaImplicita, vencimientos } from "@/lib/finanzas/planificacion";
+
+check(sumarMeses(202611, 3) === 202702 && rangoMeses(202611, 202702).length === 4, "meses: sumar y rango cruzando el año");
+const tm = tasaImplicita(10_000_000, 1_000_000, 12)!;
+check(Math.abs(tm - 0.029229) < 0.00001, "tasa mensual implícita como RATE de Excel (10 M, 12 cuotas de 1 M ≈ 2,92 %)");
+check(Math.abs(cuotaFrancesa(10_000_000, 12, 0.24) - 945_596) < 1 && cuotaFrancesa(1_200_000, 12, null) === 100_000, "cuota francesa y cuota simple como la planilla");
+const v = vencimientos(new Date(Date.UTC(2026, 0, 31)), 3);
+check(v[1].toISOString().slice(0, 10) === "2026-02-28" && v[2].toISOString().slice(0, 10) === "2026-03-31", "vencimientos cortados a fin de mes");
+const corteP = new Date(Date.UTC(2026, 2, 15));
+const rp = resumenPrestamo({ montoRecibidoGs: 10_000_000n, cuotaMensualGs: 1_000_000n, numeroCuotas: 12 },
+  vencimientos(new Date(Date.UTC(2026, 0, 10)), 12).map((d, i) => ({ numero: i + 1, vencimiento: d, montoGs: 1_000_000n, pagada: i === 0 })), corteP);
+check(rp.pagadas === 1 && rp.atrasadas === 2 && rp.saldo === 11_000_000n && rp.costoFinanciero === 2_000_000n, "préstamo: pagadas, atrasadas, saldo y costo financiero");
+check(semaforoDesvio(100n, 104n, 0.05, 0.1).semaforo === "OK" && semaforoDesvio(100n, 108n, 0.05, 0.1).semaforo === "ATENCIÓN" && semaforoDesvio(100n, 130n, 0.05, 0.1).semaforo === "EXPLICAR" && semaforoDesvio(0n, 5n, 0.05, 0.1).semaforo === "–", "semáforo de desvío");
+const pr = proyectar({ desde: 202612, meses: 3, saldoInicial: 1_000_000n, ventasMes: () => 2_000_000n, otrosIngresosMes: 0n,
+  aportes: new Map(), gastoOperativo: new Map([[202612, 2_500_000n], [202701, 2_500_000n], [202702, 2_500_000n]]), inversion: new Map(),
+  cuotas: new Map([[202701, 1_000_000n]]), porPagar: new Map(), colchonMeses: 1 });
+check(pr[0].saldoFinal === 500_000n && pr[1].saldoFinal === -1_000_000n && pr[1].alerta === "SIN CAJA" && pr[0].alerta === "AJUSTADO", "proyección: saldo mes a mes y alertas");
+const pq = preguntasProyeccion(pr, 1_000_000n, 0n);
+check(pq.mesSinCaja === 202701 && pq.capitalTrabajoNecesario === 1_500_000n && pq.necesitoProximoMes === 0n, "proyección: mes sin caja y capital de trabajo necesario");
+const fl = flujoReal([
+  { fechaPago: new Date(Date.UTC(2026, 0, 5)), montoGs: 5_000_000n, signo: 1, tipo: "INGRESO", categoria: "Venta de lechones", esInterno: false },
+  { fechaPago: new Date(Date.UTC(2026, 0, 6)), montoGs: 2_000_000n, signo: -1, tipo: "GASTO", categoria: "Energía", esInterno: false },
+  { fechaPago: new Date(Date.UTC(2026, 1, 6)), montoGs: 1_000_000n, signo: -1, tipo: "FINANCIAMIENTO", categoria: "Pago de cuota de préstamo", esInterno: false },
+  { fechaPago: new Date(Date.UTC(2026, 1, 7)), montoGs: 3_000_000n, signo: 1, tipo: "FINANCIAMIENTO", categoria: "Aporte de capital", esInterno: false },
+], 202601, 202602, 100n);
+check(fl[0].flujoNeto === 3_000_000n && fl[1].flujoNeto === 2_000_000n && fl[1].saldoFinal === 5_000_100n, "flujo de caja real: flujo neto y saldo");
+check(coberturaDias(3_000_000n, 3_000_000) === 30, "cobertura de caja en días");
+console.log("\nOK — planificación (parte 3) verificada");
