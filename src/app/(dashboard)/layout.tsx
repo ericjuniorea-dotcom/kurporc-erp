@@ -5,6 +5,7 @@ import { getSession, getUsuario } from "@/lib/auth/config";
 import { SesionProvider } from "@/lib/auth/sesion-cliente";
 import { getPermisos } from "@/lib/permisos/servidor";
 import { Sidebar } from "@/components/layout/sidebar";
+import { AyudaSoporte } from "@/components/layout/ayuda-soporte";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +63,7 @@ export default async function DashboardLayout({
           </div>
         </main>
       </div>
+      <AyudaSoporte />
     </SesionProvider>
   );
 }

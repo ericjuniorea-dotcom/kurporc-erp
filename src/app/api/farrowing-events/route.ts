@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
       avgPigletWeightKg,
     }),
     generarTareasParto(tenantId, farrowing.id, startDate, `Cerda ${sowForTask?.identCode ?? d.sowId}`),
-    generarEventosParto(tenantId, farrowing.id, startDate, `Cerda ${sowForTask?.identCode ?? d.sowId}`, d.bornAlive).catch(() => {}),
+    generarEventosParto(tenantId, farrowing.id, startDate, `Cerda ${sowForTask?.identCode ?? d.sowId}`, d.bornAlive, d.sowId).catch(() => {}),
   ]);
 
   return NextResponse.json(farrowing, { status: 201 });

@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { CampoParticulas } from "@/components/inicio/campo-particulas";
 import { getUsuario } from "@/lib/auth/config";
 import { datosOperador } from "@/lib/legal/documentos";
+import { CORREO_SOPORTE } from "@/lib/contacto";
 
 export const dynamic = "force-dynamic";
 
@@ -299,7 +300,7 @@ export default async function InicioPage() {
             <Link href="/login">Ingresar</Link>
           </div>
         </div>
-        <div>© {new Date().getFullYear()} KurPorc · <a href={`mailto:${operador.correo_contacto}`} style={{ color: "inherit" }}>{operador.correo_contacto}</a></div>
+        <div>© {new Date().getFullYear()} KurPorc · Ayuda y sugerencias: <a href={`mailto:${CORREO_SOPORTE}`} style={{ color: "inherit" }}>{CORREO_SOPORTE}</a> · Información general: <a href={`mailto:${operador.correo_contacto}`} style={{ color: "inherit" }}>{operador.correo_contacto}</a></div>
       </footer>
     </div>
   );

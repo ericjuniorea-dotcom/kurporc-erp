@@ -4,6 +4,8 @@ import { MarcoAuth } from "@/components/auth/marco-auth";
 import prisma from "@/lib/db/prisma";
 import { getSession, getUsuario } from "@/lib/auth/config";
 import { BotonSalir } from "@/app/cuenta/sin-organizacion/boton-salir";
+import { AyudaSoporte } from "@/components/layout/ayuda-soporte";
+import { CORREO_SOPORTE } from "@/lib/contacto";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Mi tienda · KurPorc" };
@@ -23,6 +25,7 @@ export default async function VendedorPage() {
   const rechazada = org?.verificacion === "RECHAZADA";
 
   return (
+    <>
     <MarcoAuth titulo={org?.farmName ?? "Mi tienda"} subtitulo={`RUC ${org?.ruc ?? "—"} · ${rechazada ? "Tienda suspendida" : verificada ? "Tienda activa · RUC verificado ✓" : "Tienda activa"}`}>
       <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 }}>
         {!rechazada && (
@@ -34,10 +37,12 @@ export default async function VendedorPage() {
             {" "}El panel para cargar tus productos llega con el Mercado KurPorc.
           </p>
         )}
-        {rechazada && <p style={{ margin: 0 }}>Tu tienda está suspendida. Escribinos para revisarlo.</p>}
+        {rechazada && <p style={{ margin: 0 }}>Tu tienda está suspendida. Escribinos a <a href={`mailto:${CORREO_SOPORTE}`}>{CORREO_SOPORTE}</a> para revisarlo.</p>}
         {tieneGranja && <Link href="/dashboard" className="btn" style={{ height: 34, justifyContent: "center" }}>Ir a mi granja</Link>}
         <BotonSalir />
       </div>
     </MarcoAuth>
+    <AyudaSoporte />
+    </>
   );
 }

@@ -9,7 +9,7 @@ function addDays(date: Date, n: number): Date {
 async function getProtocoloItems(tenantId: string, disparador: string) {
   return prisma.protocoloItem.findMany({
     where: { tenantId, disparador },
-    include: { vacuna: { select: { id: true, nombre: true } } },
+    include: { vacuna: { select: { id: true, nombre: true } }, protocolo: { select: { tipoAnimal: true } } },
   });
 }
 
@@ -41,8 +41,10 @@ export async function generarEventosParto(
   partoDate:   Date,
   sowLabel:    string,
   lechones:    number,
+  sowId?:      string,
 ) {
   const items = await getProtocoloItems(tenantId, "parto");
+  // Un ítem de un protocolo de cerdas (ej. posparto) es una dosis para la madre; el resto, una por lechón
   await Promise.all(items.map(item =>
     upsertEvento({
       tenantId,
@@ -51,8 +53,9 @@ export async function generarEventosParto(
       sector:          "maternidad",
       fecha:           addDays(partoDate, item.diaCiclo),
       farrowingId,
+      ...(item.protocolo.tipoAnimal === "cerda" && sowId ? { animalId: sowId } : {}),
       targetLabel:     sowLabel,
-      dosisNecesarias: lechones,
+      dosisNecesarias: item.protocolo.tipoAnimal === "cerda" ? 1 : lechones,
       disparador:      `parto-${farrowingId}-vacuna-${item.id}`,
     })
   ));

@@ -4,6 +4,7 @@ import { WaSession, saveSession, clearFlow } from "./session";
 import { startPartoFlow, handlePartoStep }   from "./flows/parto";
 import { startMuerteFlow, handleMuerteStep } from "./flows/muerte";
 import { startPesajeFlow, handlePesajeStep } from "./flows/pesaje";
+import { CORREO_SOPORTE } from "@/lib/contacto";
 
 const MENU = [
   "👋 *Menú principal KurPorc*",
@@ -14,6 +15,8 @@ const MENU = [
   "3️⃣  Pesaje de lote",
   "",
   "Escribí el número de la opción o *CANCELAR* para interrumpir la operación actual.",
+  "",
+  `¿Dudas o ideas para mejorar? Escribinos a ${CORREO_SOPORTE}`,
 ].join("\n");
 
 export async function routeMessage(

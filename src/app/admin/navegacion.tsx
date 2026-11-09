@@ -9,6 +9,7 @@ const SECCIONES = [
   { href: "/admin/cuentas", label: "Cuentas" },
   { href: "/admin/organizaciones", label: "Organizaciones" },
   { href: "/admin/actividad", label: "Actividad" },
+  { href: "/admin/sugerencias", label: "Sugerencias" },
   { href: "/admin/administradores", label: "Administradores" },
 ];
 

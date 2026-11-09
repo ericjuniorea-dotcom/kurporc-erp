@@ -3168,3 +3168,22 @@ model CurvaEngorde {
   @@index([organizacionId])
   @@map("curva_engorde")
 }
+
+/// Consultas, sugerencias y problemas que mandan las personas desde la app (soporte@kurporc.com).
+/// Las lee y responde el equipo de KurPorc desde el panel de plataforma.
+model Sugerencia {
+  id             String   @id @default(uuid()) @db.Uuid
+  usuarioId      String   @map("usuario_id")
+  organizacionId String?  @map("organizacion_id")
+  tipo           String // CONSULTA | SUGERENCIA | PROBLEMA
+  mensaje        String
+  pagina         String?
+  estado         String   @default("NUEVA") // NUEVA | EN_REVISION | HECHA | DESCARTADA
+  respuesta      String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([estado, createdAt])
+  @@index([usuarioId])
+  @@map("sugerencia")
+}

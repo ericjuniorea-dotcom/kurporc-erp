@@ -2,6 +2,7 @@
 import { KurPorcLogo } from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { IconAlertTriangle, IconCircleCheck } from "@tabler/icons-react";
+import { CORREO_SOPORTE } from "@/lib/contacto";
 
 export function MarcoAuth({ titulo, subtitulo, children }: { titulo: string; subtitulo?: string; children: React.ReactNode }) {
   return (
@@ -22,6 +23,7 @@ export function MarcoAuth({ titulo, subtitulo, children }: { titulo: string; sub
         </div>
         <div style={{ textAlign: "center", marginTop: 16, fontSize: 11, color: "var(--text-muted)" }}>
           KurPorc · Inteligencia para la producción porcina
+          <div style={{ marginTop: 4 }}>¿Necesitás ayuda? <a href={`mailto:${CORREO_SOPORTE}`} style={{ color: "var(--accent-text)" }}>{CORREO_SOPORTE}</a></div>
         </div>
       </div>
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
