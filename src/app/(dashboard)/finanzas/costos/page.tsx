@@ -1,15 +1,18 @@
 import { datosAnio, sanidadAnio } from "@/lib/finanzas/anio";
 import { div, hojaCostos, sumaB, sumaN } from "@/lib/finanzas/hojas";
 import { corteDelAnio, paginaFinanzas } from "@/lib/finanzas/pagina";
+import { puede } from "@/lib/permisos/servidor";
+import { resumenParadas } from "@/lib/cerdas-paradas/datos";
 import { SelectorAnio, TablaMensual, anioDe, type Fila } from "../tabla-mensual";
 
 export const metadata = { title: "Costos de producción · Finanzas · KurPorc" };
 
 export default async function CostosFinanzas({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const { org, mesCorte } = await paginaFinanzas("finanzas.costos.ver");
+  const { org, mesCorte, permisos } = await paginaFinanzas("finanzas.costos.ver");
   const anio = anioDe(await searchParams);
   const corte = corteDelAnio(anio, mesCorte);
-  const [d, san] = await Promise.all([datosAnio(org, anio), sanidadAnio(org, anio)]);
+  const conParadas = puede(permisos, "finanzas.cerdas_paradas.ver") && anio === Math.floor(mesCorte / 100);
+  const [d, san, paradas] = await Promise.all([datosAnio(org, anio), sanidadAnio(org, anio), conParadas ? resumenParadas(org) : null]);
   const c = hojaCostos(d.movs, d.inversiones, d.prod, d.matricesPorMes, d.params, anio, san.usadoPorMes, corte);
   const total = sumaB(c.conAmort);
   const pct = (v: bigint) => (total > 0n ? Number(v) / Number(total) : null);
@@ -33,6 +36,7 @@ export default async function CostosFinanzas({ searchParams }: { searchParams: P
     { etiqueta: "4 · Amortización", valores: c.amortizacion, total: sumaB(c.amortizacion), formato: "gs", nivel: "sub", nota: d.params.modoAmortizacion === "PLANILLA" ? "Como la planilla: todo lo invertido en obra y equipos, desde enero" : "Cada inversión desde el mes siguiente, con su vida útil" },
     { etiqueta: "Costo total sin amortización", valores: c.sinAmort, total: sumaB(c.sinAmort), formato: "gs", nivel: "total" },
     { etiqueta: "Costo total con amortización", valores: c.conAmort, total, formato: "gs", nivel: "total" },
+    ...(paradas ? [(() => { const v = Array.from({ length: 12 }, (_, i) => BigInt(paradas.porMes[i]?.gastadoGs ?? 0)); return { etiqueta: "De este costo, gastado en cerdas paradas", valores: v, total: sumaB(v), formato: "gs" as const, nota: "Alimento, estructura y amortización de los días que las cerdas estuvieron paradas. Ya está incluido arriba: no se suma." }; })()] : []),
     { etiqueta: "% del costo total", valores: [], nivel: "titulo" },
     { etiqueta: "Alimentación", valores: c.subAlim.map((v, i) => (c.conAmort[i] > 0n ? Number(v) / Number(c.conAmort[i]) : null)), total: pct(sumaB(c.subAlim)), formato: "pct", nota: "Referencia 65 % a 75 %: si es mucho menor, la estructura fija es grande para la cantidad de animales" },
     { etiqueta: "Directos", valores: c.subDirectos.map((v, i) => (c.conAmort[i] > 0n ? Number(v) / Number(c.conAmort[i]) : null)), total: pct(sumaB(c.subDirectos)), formato: "pct" },

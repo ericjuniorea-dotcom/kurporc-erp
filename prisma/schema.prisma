@@ -3013,6 +3013,12 @@ model ParametrosFinancieros {
   matricesActivasManual       Int?    @map("matrices_activas_manual") // si se carga, reemplaza al promedio de Plantel
   precioTransferenciaLechon   String  @default("MERCADO") @map("precio_transferencia_lechon") // MERCADO | COSTO (Fase 9)
   porcentajeEstructuraEngorde Decimal @default(0) @map("porcentaje_estructura_engorde") @db.Decimal(5, 4) // parte de los gastos fijos que va al engorde
+  // Fase 10 · cerdas paradas (el intervalo destete-servicio objetivo y las metas productivas salen de Configuración)
+  toleranciaServicioDias      Int     @default(2) @map("tolerancia_servicio_dias")
+  edadPrimerServicioDias      Int     @default(240) @map("edad_primer_servicio_dias")
+  adaptacionNuliparaDias      Int     @default(30) @map("adaptacion_nulipara_dias")
+  alertaVaciaSinDecisionDias  Int     @default(7) @map("alerta_vacia_sin_decision_dias")
+  alertaDescarteSinSalirDias  Int     @default(15) @map("alerta_descarte_sin_salir_dias")
 
   organizacion Tenant @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
 

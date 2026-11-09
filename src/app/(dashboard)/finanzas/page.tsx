@@ -7,6 +7,7 @@ import { cuentasConSaldo, pagosConSigno } from "@/lib/finanzas/datos";
 import { estadoCuentaDe, gs, hoyUTC, mesDe, nombreMes, pct } from "@/lib/finanzas/calculos";
 import { controlesLibro, indicadores } from "@/lib/finanzas/control";
 import { datosProyeccion } from "@/lib/finanzas/plan-datos";
+import { resumenParadas } from "@/lib/cerdas-paradas/datos";
 
 export const metadata = { title: "Finanzas · KurPorc" };
 
@@ -72,7 +73,8 @@ export default async function TableroFinanzas() {
   })).filter(g => g.anio > 0n || g.mes > 0n).sort((a, b) => (b.anio > a.anio ? 1 : b.anio < a.anio ? -1 : 0));
   const maxGrupo = grupos.reduce((m, g) => (g.anio > m ? g.anio : m), 0n);
   const sinMovimientos = movsAnio.length === 0;
-  const [ind, proy, ctrl] = await Promise.all([indicadores(org), datosProyeccion(org), controlesLibro(org)]);
+  const verParadas = puede(permisos, "finanzas.cerdas_paradas.ver");
+  const [ind, proy, ctrl, paradas] = await Promise.all([indicadores(org), datosProyeccion(org), controlesLibro(org), verParadas ? resumenParadas(org) : null]);
   const busca = (lista: { nombre: string; valor: string; estado?: string }[], nombre: string) => lista.find(x => x.nombre.startsWith(nombre));
   const fallan = ctrl.filter(c => !c.noAplica && c.valor !== 0);
   const sanidad = ctrl.find(c => c.codigo === 8);
@@ -83,6 +85,7 @@ export default async function TableroFinanzas() {
     { nombre: "Dinero que necesito el mes que viene", valor: gs(proy.preguntas.necesitoProximoMes), estado: proy.preguntas.necesitoProximoMes > 0n ? "atencion" : "ok" },
     { nombre: "Registro de Sanidad al día (≤ 10 días)", valor: sanidad?.detalle ?? "OK", estado: sanidad && sanidad.valor > 0 ? "atencion" : "ok" },
     { nombre: "Controles del libro", valor: fallan.length ? `${fallan.length} no dan cero` : "Todos en cero", estado: fallan.length ? "mal" : "ok" },
+    ...(paradas ? [{ nombre: "Cerdas paradas", valor: paradas.paradas.length ? `${paradas.paradas.length} · ${gs(paradas.perdidaDiariaHoyGs)} por día` : "Ninguna", estado: (paradas.paradas.length === 0 ? "ok" : paradas.paradas.some(p => p.alerta) ? "mal" : "atencion") as "ok" | "atencion" | "mal" }] : []),
   ];
   const proximo = proy.proyeccion[0];
   const COLOR = { ok: "var(--success-text)", atencion: "var(--warning-text)", mal: "var(--danger-text)" } as const;
@@ -107,6 +110,12 @@ export default async function TableroFinanzas() {
         <Tile titulo="Por pagar" valor={gs(porPagar)} detalle={pagarVencido > 0n ? `Vencido: ${gs(pagarVencido)}` : "Nada vencido"} color={pagarVencido > 0n ? "var(--warning-text)" : undefined} />
         <Tile titulo="Por cobrar" valor={gs(porCobrar)} detalle={cobrarVencido > 0n ? `Vencido: ${gs(cobrarVencido)}` : "Nada vencido"} color={cobrarVencido > 0n ? "var(--warning-text)" : undefined} />
         <Tile titulo={`Inversión en ${anio}`} valor={gs(inversionAnio)} />
+        {paradas && (
+          <Link href="/finanzas/cerdas-paradas" style={{ textDecoration: "none" }}>
+            <Tile titulo="Cerdas paradas" valor={`${paradas.paradas.length} · ${gs(paradas.perdidaDiariaHoyGs)}/día`} color={paradas.paradas.length ? "var(--danger-text)" : "var(--success-text)"}
+              detalle={`Perdido en el año: ${gs(paradas.anio.gastadoGs + paradas.anio.dejadoGs)}`} />
+          </Link>
+        )}
       </div>
 
       {grupos.length > 0 && (

@@ -4,6 +4,8 @@ import { cache } from "react";
 import prisma from "@/lib/db/prisma";
 import { cuentasConSaldo, pendientes } from "./datos";
 import { datosAnio, sanidadAnio } from "./anio";
+import { resumenParadas } from "@/lib/cerdas-paradas/datos";
+import { NOMBRE_CAUSA } from "@/lib/cerdas-paradas/calculo";
 import { datosProyeccion } from "./plan-datos";
 import { gs, hoyUTC, mesDe, nombreMes } from "./calculos";
 import { DIETAS, NOMBRE_DIETA, hojaAlimentacion, hojaCostos, hojaFijosVariables, sumaB, sumaN } from "./hojas";
@@ -150,7 +152,10 @@ export const indicadores = cache(async (org: string) => {
     { nombre: "Balanceado comprado en el año", calculo: "Categorías de alimentación", valor: gs(sumaB(c.subAlim)) },
     { nombre: "Gastos fijos / variables del año", calculo: "Según la naturaleza de cada categoría", valor: `${gs(sumaB(fv.fijos))} / ${gs(sumaB(fv.variables))}` },
   ];
+  const paradas = await resumenParadas(org);
   const produccion: Indicador[] = [
+    { nombre: "Cerdas paradas hoy", calculo: "Sin gestar ni amamantar más allá de lo normal (Fase 10)", valor: paradas.paradas.length ? `${paradas.paradas.length} · ${gs(paradas.perdidaDiariaHoyGs)} por día` : "Ninguna", meta: "0", estado: paradas.paradas.length ? (paradas.paradas.some(x => x.alerta) ? "mal" : "atencion") : "ok" },
+    { nombre: "Días no productivos por cerda por año", calculo: "Σ días sin gestar ni amamantar (365 d) ÷ cerdas promedio", valor: paradas.indicadores.dnpPorCerdaAnio === null ? "—" : `${Math.round(paradas.indicadores.dnpPorCerdaAnio)} días` },
     { nombre: "Lechones entregados / destetados del mes", calculo: "Ventas y destetes registrados", valor: `${entregados} / ${d.prod[i]?.destetados ?? 0}` },
     { nombre: "Costo total del mes", calculo: "Con amortización", valor: gs(c.conAmort[i]) },
     { nombre: "Costo por lechón entregado", calculo: "Costo del mes ÷ entregados", valor: c.unit.costoPorEntregado[i] === null ? "Sin ventas en el mes" : gs(Math.round(c.unit.costoPorEntregado[i]!)) },
@@ -221,6 +226,11 @@ export async function calcularRecomendaciones(org: string, mes: number): Promise
   const pr = d.prod[i];
   const metaMort = 0.1;
   if (pr && pr.nacidosVivos > 0 && pr.muertosLactancia / pr.nacidosVivos > metaMort) out.push({ codigo: "REC-12", prioridad: "MEDIA", problema: "Mortalidad predestete alta", situacion: `${Math.round(pr.muertosLactancia * 1000 / pr.nacidosVivos) / 10} % en ${nombreMes(mes)} (meta ≤ ${metaMort * 100} %).`, mejora: "Revisar las causas de muerte en Maternidad con el veterinario.", impacto: "Más lechones para vender con el mismo costo.", accion: "Mirá las muertes por causa en Maternidad." });
+  const par = await resumenParadas(org);
+  if (par.paradas.length) {
+    const top = par.porCausa[0];
+    out.push({ codigo: "REC-16", prioridad: par.paradas.some(x => x.alerta) ? "ALTA" : "MEDIA", problema: "Cerdas paradas", situacion: `${par.paradas.length} cerda(s) sin gestar ni amamantar hoy: cuestan ${gs(par.perdidaDiariaHoyGs)} por día.${top ? ` La causa que más pesa en el año: ${NOMBRE_CAUSA[top.causa].toLowerCase()}.` : ""}`, mejora: "Servir a tiempo después del destete, confirmar preñez a los 20-30 días y decidir rápido las vacías y los descartes.", impacto: `Cada día parado cuesta ${gs(Math.round(par.costoHoy?.perdidaDia ?? 0))} por cerda.`, accion: "Entrá a Finanzas → Cerdas paradas y creá las tareas sugeridas." });
+  }
   const critico = proy.proyeccion.find(m => m.alerta !== "OK");
   if (critico) out.push({ codigo: "REC-14", prioridad: "ALTA", problema: critico.alerta === "SIN CAJA" ? "La proyección se queda sin caja" : "La proyección queda ajustada", situacion: `${nombreMes(critico.mes)}: saldo proyectado ${gs(critico.saldoFinal)} con egresos de ${gs(critico.egresos)}.`, mejora: "Mover vencimientos, pedir un aporte o financiar con anticipación.", impacto: "Evitar atrasos con proveedores y bancos.", accion: "Revisá la Proyección y cargá un aporte previsto o reprogramá pagos." });
   return out;

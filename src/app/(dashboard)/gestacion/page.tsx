@@ -357,14 +357,19 @@ export default function GestacionPage() {
         activeTab={tab === "ingreso" ? "" : tab}
         onTabChange={setTab}
         actions={
-          canRegister ? (
+          <>
+          {alguno(["gestacion.cerdas_paradas.ver", "finanzas.cerdas_paradas.ver"]) && (
+            <a href="/gestacion/cerdas-paradas" className="btn" style={{ marginRight: 6 }}>Cerdas paradas</a>
+          )}
+          {canRegister ? (
             <button
               className="btn btn-primary"
               onClick={() => setTab(tab === "ingreso" ? "vision" : "ingreso")}
             >
               Ingreso de datos
             </button>
-          ) : undefined
+          ) : undefined}
+          </>
         }
         configHref="/configuracion?modulo=GESTACION&tab=Metas"
       />

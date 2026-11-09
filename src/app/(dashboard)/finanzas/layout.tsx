@@ -22,6 +22,7 @@ const SECCIONES: (SeccionFinanzas & { permiso: string })[] = [
   { grupo: "Análisis", href: "/finanzas/alimentacion", label: "Alimentación", permiso: "finanzas.balanceado.ver" },
   { grupo: "Análisis", href: "/finanzas/sanidad", label: "Sanidad", permiso: "finanzas.sanidad_valorizada.ver" },
   { grupo: "Análisis", href: "/finanzas/fijos-variables", label: "Fijos y variables", permiso: "finanzas.fijos_variables.ver" },
+  { grupo: "Análisis", href: "/finanzas/cerdas-paradas", label: "Cerdas paradas", permiso: "finanzas.cerdas_paradas.ver" },
   { grupo: "Planificación", href: "/finanzas/presupuesto", label: "Presupuesto", permiso: "finanzas.presupuesto.ver" },
   { grupo: "Planificación", href: "/finanzas/presupuesto-vs-real", label: "Presupuesto vs real", permiso: "finanzas.presupuesto_real.ver" },
   { grupo: "Planificación", href: "/finanzas/proyeccion", label: "Proyección", permiso: "finanzas.proyeccion.ver" },

@@ -1,6 +1,7 @@
 import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { registrarActividad } from "@/lib/admin/actividad";
+import { avisarCerdasParadas } from "@/lib/cerdas-paradas/avisos";
 import { getSession, getUsuario } from "@/lib/auth/config";
 import { SesionProvider } from "@/lib/auth/sesion-cliente";
 import { getPermisos } from "@/lib/permisos/servidor";
@@ -30,6 +31,8 @@ export default async function DashboardLayout({
 
   // Uso diario para el panel de plataforma: después de responder, sin demorar la pantalla
   after(() => registrarActividad(usuario.id, session.user.tenantId));
+  // Aviso diario de cerdas paradas (Fase 10): una vez por día y organización
+  after(() => avisarCerdasParadas(session.user.tenantId).catch((e: unknown) => console.error("[cerdas-paradas]", e)));
 
   const permisos = await getPermisos();
   const claves = permisos ? Array.from(permisos.claves) : [];
