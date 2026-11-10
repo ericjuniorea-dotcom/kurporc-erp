@@ -56,12 +56,12 @@ export function AceptarTerminos({ alAceptar }: { alAceptar: () => void }) {
 
 // ── Pedido directo desde una publicación ─────────────────────────────────
 type Granja = { id: string; nombre: string };
-export function FormPedidoDirecto({ publicacion, granjas, terminosPendientes }: {
+export function FormPedidoDirecto({ publicacion, granjas, terminosPendientes, cantidadInicial }: {
   publicacion: { id: string; titulo: string; unidadVenta: string; precioGs: number; pedidoMinimo: number; stock: number | null; contenidoBase: number; unidadBase: string };
-  granjas: Granja[]; terminosPendientes: boolean;
+  granjas: Granja[]; terminosPendientes: boolean; cantidadInicial?: number;
 }) {
   const a = useAccion();
-  const [cantidad, setCantidad] = useState(String(publicacion.pedidoMinimo));
+  const [cantidad, setCantidad] = useState(String(cantidadInicial ?? publicacion.pedidoMinimo));
   const [metodo, setMetodo] = useState("TRANSFERENCIA");
   const [granjaId, setGranjaId] = useState(granjas[0]?.id ?? "");
   const [direccion, setDireccion] = useState("");

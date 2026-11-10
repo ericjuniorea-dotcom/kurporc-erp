@@ -292,6 +292,8 @@ model Tenant {
   tienda                Tienda?
   solicitudesCotizacion SolicitudCotizacion[]
   pedidosMercado        Pedido[]
+  parametrosCompra      ParametroCompra[]
+  necesidades           NecesidadSnapshot[]
   cuentasFondos         CuentaFondos[]
   categoriasFinancieras CategoriaFinanciera[]
   contrapartes          Contraparte[]
@@ -364,6 +366,8 @@ model User {
   favoritosMercado      Favorito[]
   solicitudesCotizacion SolicitudCotizacion[]
   pedidosMercado        Pedido[]
+  parametrosCompra      ParametroCompra[]
+  necesidades           NecesidadSnapshot[]
 
   @@index([tenantId])
   @@map("users")
@@ -3539,4 +3543,55 @@ model StockItemCatalogo {
   @@id([organizacionId, stockItemId])
   @@index([organizacionId, productoCatalogoId])
   @@map("stock_item_catalogo")
+}
+
+// ================================================================
+// FASE 14: MOTOR DE NECESIDADES ("Lo que te va a faltar")
+// El stock del ERP es por organización (lotes_vacunas): los parámetros y las fotos del cálculo
+// van por producto de stock; el producto del catálogo sale de stock_item_catalogo para cotizar.
+// ================================================================
+
+model ParametroCompra {
+  id              String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizacionId  String  @map("organizacion_id")
+  stockItemId     String  @map("stock_item_id")
+  metodo          String  @default("AUTO") // AUTO | RACION | PROGRAMADO | HISTORICO | NO_PREDECIR
+  leadTimeDias    Int     @default(5) @map("lead_time_dias")
+  seguridadDias   Int     @default(7) @map("seguridad_dias")
+  cicloCompraDias Int     @default(7) @map("ciclo_compra_dias")
+  unidadCompra    Decimal @default(1) @map("unidad_compra") @db.Decimal(12, 3)
+  mermaPct        Decimal @default(0) @map("merma_pct") @db.Decimal(5, 4)
+
+  organizacion Tenant  @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  User         User?   @relation(fields: [userId], references: [id])
+  userId       String?
+
+  @@unique([organizacionId, stockItemId])
+  @@map("parametro_compra")
+}
+
+model NecesidadSnapshot {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizacionId     String    @map("organizacion_id")
+  stockItemId        String    @map("stock_item_id")
+  productoCatalogoId String?   @map("producto_catalogo_id") @db.Uuid
+  metodo             String
+  stockActual        Decimal   @map("stock_actual") @db.Decimal(14, 3)
+  enTransito         Decimal   @map("en_transito") @db.Decimal(14, 3)
+  consumoDiario      Decimal   @map("consumo_diario") @db.Decimal(14, 3)
+  coberturaDias      Decimal?  @map("cobertura_dias") @db.Decimal(8, 1)
+  fechaQuiebre       DateTime? @map("fecha_quiebre") @db.Date
+  cantidadSugerida   Decimal   @map("cantidad_sugerida") @db.Decimal(14, 3)
+  urgencia           String // CRITICA | PRONTO | OK | SIN_DATOS
+  explicacion        String
+  proyeccion         Json      @default("[]") // stock proyectado por día (60 días)
+  calculadoEn        DateTime  @default(now()) @map("calculado_en")
+
+  organizacion Tenant  @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  User         User?   @relation(fields: [userId], references: [id])
+  userId       String?
+
+  @@index([organizacionId, calculadoEn])
+  @@index([organizacionId, stockItemId, calculadoEn])
+  @@map("necesidad_snapshot")
 }

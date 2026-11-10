@@ -10,7 +10,7 @@ export const metadata = { title: "Compras · KurPorc" };
 export default async function LayoutCompras({ children }: { children: React.ReactNode }) {
   const permisos = await getPermisos();
   if (!permisos) redirect("/login");
-  if (!puedeAlguno(permisos, ["compras.pedidos.ver", "compras.cotizaciones.ver"])) redirect("/dashboard");
+  if (!puedeAlguno(permisos, ["compras.pedidos.ver", "compras.cotizaciones.ver", "compras.necesidades.ver"])) redirect("/dashboard");
   const aprueba = puede(permisos, "compras.pedidos.aprobar");
   const porAprobar = aprueba ? await prisma.pedido.count({ where: { organizacionId: permisos.organizacionId, estado: "PENDIENTE_APROBACION" } }) : -1;
   return (
