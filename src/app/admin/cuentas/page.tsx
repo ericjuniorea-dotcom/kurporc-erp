@@ -7,7 +7,7 @@ const TIPO: Record<string, string> = { EMPRESA: "Empresa", INDIVIDUAL: "Producto
 const si = (b: boolean) => <span style={{ color: b ? "var(--success-text)" : "var(--text-muted)" }}>{b ? "Sí" : "No"}</span>;
 
 export default async function CuentasAdmin() {
-  await requireAdmin();
+  await requireAdmin(["TOTAL", "SOPORTE"]);
   const cuentas = await cuentasPlataforma();
   const embudo = [
     ["Registrados", cuentas.length],

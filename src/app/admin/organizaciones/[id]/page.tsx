@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import prisma from "@/lib/db/prisma";
 import { MOTIVOS, motivoVigente, registrarAcceso, requireAdmin } from "@/lib/admin/acceso";
 import { gs, hoyUTC, mesDe, nombreMes } from "@/lib/finanzas/calculos";
-import { ElegirMotivo } from "./elegir-motivo";
+import { ElegirMotivo, VerTodo } from "./elegir-motivo";
 
 const tarjeta: React.CSSProperties = { background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-lg)" };
 const fecha = (d: Date | null | undefined) => d ? d.toLocaleDateString("es-PY", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
@@ -64,6 +64,7 @@ export default async function DetalleOrganizacion({ params }: { params: Promise<
         <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
           {org.tipo} · {org.departamento ?? "sin departamento"}{org.distrito ? `, ${org.distrito}` : ""} · RUC {org.ruc ?? "—"} · plan {org.plan} · {org.estado} · alta {fecha(org.createdAt)}
         </div>
+        {(admin.nivel === "TOTAL" || admin.nivel === "SOPORTE") && <div style={{ marginTop: 10 }}><VerTodo organizacionId={id} /></div>}
       </div>
       <div style={{ ...tarjeta, padding: 16, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14 }}>
         <Dato t="Madres activas" v={madres} />

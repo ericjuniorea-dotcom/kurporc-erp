@@ -55,6 +55,7 @@ export async function middleware(req: NextRequest) {
   const reqHeaders = new Headers(req.headers);
   reqHeaders.set("x-nonce", nonce);
   reqHeaders.set(CABECERA_CSP, csp); // Next.js lee el nonce de acá y lo pone en sus <script>
+  reqHeaders.set("x-ruta", req.nextUrl.pathname); // para registrar qué vio el modo plataforma
 
   let res = NextResponse.next({ request: { headers: reqHeaders } });
 
@@ -99,6 +100,13 @@ export async function middleware(req: NextRequest) {
     const redir = NextResponse.redirect(url);
     res.cookies.getAll().forEach(c => redir.cookies.set(c));
     return redir;
+  }
+
+  // Modo plataforma (Fase 11, "Ver todo"): solo lectura. Toda escritura fuera del panel y de la
+  // salida se rechaza acá, antes de llegar a cualquier API o acción de servidor.
+  if (req.cookies.has("kp_plataforma") && !["GET", "HEAD", "OPTIONS"].includes(req.method)
+    && !pathname.startsWith("/admin") && !pathname.startsWith("/auth/")) {
+    return NextResponse.json({ error: "Modo plataforma: solo lectura. Salí del modo para hacer cambios." }, { status: 403 });
   }
 
   res.headers.set(CABECERA_CSP, csp);

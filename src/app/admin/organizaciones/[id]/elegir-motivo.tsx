@@ -3,7 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { IconLoader2 } from "@tabler/icons-react";
 import { Aviso } from "@/components/auth/marco-auth";
-import { elegirMotivo } from "@/app/acciones/admin";
+import { elegirMotivo, entrarModoPlataforma } from "@/app/acciones/admin";
 
 export function ElegirMotivo({ organizacionId, nombre, motivos }: { organizacionId: string; nombre: string; motivos: Record<string, string> }) {
   const router = useRouter();
@@ -28,5 +28,20 @@ export function ElegirMotivo({ organizacionId, nombre, motivos }: { organizacion
         {pendiente && <IconLoader2 size={14} className="animate-spin" aria-hidden />} Entrar en modo lectura
       </button>
     </form>
+  );
+}
+
+/** "Ver todo": abre el ERP de la organización en modo plataforma (solo lectura). */
+export function VerTodo({ organizacionId }: { organizacionId: string }) {
+  const [error, setError] = useState<string | null>(null);
+  const [pendiente, iniciar] = useTransition();
+  return (
+    <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
+      <button className="btn btn-primary" style={{ height: 30, fontSize: 12 }} disabled={pendiente}
+        onClick={() => iniciar(async () => { const r = await entrarModoPlataforma(organizacionId); if (r.ok) window.location.assign("/dashboard"); else setError(r.error); })}>
+        {pendiente && <IconLoader2 size={13} className="animate-spin" aria-hidden />} Ver todo (abrir su ERP en solo lectura)
+      </button>
+      {error && <span style={{ fontSize: 12, color: "var(--danger-text)" }}>{error}</span>}
+    </span>
   );
 }

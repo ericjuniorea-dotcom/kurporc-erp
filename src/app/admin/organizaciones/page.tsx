@@ -8,7 +8,7 @@ const fecha = (d: Date | null) => d ? d.toLocaleDateString("es-PY", { day: "2-di
 const TIPO: Record<string, string> = { EMPRESA: "Empresa", INDIVIDUAL: "Productor", VENDEDOR: "Tienda" };
 
 export default async function OrganizacionesAdmin() {
-  await requireAdmin();
+  await requireAdmin(["TOTAL", "SOPORTE"]);
   const orgs = await organizacionesPlataforma();
   return (
     <div style={{ ...tarjeta, overflowX: "auto" }}>

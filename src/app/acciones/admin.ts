@@ -1,12 +1,13 @@
 "use server";
 // Acciones del panel de plataforma (Fase 11). Solo administradores; los cambios de administradores
 // los controla además la base (solo un TOTAL autoriza, siempre queda un TOTAL).
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import prisma from "@/lib/db/prisma";
 import { conActor } from "@/lib/db/actor";
-import { getAdmin, guardarMotivo, MOTIVOS, type Motivo } from "@/lib/admin/acceso";
+import { getAdmin, guardarMotivo, motivoVigente, MOTIVOS, type Motivo } from "@/lib/admin/acceso";
+import { codificar, COOKIE_PLATAFORMA, DURACION_MS } from "@/lib/admin/modo-plataforma";
 import { ipDe, registrarAuditoria, userAgentDe } from "@/lib/seguridad/auditoria";
 
 type R = { ok: true } | { ok: false; error: string };
@@ -67,6 +68,25 @@ export async function quitarAdmin(userId: string): Promise<R> {
     const h = await headers();
     await registrarAuditoria("PERMISOS_CAMBIADOS", "admin_plataforma", userId, { tipo: "admin_plataforma_quitado", email: objetivo.perfil.email }, { actorId: a.usuario.id, actorEsPlataforma: true, ip: ipDe(h), userAgent: userAgentDe(h) });
     revalidatePath("/admin/administradores");
+    return { ok: true };
+  } catch (e) { return manejar(e); }
+}
+
+/** "Ver todo" (Fase 11): abre el ERP de la organización en modo plataforma, solo lectura, con el motivo vigente. */
+export async function entrarModoPlataforma(organizacionId: string): Promise<R> {
+  try {
+    const a = await getAdmin();
+    if (!a || !a.verificado || (a.nivel !== "TOTAL" && a.nivel !== "SOPORTE")) throw new Error("•Tu nivel no permite abrir el ERP de una organización.");
+    const m = await motivoVigente(organizacionId);
+    if (!m) throw new Error("•Elegí el motivo primero.");
+    const org = await prisma.tenant.findUnique({ where: { id: organizacionId }, select: { tipo: true } });
+    if (!org) throw new Error("•Esa organización no existe.");
+    const hasta = Math.min(m.hasta, Date.now() + DURACION_MS);
+    (await cookies()).set(COOKIE_PLATAFORMA, codificar({ org: organizacionId, motivo: m.motivo, detalle: m.detalle, hasta, admin: a.usuario.id }), {
+      httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: Math.floor((hasta - Date.now()) / 1000),
+    });
+    const h = await headers();
+    await registrarAuditoria("SUPERADMIN_LECTURA", "tenant", organizacionId, { tipo: "modo_plataforma", motivo: m.motivo }, { organizacionId, actorId: a.usuario.id, actorEsPlataforma: true, ip: ipDe(h), userAgent: userAgentDe(h) });
     return { ok: true };
   } catch (e) { return manejar(e); }
 }

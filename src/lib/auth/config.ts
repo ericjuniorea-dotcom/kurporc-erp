@@ -11,6 +11,8 @@ import { cookies } from "next/headers";
 import prisma from "@/lib/db/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { tienePendientes } from "@/lib/legal/documentos";
+import { CATALOGO_PERMISOS } from "@/lib/permisos/catalogo";
+import { leerModoPlataforma, registrarVistaPlataforma, type ModoPlataforma } from "@/lib/admin/modo-plataforma";
 
 // Los 14 roles legados (IDs 1-14). Se reemplazan por el catálogo de permisos en la Fase 7.
 export const ROLES = {
@@ -74,6 +76,38 @@ export interface AppSession {
   /** Permisos efectivos (solo para la UI; los arma el layout del ERP). */
   permisos?: string[];
   esPropietario?: boolean;
+  /** Super Administrador viendo esta organización en solo lectura (Fase 11, "Ver todo"). */
+  modoPlataforma?: ModoPlataforma;
+}
+
+// En modo plataforma: solo permisos de ver, sin datos personales de funcionarios
+const PERMISOS_PLATAFORMA = CATALOGO_PERMISOS.filter(p => p.accion.startsWith("ver") && p.clave !== "rrhh.datos_personales.ver").map(p => ({ permisoClave: p.clave }));
+
+async function sesionPlataforma(usuario: UsuarioSesion & { aal: string | null }): Promise<AppSession | null> {
+  if (!usuario.esSuperadmin || usuario.aal !== "aal2") return null;
+  const modo = await leerModoPlataforma(usuario.id);
+  if (!modo) return null;
+  const [admin, org] = await Promise.all([
+    prisma.adminPlataforma.findUnique({ where: { userId: usuario.id }, select: { nivel: true } }),
+    prisma.tenant.findUnique({ where: { id: modo.org }, select: { id: true, farmName: true, slug: true, tipo: true, plan: true } }),
+  ]);
+  if (!admin || (admin.nivel !== "TOTAL" && admin.nivel !== "SOPORTE") || !org) return null;
+  miembroActivo().valor = {
+    id: "plataforma", esPropietario: false, estado: "ACTIVO", alcanceGranjas: "TODAS", alcanceUnidades: "TODAS", limiteCompraGs: null,
+    rol: { codigo: "PLATAFORMA", nombre: "Plataforma (solo lectura)", permisos: PERMISOS_PLATAFORMA },
+    permisosAjuste: [], granjas: [], unidades: [],
+  };
+  await registrarVistaPlataforma(modo);
+  return {
+    user: {
+      id: usuario.id, email: usuario.email, name: usuario.name,
+      tenantId: org.id, tenantSlug: org.slug, farmName: org.farmName, plan: org.plan,
+      roles: [], language: usuario.language, avatarUrl: usuario.avatarUrl,
+    },
+    membresias: [{ organizacionId: org.id, nombre: org.farmName, slug: org.slug, tipo: org.tipo, esPropietario: false, rol: "Plataforma (solo lectura)" }],
+    aal: usuario.aal,
+    modoPlataforma: modo,
+  };
 }
 
 /**
@@ -133,6 +167,8 @@ export const getSession = cache(async (): Promise<AppSession | null> => {
   // Sin segundo factor verificado (si lo tiene activado) o sin aceptar el contrato vigente,
   // no hay acceso a datos del ERP
   if (!usuario || usuario.faltaSegundoFactor || usuario.faltaAceptarContrato) return null;
+  const plataforma = await sesionPlataforma(usuario);
+  if (plataforma) return plataforma;
 
   // Una sola consulta: membresías + todo lo necesario para los permisos (lo reusa getPermisos)
   const miembros = await prisma.miembro.findMany({

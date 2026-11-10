@@ -10,8 +10,14 @@ const SECCIONES = [
   { href: "/admin/organizaciones", label: "Organizaciones" },
   { href: "/admin/produccion", label: "Producción" },
   { href: "/admin/facturacion", label: "Facturación" },
+  { href: "/admin/datos", label: "Datos" },
+  { href: "/admin/vendedores", label: "Vendedores", niveles: ["TOTAL", "SOPORTE", "MODERACION"] },
   { href: "/admin/actividad", label: "Actividad" },
+  { href: "/admin/seguridad", label: "Seguridad" },
+  { href: "/admin/privacidad", label: "Privacidad" },
+  { href: "/admin/legal", label: "Legal" },
   { href: "/admin/sugerencias", label: "Sugerencias" },
+  { href: "/admin/configuracion", label: "Configuración" },
   { href: "/admin/administradores", label: "Administradores" },
 ];
 
@@ -32,7 +38,7 @@ export function NavegacionAdmin({ nombre, nivel }: { nombre: string; nivel: stri
         <Link href="/dashboard" className="btn" style={{ height: 30, fontSize: 12 }}>Volver a mi granja</Link>
       </div>
       <nav aria-label="Secciones del panel" style={{ display: "flex", gap: 2, padding: "0 20px", overflowX: "auto" }}>
-        {SECCIONES.map(s => {
+        {SECCIONES.filter(s => s.href === "/admin" || (("niveles" in s && s.niveles) || ["TOTAL", "SOPORTE"]).includes(nivel)).map(s => {
           const activa = s.href === "/admin" ? ruta === "/admin" : ruta.startsWith(s.href);
           return (
             <Link key={s.href} href={s.href} aria-current={activa ? "page" : undefined}
