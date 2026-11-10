@@ -607,6 +607,15 @@ const MODULE_PROCESOS: Partial<Record<ModuleKey, ProcesoTemplate[]>> = {
   ],
   ENGORDE: [
     {
+      key: "vacio_sanitario",
+      label: "Vacío sanitario",
+      descripcion: "Al cerrar un lote (todo afuera), su sitio queda vacío para lavar y desinfectar. Se crea la tarea y no se acepta otro lote en ese sitio hasta que pasen estos días.",
+      params: {
+        dias:   { type: "number",  label: "Días de vacío", min: 0, max: 60, unit: "días", defaultVal: 7 },
+        activo: { type: "boolean", label: "Control activo", hint: "Si está activo, bloquea el ingreso de un lote nuevo al sitio antes de cumplir los días", defaultVal: true },
+      },
+    },
+    {
       key: "desinfeccion_sala",
       label: "Desinfección de sala",
       descripcion: "Limpieza y desinfección periódica de los corrales de engorde.",

@@ -3,6 +3,7 @@ import "server-only";
 import prisma from "@/lib/db/prisma";
 import { cuentasConSaldo, pendientes } from "./datos";
 import { hoyUTC, mesDe, mesDePago } from "./calculos";
+import { ventasPorBandas } from "./ventas-bandas";
 import { mesDeFecha, preguntasProyeccion, proyectar, sumarMeses } from "./planificacion";
 
 /** Unidad de negocio para una categoría (GRANJA → la primera granja; COMUN → la común). */
@@ -97,16 +98,20 @@ export async function datosProyeccion(org: string, meses = 15) {
     acum(porPagar, mesDePago(m.fechaVencimiento, corte) ?? desde, m.saldoGs);
   }
   const cajaHoy = cajas.cuentas.filter(c => c.activa).reduce((s, c) => s + c.saldoGs, 0n) + cajas.sinAsignarGs;
-  const ventasMes = BigInt(params?.lechonesAVenderMes ?? 0) * (params?.precioEsperadoLechonGs ?? 0n);
+  const ventasParametro = BigInt(params?.lechonesAVenderMes ?? 0) * (params?.precioEsperadoLechonGs ?? 0n);
+  // CALENDARIO_BANDAS (Fase 9): lechones de los partos que vienen + cerdos terminados por la curva;
+  // después del último destete conocido, el parámetro de lechones por mes
+  const bandas = params?.modoProyeccionVentas === "CALENDARIO_BANDAS" ? await ventasPorBandas(org) : null;
+  const ventasMes = (mes: number) => bandas ? (bandas.porMes.get(mes) ?? 0n) + (mes > bandas.cubreHasta ? ventasParametro : 0n) : ventasParametro;
   const base = {
-    desde, meses, saldoInicial: cajaHoy, ventasMes: () => ventasMes, otrosIngresosMes: params?.otrosIngresosMesGs ?? 0n,
+    desde, meses, saldoInicial: cajaHoy, ventasMes, otrosIngresosMes: params?.otrosIngresosMesGs ?? 0n,
     gastoOperativo, inversion, cuotas, porPagar, colchonMeses: Number(params?.colchonMesesEgreso ?? 1),
   };
   const proyeccion = proyectar({ ...base, aportes: aportesMes });
   const sinAportes = proyectar({ ...base, aportes: new Map() });
   const totalAportes = Array.from(aportesMes.values()).reduce((s, v) => s + v, 0n);
   return {
-    corte, desde, cajaHoy, proyeccion, sinAportes, aportes, params, prestamos,
+    corte, desde, cajaHoy, proyeccion, sinAportes, aportes, params, prestamos, bandas,
     preguntas: preguntasProyeccion(proyeccion, cajaHoy, totalAportes),
     // Para "¿Entra en la caja?" (8.18): flujo operativo mensual promedio proyectado, sin aportes y sin las cuotas actuales
     flujoOperativoPromedio: sinAportes.length ? sinAportes.reduce((s, m) => s + m.flujo + m.cuotas, 0n) / BigInt(sinAportes.length) : 0n,

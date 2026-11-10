@@ -6,6 +6,7 @@ import { getPermisos, puede } from "@/lib/permisos/servidor";
 import { analizarLote } from "@/lib/engorde/lote";
 import { pesoEsperado } from "@/lib/engorde/indicadores";
 import { gs } from "@/lib/finanzas/calculos";
+import { GraficoPeso } from "@/components/engorde/grafico-peso";
 import { EncabezadoEngorde, FormLote, FormTratamiento } from "./formularios";
 
 export const dynamic = "force-dynamic";
@@ -71,7 +72,9 @@ export default async function LoteEngordePage({ params }: { params: Promise<{ id
         {a.curva?.puntos && lote.weightRecords.length > 0 && (
           <div style={{ ...tarjeta, overflowX: "auto" }}>
             <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 6 }}>Peso real contra la curva «{a.curva.nombre}»</div>
-            <table className="kp-table" style={{ minWidth: 520 }}>
+            <GraficoPeso curva={a.curva.puntos} objetivo={a.objetivo}
+              pesajes={lote.weightRecords.map(w => ({ dia: diaDe(w.recordDate), real: Number(w.avgWeightKg), esperado: pesoEsperado(a.curva!.puntos!, diaDe(w.recordDate)), fecha: f(w.recordDate) }))} />
+            <table className="kp-table" style={{ minWidth: 520, marginTop: 10 }}>
               <thead><tr><th>Pesaje</th><th style={{ textAlign: "right" }}>Día</th><th style={{ textAlign: "right" }}>Real</th><th style={{ textAlign: "right" }}>Esperado</th><th style={{ textAlign: "right" }}>Diferencia</th></tr></thead>
               <tbody>
                 {lote.weightRecords.map(w => {

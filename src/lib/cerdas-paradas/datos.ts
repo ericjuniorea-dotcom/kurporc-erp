@@ -241,3 +241,29 @@ export async function detalleCerda(org: string, sowId: string) {
     }),
   };
 }
+
+/**
+ * Servidas sin diagnóstico (acción "Hacer ecografía", 10.3): cerdas con el último servicio hace más de los
+ * días de ecografía configurados (Gestación → protocolo de seguimiento, 28 por defecto) y sin diagnóstico
+ * de preñez de ese servicio. Todavía no son días parados, pero si resultan vacías lo van a ser desde el servicio.
+ */
+export const sinDiagnostico = cache(async (org: string) => {
+  const hoy = hoyUTC();
+  const config = await prisma.configProceso.findFirst({ where: { tenantId: org, modulo: "GESTACION", procesoKey: "protocolo_seguimiento_servicio" }, select: { valor: true } });
+  const diasEco = Number(((config?.valor ?? {}) as Record<string, unknown>).dias_ecografia ?? 28);
+  // Solo las que siguen como "servidas": si alguien ya la pasó a gestante, la dio por preñada
+  const sows = await prisma.sow.findMany({ where: { tenantId: org, isActive: true, plantelState: "MATED" }, select: { id: true, identCode: true } });
+  if (!sows.length) return { diasEco, cerdas: [] as { id: string; codigo: string; servicio: string; dias: number }[] };
+  const servicios = await prisma.serviceEvent.findMany({
+    where: { tenantId: org, sowId: { in: sows.map(s => s.id) } }, orderBy: { serviceDate: "desc" },
+    select: { id: true, sowId: true, serviceDate: true, pregnancyChecks: { where: { result: { in: ["PREGNANT", "NOT_PREGNANT"] } }, select: { id: true } } },
+  });
+  const cerdas = sows.flatMap(s => {
+    const ult = servicios.find(x => x.sowId === s.id);
+    if (!ult || ult.pregnancyChecks.length) return [];
+    const dias = Math.floor((hoy.getTime() - ult.serviceDate.getTime()) / 86_400_000);
+    // Más allá de 110 días ya es un problema de registro (debería haber parido): no es una ecografía
+    return dias >= diasEco && dias <= 110 ? [{ id: s.id, codigo: s.identCode, servicio: ult.serviceDate.toISOString().slice(0, 10), dias }] : [];
+  }).sort((a, b) => b.dias - a.dias);
+  return { diasEco, cerdas };
+});

@@ -1,16 +1,16 @@
 "use client";
 import { useState, useTransition } from "react";
 import { IconLoader2 } from "@tabler/icons-react";
-import { crearTareaParada } from "@/app/acciones/cerdas-paradas";
+import { crearTareaEcografia, crearTareaParada } from "@/app/acciones/cerdas-paradas";
 
-export function BotonTarea({ sowId }: { sowId: string }) {
+export function BotonTarea({ sowId, ecografia }: { sowId: string; ecografia?: boolean }) {
   const [estado, setEstado] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
   if (estado === "ok") return <span style={{ fontSize: 12, color: "var(--success)" }}>Tarea creada</span>;
   return (
     <span style={{ display: "inline-flex", flexDirection: "column", gap: 2 }}>
       <button type="button" className="btn" style={{ height: 26, fontSize: 12 }} disabled={pendiente}
-        onClick={() => iniciar(async () => { const r = await crearTareaParada(sowId); setEstado(r.ok ? "ok" : r.error); })}>
+        onClick={() => iniciar(async () => { const r = await (ecografia ? crearTareaEcografia(sowId) : crearTareaParada(sowId)); setEstado(r.ok ? "ok" : r.error); })}>
         {pendiente && <IconLoader2 size={12} className="animate-spin" aria-hidden />} Crear tarea
       </button>
       {estado && estado !== "ok" && <span role="alert" style={{ fontSize: 11, color: "var(--danger)" }}>{estado}</span>}

@@ -2,11 +2,12 @@
 import Link from "next/link";
 import { gs, nombreMes } from "@/lib/finanzas/calculos";
 import { ACCION, NOMBRE_CAUSA } from "@/lib/cerdas-paradas/calculo";
-import type { resumenParadas, detalleCerda } from "@/lib/cerdas-paradas/datos";
+import type { resumenParadas, detalleCerda, sinDiagnostico } from "@/lib/cerdas-paradas/datos";
 import { BotonTarea, Tendencia } from "./cliente";
 
 type Resumen = Awaited<ReturnType<typeof resumenParadas>>;
 type Detalle = NonNullable<Awaited<ReturnType<typeof detalleCerda>>>;
+type SinDiagnostico = Awaited<ReturnType<typeof sinDiagnostico>>;
 const tarjeta: React.CSSProperties = { background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-lg)", padding: 16 };
 const etiqueta: React.CSSProperties = { fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".04em" };
 const grande: React.CSSProperties = { fontSize: 22, fontWeight: 600, color: "var(--text-primary)", marginTop: 4 };
@@ -15,7 +16,7 @@ const n1 = (v: number | null, d = 1) => (v === null ? "—" : v.toLocaleString("
 const pct = (v: number | null) => (v === null ? "—" : `${Math.round(v * 100)} %`);
 const ESTADO: Record<string, string> = { GESTANDO: "Gestando", LACTANDO: "Lactando", NORMAL: "Sin producir (normal)", PARADA: "Parada" };
 
-export function VistaParadas({ r, conMontos, base, puedeTarea, detalle }: { r: Resumen; conMontos: boolean; base: string; puedeTarea: boolean; detalle: Detalle | null }) {
+export function VistaParadas({ r, conMontos, base, puedeTarea, detalle, ecografias }: { r: Resumen; conMontos: boolean; base: string; puedeTarea: boolean; detalle: Detalle | null; ecografias?: SinDiagnostico }) {
   const maxCausa = Math.max(1, ...r.porCausa.map(c => (conMontos ? c.gs : c.dias)));
   const i = r.indicadores;
   return (
@@ -64,6 +65,32 @@ export function VistaParadas({ r, conMontos, base, puedeTarea, detalle }: { r: R
           </div>
         )}
       </section>
+
+      {ecografias && ecografias.cerdas.length > 0 && (
+        <section style={tarjeta} aria-labelledby="t-eco">
+          <h2 id="t-eco" style={{ fontSize: 14, margin: "0 0 4px", color: "var(--text-primary)" }}>Servidas sin diagnóstico</h2>
+          <div style={{ fontSize: 12.5, color: "var(--text-secondary)", marginBottom: 10 }}>
+            Pasaron más de {ecografias.diasEco} días desde el servicio y no tienen ecografía. Si alguna está vacía, va a contar como parada desde el día del servicio.
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table className="kp-table">
+              <thead><tr><th>Cerda</th><th>Servida el</th><th style={{ textAlign: "right" }}>Días</th><th>Qué hacer</th><th>Responsable</th><th></th></tr></thead>
+              <tbody>
+                {ecografias.cerdas.map(c => (
+                  <tr key={c.id}>
+                    <td><Link href={`${base}?cerda=${c.id}`} style={{ fontWeight: 500, color: "var(--accent-text)" }}>{c.codigo}</Link></td>
+                    <td>{new Date(`${c.servicio}T12:00:00Z`).toLocaleDateString("es-PY")}</td>
+                    <td style={{ textAlign: "right" }}>{c.dias}</td>
+                    <td>Hacer ecografía</td>
+                    <td style={{ color: "var(--text-secondary)" }}>Jefatura de Producción</td>
+                    <td>{puedeTarea && <BotonTarea sowId={c.id} ecografia />}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       {detalle && (
         <section style={tarjeta} aria-labelledby="t-det">

@@ -6,6 +6,7 @@ export const PARAMETROS: DefParam[] = [
   { grupo: "Precios y ventas", clave: "precioReferenciaLechonGs", etiqueta: "Precio de referencia por lechón", tipo: "gs", ayuda: "Para el punto de equilibrio" },
   { grupo: "Precios y ventas", clave: "precioKgVivoGs", etiqueta: "Precio por kg vivo", tipo: "gs" },
   { grupo: "Precios y ventas", clave: "pesoVentaKg", etiqueta: "Peso de venta (kg)", tipo: "dec" },
+  { grupo: "Precios y ventas", clave: "modoProyeccionVentas", etiqueta: "Ventas de la proyección de caja", tipo: "sel", opciones: { PARAMETRO: "Lechones por mes fijos (este parámetro)", CALENDARIO_BANDAS: "Por calendario: partos, destetes y lotes de engorde" } },
   { grupo: "Precios y ventas", clave: "lechonesAVenderMes", etiqueta: "Lechones a vender por mes", tipo: "int", ayuda: "Para la proyección de caja" },
   { grupo: "Precios y ventas", clave: "precioEsperadoLechonGs", etiqueta: "Precio esperado por lechón", tipo: "gs" },
   { grupo: "Precios y ventas", clave: "otrosIngresosMesGs", etiqueta: "Otros ingresos por mes", tipo: "gs" },

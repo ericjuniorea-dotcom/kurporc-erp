@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { addDays, diffDays } from "@/lib/utils";
 import { getPermisos, puede } from "@/lib/permisos/servidor";
 import { jsonConMontos } from "@/lib/permisos/montos";
+import { sitioEnVacio } from "@/lib/engorde/vacio";
 import { conActor } from "@/lib/db/actor";
 
 export async function GET(req: NextRequest) {
@@ -130,6 +131,13 @@ export async function POST(req: NextRequest) {
     where: { tenantId_batchCode: { tenantId, batchCode } },
   });
   if (existe) return NextResponse.json({ error: "Ya existe un lote con ese código" }, { status: 409 });
+
+  // Vacío sanitario (Fase 9): el sitio de un lote cerrado no recibe otro hasta cumplir los días configurados
+  const vacio = await sitioEnVacio(tenantId, sitio, new Date(entryDate));
+  if (vacio) {
+    const h = vacio.hasta.toLocaleDateString("es-PY", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "America/Asuncion" });
+    return NextResponse.json({ error: `El sitio «${sitio}» está en vacío sanitario hasta el ${h} (lote ${vacio.lote} cerrado, ${vacio.dias} días). Elegí otro sitio o esperá; el plazo se cambia en Configuración → Engorde.` }, { status: 409 });
+  }
 
   const lote = await prisma.growingBatch.create({
     data: {

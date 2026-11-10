@@ -4,6 +4,7 @@ import { corteDelAnio, paginaFinanzas } from "@/lib/finanzas/pagina";
 import { puede } from "@/lib/permisos/servidor";
 import { resumenParadas } from "@/lib/cerdas-paradas/datos";
 import { SelectorAnio, TablaMensual, anioDe, type Fila } from "../tabla-mensual";
+import { SeccionEngorde } from "./engorde";
 
 export const metadata = { title: "Costos de producción · Finanzas · KurPorc" };
 
@@ -63,6 +64,7 @@ export default async function CostosFinanzas({ searchParams }: { searchParams: P
         nota={`Sanidad imputada por ${d.params.imputacionSanidad === "USO" ? "uso (el mes en que se aplicó)" : "compra (como la planilla)"}. Se cambia en Parámetros.`} />
       <TablaMensual titulo="Producción, costo unitario y margen" filas={unit} mesCorte={corte}
         nota="«—» en costo por lechón = sin ventas ese mes: mientras la granja se arma, el número que sirve es el costo por matriz al mes. En la columna del año, el costo por lechón puede quedar distorsionado durante el armado." />
+      <SeccionEngorde org={org} anio={anio} />
     </>
   );
 }

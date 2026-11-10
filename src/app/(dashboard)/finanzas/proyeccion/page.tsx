@@ -58,7 +58,7 @@ export default async function ProyeccionPage() {
           </tbody>
         </table>
         <div style={{ padding: "8px 14px 12px", fontSize: 11, color: "var(--text-muted)", lineHeight: 1.5 }}>
-          Ventas = {d.params?.lechonesAVenderMes ?? 0} lechones por mes × {gs(d.params?.precioEsperadoLechonGs ?? 0n)} (Parámetros). Gasto e inversión salen del Presupuesto; las cuotas, de Deudas; lo vencido sin pagar se proyecta al mes que viene.
+          {d.bandas ? <>Ventas por calendario: {d.bandas.detalle}; después, {d.params?.lechonesAVenderMes ?? 0} lechones por mes × {gs(d.params?.precioEsperadoLechonGs ?? 0n)}.</> : <>Ventas = {d.params?.lechonesAVenderMes ?? 0} lechones por mes × {gs(d.params?.precioEsperadoLechonGs ?? 0n)} (Parámetros; también se puede proyectar por calendario de partos y lotes).</>} Gasto e inversión salen del Presupuesto; las cuotas, de Deudas; lo vencido sin pagar se proyecta al mes que viene.
           Ajustado = el saldo no cubre {Number(d.params?.colchonMesesEgreso ?? 1).toLocaleString("es-PY")} mes(es) de egresos.
         </div>
       </div>
