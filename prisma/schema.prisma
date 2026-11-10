@@ -289,6 +289,7 @@ model Tenant {
   invitaciones Invitacion[]
 
   // Finanzas (Fase 8)
+  tienda                Tienda?
   cuentasFondos         CuentaFondos[]
   categoriasFinancieras CategoriaFinanciera[]
   contrapartes          Contraparte[]
@@ -358,6 +359,7 @@ model User {
   assignedHealthTasks HealthTask[]            @relation("AssignedHealthTasks")
   membresias          Miembro[]
   adminPlataforma     AdminPlataforma?
+  favoritosMercado    Favorito[]
 
   @@index([tenantId])
   @@map("users")
@@ -3178,7 +3180,7 @@ model CurvaEngorde {
 /// Consultas, sugerencias y problemas que mandan las personas desde la app (soporte@kurporc.com).
 /// Las lee y responde el equipo de KurPorc desde el panel de plataforma.
 model Sugerencia {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   usuarioId      String   @map("usuario_id")
   organizacionId String?  @map("organizacion_id")
   tipo           String // CONSULTA | SUGERENCIA | PROBLEMA
@@ -3192,4 +3194,141 @@ model Sugerencia {
   @@index([estado, createdAt])
   @@index([usuarioId])
   @@map("sugerencia")
+}
+
+// ================================================================
+// FASE 12: MERCADO KURPORC — catálogo, tiendas y publicaciones
+// Lectura pública solo desde el servidor (RLS activado, sin acceso para anon/authenticated).
+// ================================================================
+
+enum UnidadBase {
+  KG
+  DOSIS
+  ML
+  UNIDAD
+  LITRO
+}
+
+enum EstadoPublicacion {
+  BORRADOR
+  ACTIVA
+  PAUSADA
+  RECHAZADA
+}
+
+model CategoriaMercado {
+  id                   String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  padreId              String? @map("padre_id") @db.Uuid
+  slug                 String  @unique
+  nombre               String
+  icono                String?
+  orden                Int     @default(0)
+  requiereVerificacion Boolean @default(false) @map("requiere_verificacion") // ej. Animales
+
+  padre         CategoriaMercado?  @relation("ArbolCategorias", fields: [padreId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "categoria_mercado_padre_fk")
+  hijas         CategoriaMercado[] @relation("ArbolCategorias")
+  productos     ProductoCatalogo[]
+  publicaciones Publicacion[]
+
+  @@map("categoria_mercado")
+}
+
+model ProductoCatalogo {
+  id                  String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codigo              String     @unique // ALI-NUC-LAC, SAN-VAC-CIRCO-MHYO, ...
+  nombre              String
+  categoriaId         String     @map("categoria_id") @db.Uuid
+  unidadBase          UnidadBase @map("unidad_base")
+  atributos           Json       @default("{}")
+  categoriaFinanciera String?    @map("categoria_financiera")
+  requiereReceta      Boolean    @default(false) @map("requiere_receta")
+  aprobado            Boolean    @default(true)
+  propuestoPor        String?    @map("propuesto_por") // organización vendedora que lo propuso (aprobado = false hasta revisión)
+  createdAt           DateTime   @default(now()) @map("created_at")
+
+  categoria     CategoriaMercado @relation(fields: [categoriaId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "producto_catalogo_categoria_fk")
+  publicaciones Publicacion[]
+
+  @@map("producto_catalogo")
+}
+
+model Tienda {
+  organizacionId String   @id @map("organizacion_id")
+  descripcion    String?
+  zonasEntrega   String[] @map("zonas_entrega")
+  horario        String?
+  calificacion   Decimal  @default(0) @db.Decimal(3, 2)
+  totalResenas   Int      @default(0) @map("total_resenas")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  organizacion  Tenant        @relation(fields: [organizacionId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "tienda_organizacion_fk")
+  publicaciones Publicacion[]
+
+  @@map("tienda")
+}
+
+model Publicacion {
+  id                   String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug                 String            @unique
+  tiendaId             String            @map("tienda_id")
+  productoCatalogoId   String?           @map("producto_catalogo_id") @db.Uuid
+  categoriaId          String            @map("categoria_id") @db.Uuid
+  titulo               String
+  descripcion          String?
+  marca                String?
+  precioGs             BigInt            @map("precio_gs")
+  unidadVenta          String            @map("unidad_venta") // "Bolsa 40 kg", "Frasco 50 dosis"
+  unidadBase           UnidadBase        @map("unidad_base")
+  contenidoBase        Decimal           @map("contenido_base") @db.Decimal(12, 3)
+  pedidoMinimo         Int               @default(1) @map("pedido_minimo")
+  stockDisponible      Int?              @map("stock_disponible")
+  plazoEntregaDias     Int               @default(3) @map("plazo_entrega_dias")
+  zonasEntrega         String[]          @map("zonas_entrega")
+  fotos                String[]
+  requiereReceta       Boolean           @default(false) @map("requiere_receta")
+  declaracionSanitaria Boolean           @default(false) @map("declaracion_sanitaria") // animales: documentación de traslado SENACSA
+  estado               EstadoPublicacion @default(BORRADOR)
+  motivoRechazo        String?           @map("motivo_rechazo")
+  createdAt            DateTime          @default(now()) @map("created_at")
+  updatedAt            DateTime          @updatedAt @map("updated_at")
+
+  tienda           Tienda                @relation(fields: [tiendaId], references: [organizacionId], onDelete: Cascade, onUpdate: NoAction, map: "publicacion_tienda_fk")
+  productoCatalogo ProductoCatalogo?     @relation(fields: [productoCatalogoId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "publicacion_catalogo_fk")
+  categoria        CategoriaMercado      @relation(fields: [categoriaId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "publicacion_categoria_fk")
+  favoritos        Favorito[]
+  denuncias        DenunciaPublicacion[]
+
+  @@index([productoCatalogoId, estado])
+  @@index([categoriaId, estado])
+  @@index([tiendaId, estado])
+  @@map("publicacion")
+}
+
+model Favorito {
+  userId        String   @map("user_id")
+  publicacionId String   @map("publicacion_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  publicacion Publicacion @relation(fields: [publicacionId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "favorito_publicacion_fk")
+  usuario     User        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "favorito_user_fk")
+
+  @@id([userId, publicacionId])
+  @@map("favorito")
+}
+
+model DenunciaPublicacion {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  publicacionId String    @map("publicacion_id") @db.Uuid
+  userId        String    @map("user_id")
+  motivo        String // ENGANOSA | PROHIBIDA | PRECIO | SIN_DOCUMENTACION | OTRO
+  detalle       String?
+  estado        String    @default("ABIERTA") // ABIERTA | DESCARTADA | PUBLICACION_RECHAZADA
+  resueltaPor   String?   @map("resuelta_por")
+  resueltaEn    DateTime? @map("resuelta_en")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  publicacion Publicacion @relation(fields: [publicacionId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "denuncia_publicacion_fk")
+
+  @@index([estado, createdAt])
+  @@map("denuncia_publicacion")
 }

@@ -1,48 +1,48 @@
+// Inicio del panel de vendedor (Fase 12).
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { MarcoAuth } from "@/components/auth/marco-auth";
 import prisma from "@/lib/db/prisma";
-import { getSession, getUsuario } from "@/lib/auth/config";
-import { BotonSalir } from "@/app/cuenta/sin-organizacion/boton-salir";
-import { AyudaSoporte } from "@/components/layout/ayuda-soporte";
-import { CORREO_SOPORTE } from "@/lib/contacto";
+import { contextoTienda } from "@/lib/mercado/vendedor";
+import { tarjetaEstilo } from "@/components/mercado/marco";
 
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Mi tienda · KurPorc" };
+function Dato({ t, v, sub }: { t: string; v: React.ReactNode; sub?: string }) {
+  return (
+    <div style={{ ...tarjetaEstilo, padding: 14 }}>
+      <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{t}</div>
+      <div style={{ fontSize: 22, fontWeight: 600, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>{v}</div>
+      {sub && <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{sub}</div>}
+    </div>
+  );
+}
 
-// Panel de vendedor (el completo llega con el Mercado, Fase 12). Por ahora: estado de la tienda.
-export default async function VendedorPage() {
-  const usuario = await getUsuario();
-  if (!usuario) redirect("/login?next=/vendedor");
-  if (usuario.faltaAceptarContrato) redirect("/legal/aceptar");
-  const session = await getSession();
-  const tienda = session?.membresias.find(m => m.tipo === "VENDEDOR");
-  if (!tienda) redirect("/onboarding?tipo=VENDEDOR");
-
-  const org = await prisma.tenant.findUnique({ where: { id: tienda.organizacionId }, select: { farmName: true, verificacion: true, ruc: true } });
-  const tieneGranja = session?.membresias.some(m => m.tipo !== "VENDEDOR");
-  const verificada = org?.verificacion === "VERIFICADA";
-  const rechazada = org?.verificacion === "RECHAZADA";
-
+export default async function InicioVendedor() {
+  const t = (await contextoTienda())!;
+  const [porEstado, tienda, favoritos] = await Promise.all([
+    prisma.publicacion.groupBy({ by: ["estado"], where: { tiendaId: t.org.id }, _count: { _all: true } }),
+    prisma.tienda.findUnique({ where: { organizacionId: t.org.id } }),
+    prisma.favorito.count({ where: { publicacionId: { in: (await prisma.publicacion.findMany({ where: { tiendaId: t.org.id }, select: { id: true } })).map(p => p.id) } } }),
+  ]);
+  const n = (e: string) => porEstado.find(x => x.estado === e)?._count._all ?? 0;
+  const total = porEstado.reduce((s, x) => s + x._count._all, 0);
+  const faltaPerfil = !tienda?.descripcion || !t.org.whatsapp;
   return (
     <>
-    <MarcoAuth titulo={org?.farmName ?? "Mi tienda"} subtitulo={`RUC ${org?.ruc ?? "—"} · ${rechazada ? "Tienda suspendida" : verificada ? "Tienda activa · RUC verificado ✓" : "Tienda activa"}`}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 }}>
-        {!rechazada && (
-          <p style={{ margin: 0 }}>
-            Tu tienda está <strong>activa</strong>.{" "}
-            {verificada
-              ? "Tu RUC figura activo en la DNIT: los compradores van a ver el sello de verificada."
-              : "Tu RUC todavía no figura activo en el padrón de la DNIT; cuando aparezca, la tienda se verifica sola."}
-            {" "}El panel para cargar tus productos llega con el Mercado KurPorc.
-          </p>
-        )}
-        {rechazada && <p style={{ margin: 0 }}>Tu tienda está suspendida. Escribinos a <a href={`mailto:${CORREO_SOPORTE}`}>{CORREO_SOPORTE}</a> para revisarlo.</p>}
-        {tieneGranja && <Link href="/dashboard" className="btn" style={{ height: 34, justifyContent: "center" }}>Ir a mi granja</Link>}
-        <BotonSalir />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10 }}>
+        <Dato t="Publicaciones activas" v={n("ACTIVA")} sub={`${total} en total`} />
+        <Dato t="En borrador" v={n("BORRADOR")} sub={n("PAUSADA") ? `${n("PAUSADA")} pausadas` : undefined} />
+        <Dato t="Guardadas como favorito" v={favoritos} />
+        <Dato t="Calificación" v={tienda && tienda.totalResenas > 0 ? `★ ${Number(tienda.calificacion).toFixed(1)}` : "—"} sub={tienda?.totalResenas ? `${tienda.totalResenas} reseñas` : "Todavía sin reseñas"} />
       </div>
-    </MarcoAuth>
-    <AyudaSoporte />
+      <div style={{ ...tarjetaEstilo, padding: 16, display: "flex", flexDirection: "column", gap: 8, fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Primeros pasos</div>
+        <div>{faltaPerfil ? "1. Completá tu tienda: descripción, zonas de entrega y WhatsApp." : "✓ Tu tienda tiene descripción y WhatsApp."} <Link href="/vendedor/tienda">Mi tienda →</Link></div>
+        <div>{total === 0 ? "2. Cargá tu primer producto. Elegilo del catálogo para que los productores lo encuentren al comparar." : `✓ Tenés ${total} producto${total === 1 ? "" : "s"} cargado${total === 1 ? "" : "s"}.`} <Link href="/vendedor/productos/nuevo">Nuevo producto →</Link></div>
+        <div>3. Los pedidos y las cotizaciones de los productores llegan acá en los próximos días; mientras tanto te consultan por WhatsApp.</div>
+      </div>
+      {n("RECHAZADA") > 0 && (
+        <div style={{ padding: "10px 14px", fontSize: 13, borderRadius: "var(--radius-md)", background: "var(--danger-subtle)", color: "var(--danger-text)" }}>
+          Moderación rechazó {n("RECHAZADA")} publicación{n("RECHAZADA") > 1 ? "es" : ""}. Mirá el motivo en <Link href="/vendedor/productos" style={{ color: "inherit", fontWeight: 600 }}>Productos</Link>.
+        </div>
+      )}
     </>
   );
 }

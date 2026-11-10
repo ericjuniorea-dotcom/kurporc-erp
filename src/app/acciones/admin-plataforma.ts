@@ -162,3 +162,59 @@ export async function guardarConfiguracion(datos: z.input<typeof configSchema>):
     return { ok: true };
   } catch (e) { return manejar(e); }
 }
+
+// ── Moderación del Mercado (Fase 12) ───────────────────────────────────────
+export async function moderarPublicacion(publicacionId: string, decision: "RECHAZAR" | "RESTABLECER", motivo: string): Promise<R> {
+  try {
+    const a = await admin(["TOTAL", "SOPORTE", "MODERACION"]);
+    const m = motivo.trim().slice(0, 500);
+    if (decision === "RECHAZAR" && m.length < 5) throw new Error("•Escribí el motivo: la tienda lo va a ver.");
+    const p = await prisma.publicacion.findUnique({ where: { id: publicacionId }, select: { tiendaId: true, titulo: true, estado: true } });
+    if (!p) throw new Error("•La publicación no existe.");
+    await prisma.$transaction([
+      prisma.publicacion.update({ where: { id: publicacionId }, data: decision === "RECHAZAR" ? { estado: "RECHAZADA", motivoRechazo: m } : { estado: "PAUSADA", motivoRechazo: null } }),
+      prisma.denunciaPublicacion.updateMany({ where: { publicacionId, estado: "ABIERTA" }, data: { estado: decision === "RECHAZAR" ? "PUBLICACION_RECHAZADA" : "DESCARTADA", resueltaPor: a.usuario.id, resueltaEn: new Date() } }),
+    ]);
+    const duenos = await prisma.miembro.findMany({ where: { organizacionId: p.tiendaId, esPropietario: true }, select: { userId: true } });
+    if (duenos.length) await prisma.notificacion.createMany({
+      data: duenos.map(d => ({
+        userId: d.userId, organizacionId: p.tiendaId, tipo: "MODERACION",
+        titulo: decision === "RECHAZAR" ? `Moderación rechazó «${p.titulo}»` : `«${p.titulo}» se puede volver a publicar`,
+        cuerpo: decision === "RECHAZAR" ? `Motivo: ${m}` : "Quedó pausada: activala desde tus productos cuando quieras.",
+        enlace: "/vendedor/productos",
+      })),
+    });
+    await auditar(a.usuario.id, "publicacion", publicacionId, { tipo: "moderacion", decision, motivo: m || null }, p.tiendaId);
+    revalidatePath("/admin/moderacion");
+    return { ok: true };
+  } catch (e) { return manejar(e); }
+}
+
+export async function descartarDenuncia(id: string): Promise<R> {
+  try {
+    const a = await admin(["TOTAL", "SOPORTE", "MODERACION"]);
+    await prisma.denunciaPublicacion.update({ where: { id }, data: { estado: "DESCARTADA", resueltaPor: a.usuario.id, resueltaEn: new Date() } });
+    revalidatePath("/admin/moderacion");
+    return { ok: true };
+  } catch (e) { return manejar(e); }
+}
+
+export async function revisarProductoPropuesto(id: string, aprobar: boolean, codigo: string): Promise<R> {
+  try {
+    const a = await admin(["TOTAL", "SOPORTE", "MODERACION"]);
+    const p = await prisma.productoCatalogo.findUnique({ where: { id } });
+    if (!p || p.aprobado) throw new Error("•Ese producto ya no está pendiente.");
+    if (aprobar) {
+      const c = codigo.trim().toUpperCase();
+      if (!/^[A-Z0-9-]{4,40}$/.test(c)) throw new Error("•Código inválido (ej. ALI-NUC-CRE).");
+      if (await prisma.productoCatalogo.findUnique({ where: { codigo: c }, select: { id: true } })) throw new Error("•Ese código ya existe.");
+      await prisma.productoCatalogo.update({ where: { id }, data: { aprobado: true, codigo: c } });
+    } else {
+      // Se descarta para el catálogo general; la tienda que lo propuso lo sigue usando
+      await prisma.productoCatalogo.update({ where: { id }, data: { atributos: { ...(p.atributos as object), descartado: true } } });
+    }
+    await auditar(a.usuario.id, "producto_catalogo", id, { tipo: "producto_propuesto", aprobado: aprobar, codigo: aprobar ? codigo.trim().toUpperCase() : null });
+    revalidatePath("/admin/moderacion");
+    return { ok: true };
+  } catch (e) { return manejar(e); }
+}

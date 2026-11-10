@@ -52,7 +52,7 @@ const NAV_GROUPS = [
       { label: "RRHH",           href: "/rrhh",          icon: IconUsers,          permiso: "rrhh.funcionarios.ver" },
       { label: "Finanzas",       href: "/finanzas",    icon: IconCalculator,     permiso: "finanzas.tablero.ver" },
       { label: "WhatsApp Bot",   href: "/whatsapp",      icon: IconBrandWhatsapp,  permiso: "configuracion.integraciones.editar" },
-      { label: "Mercado de Insumos", href: "/marketplace", icon: IconBuildingStore, permiso: "compras.pedidos.ver" },
+      { label: "Mercado KurPorc", href: "/mercado", icon: IconBuildingStore, permiso: "compras.pedidos.ver" },
       { label: "Equipo",         href: "/equipo",        icon: IconUsersGroup,     permiso: "equipo.miembros.ver" },
       { label: "Configuración",  href: "/configuracion", icon: IconSettings,       permiso: "configuracion.organizacion.ver" },
     ],

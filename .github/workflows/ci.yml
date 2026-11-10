@@ -72,6 +72,10 @@ jobs:
         run: npm run prueba:engorde
       - name: Prueba de cerdas paradas (Fase 10)
         run: npm run prueba:cerdas-paradas
+      - name: Mercado: precio por unidad, búsqueda sin acentos y reglas de publicación (Fase 12)
+        run: npm run prueba:mercado
+        env:
+          NODE_OPTIONS: --conditions=react-server
       - name: Control de super administradores (Fase 11)
         run: psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f supabase/tests/fase11_admin.sql
       - name: Las migraciones coinciden con el esquema

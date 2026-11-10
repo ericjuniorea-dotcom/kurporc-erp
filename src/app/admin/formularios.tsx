@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { IconLoader2 } from "@tabler/icons-react";
-import { decidirVendedor, guardarConfiguracion, guardarIncidente, marcarAprobadoAsesor, publicarDocumento, responderPrivacidad } from "@/app/acciones/admin-plataforma";
+import { decidirVendedor, descartarDenuncia, guardarConfiguracion, guardarIncidente, marcarAprobadoAsesor, moderarPublicacion, publicarDocumento, responderPrivacidad, revisarProductoPropuesto } from "@/app/acciones/admin-plataforma";
 
 type R = { ok: true } | { ok: false; error: string };
 
@@ -154,5 +154,39 @@ export function FormConfiguracion({ inicial, puedeEditar }: { inicial: Config; p
         </div>
       )}
     </form>
+  );
+}
+
+export function ModerarPublicacion({ id, estado, denunciaId }: { id: string; estado: string; denunciaId?: string }) {
+  const { error, pendiente, correr } = useAccion();
+  const [motivo, setMotivo] = useState("");
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 260 }}>
+      {estado !== "RECHAZADA" ? (
+        <div style={{ display: "flex", gap: 6 }}>
+          <input className="kp-input" value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Motivo (la tienda lo ve)" maxLength={500} style={{ height: 28, fontSize: 12, flex: 1 }} />
+          <button className="btn" style={{ height: 28, fontSize: 12, color: "var(--danger-text)" }} disabled={pendiente} onClick={() => correr(() => moderarPublicacion(id, "RECHAZAR", motivo))}><Cargando p={pendiente} />Rechazar</button>
+        </div>
+      ) : (
+        <button className="btn" style={{ height: 28, fontSize: 12, alignSelf: "flex-start" }} disabled={pendiente} onClick={() => correr(() => moderarPublicacion(id, "RESTABLECER", ""))}>Restablecer (queda pausada)</button>
+      )}
+      {denunciaId && <button className="btn" style={{ height: 26, fontSize: 11.5, alignSelf: "flex-start" }} disabled={pendiente} onClick={() => correr(() => descartarDenuncia(denunciaId))}>Descartar la denuncia</button>}
+      <Error e={error} />
+    </div>
+  );
+}
+
+export function RevisarProducto({ id, sugerido }: { id: string; sugerido: string }) {
+  const { error, pendiente, correr } = useAccion();
+  const [codigo, setCodigo] = useState(sugerido);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", gap: 6 }}>
+        <input className="kp-input" value={codigo} onChange={e => setCodigo(e.target.value.toUpperCase())} aria-label="Código del catálogo" style={{ height: 28, fontSize: 12, width: 160 }} />
+        <button className="btn btn-primary" style={{ height: 28, fontSize: 12 }} disabled={pendiente} onClick={() => correr(() => revisarProductoPropuesto(id, true, codigo))}><Cargando p={pendiente} />Aprobar</button>
+        <button className="btn" style={{ height: 28, fontSize: 12 }} disabled={pendiente} onClick={() => correr(() => revisarProductoPropuesto(id, false, ""))}>Descartar</button>
+      </div>
+      <Error e={error} />
+    </div>
   );
 }
