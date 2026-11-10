@@ -42,7 +42,7 @@ async function origen(): Promise<string> {
   return host ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.kurporc.com");
 }
 
-async function ingresar(email: string, clave: string, next: string | null, metodo: string): Promise<Resultado> {
+async function ingresar(email: string, clave: string, next: string | null, metodo: string, captcha?: string): Promise<Resultado> {
   const ctx = await contexto();
   const claveLimite = `${email}:${ctx.ip ?? "sin-ip"}`;
 
@@ -52,7 +52,7 @@ async function ingresar(email: string, clave: string, next: string | null, metod
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password: clave });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password: clave, options: captcha ? { captchaToken: captcha } : undefined });
 
   if (error || !data.user) {
     await consumirIntento("ingresoFallido", claveLimite);
@@ -82,12 +82,13 @@ const esquemaCorreo = z.object({
   email: z.string().trim().toLowerCase().email("Correo inválido").max(254),
   clave: z.string().min(1, "Ingresá tu contraseña").max(200),
   next: z.string().max(500).nullable().optional(),
+  captcha: z.string().max(4096).optional(),
 }).strict();
 
-export async function ingresarConCorreo(datos: { email: string; clave: string; next?: string | null }): Promise<Resultado> {
+export async function ingresarConCorreo(datos: { email: string; clave: string; next?: string | null; captcha?: string }): Promise<Resultado> {
   const p = esquemaCorreo.safeParse(datos);
   if (!p.success) return { ok: false, error: p.error.issues[0]?.message ?? "Datos inválidos" };
-  return ingresar(p.data.email, p.data.clave, p.data.next ?? null, "correo");
+  return ingresar(p.data.email, p.data.clave, p.data.next ?? null, "correo", p.data.captcha);
 }
 
 const esquemaUsuario = z.object({
@@ -95,23 +96,24 @@ const esquemaUsuario = z.object({
   codigo: z.string().trim().toUpperCase().regex(/^[A-Z0-9]{4,12}$/, "Código de empresa inválido"),
   clave: z.string().min(1, "Ingresá tu contraseña").max(200),
   next: z.string().max(500).nullable().optional(),
+  captcha: z.string().max(4096).optional(),
 }).strict();
 
 /** Operarios sin correo (cuentas gestionadas): usuario + código de empresa + contraseña. */
-export async function ingresarConUsuario(datos: { usuario: string; codigo: string; clave: string; next?: string | null }): Promise<Resultado> {
+export async function ingresarConUsuario(datos: { usuario: string; codigo: string; clave: string; next?: string | null; captcha?: string }): Promise<Resultado> {
   const p = esquemaUsuario.safeParse(datos);
   if (!p.success) return { ok: false, error: p.error.issues[0]?.message ?? "Datos inválidos" };
 
   const org = await prisma.tenant.findUnique({ where: { codigoUnion: p.data.codigo }, select: { slug: true } });
   // Si el código no existe se sigue igual (con un correo que no existe) para no revelar qué códigos son válidos.
   const email = `${p.data.usuario}.${org?.slug ?? "sin-organizacion"}@${DOMINIO_GESTIONADAS}`;
-  const r = await ingresar(email, p.data.clave, p.data.next ?? null, "usuario");
+  const r = await ingresar(email, p.data.clave, p.data.next ?? null, "usuario", p.data.captcha);
   return r.ok ? r : { ok: false, error: r.error === MENSAJE_CREDENCIALES ? "Usuario, código o contraseña incorrectos." : r.error };
 }
 
 /** Siempre responde lo mismo, exista o no el correo (no revela qué cuentas existen). */
-export async function recuperarClave(datos: { email: string }): Promise<Resultado> {
-  const p = z.object({ email: z.string().trim().toLowerCase().email("Correo inválido").max(254) }).strict().safeParse(datos);
+export async function recuperarClave(datos: { email: string; captcha?: string }): Promise<Resultado> {
+  const p = z.object({ email: z.string().trim().toLowerCase().email("Correo inválido").max(254), captcha: z.string().max(4096).optional() }).strict().safeParse(datos);
   if (!p.success) return { ok: false, error: p.error.issues[0]?.message ?? "Correo inválido" };
 
   const ctx = await contexto();
@@ -123,7 +125,7 @@ export async function recuperarClave(datos: { email: string }): Promise<Resultad
   }
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(p.data.email, {
-    redirectTo: `${await origen()}/auth/callback?next=/cuenta/cambiar-clave`,
+    redirectTo: `${await origen()}/auth/callback?next=/cuenta/cambiar-clave`, captchaToken: p.data.captcha,
   });
   if (error) console.error("[recuperar]", error.code, error.message);
   await registrarAuditoria("LOGIN", "users", null, { tipo: "recuperacion_solicitada", email: p.data.email }, ctx);
@@ -161,6 +163,7 @@ const esquemaRegistro = z.object({
   acepta: z.literal(true, { errorMap: () => ({ message: "Tenés que tildar la casilla para crear la cuenta" }) }),
   tipo: z.enum(["COMPRADOR", "INDIVIDUAL", "EMPRESA", "VENDEDOR"]).optional(),
   next: z.string().max(500).optional(),
+  captcha: z.string().max(4096).optional(),
 }).strict();
 
 /**
@@ -185,6 +188,7 @@ export async function registrarConCorreo(datos: z.input<typeof esquemaRegistro>)
     options: {
       emailRedirectTo: `${await origen()}/auth/callback?next=${encodeURIComponent(next)}`,
       data: { full_name: p.data.nombre },
+      captchaToken: p.data.captcha,
     },
   });
   if (error) {

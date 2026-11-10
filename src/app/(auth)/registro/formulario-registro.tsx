@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { IconBuildingStore, IconBuildingWarehouse, IconLoader2, IconPig, IconShoppingCart } from "@tabler/icons-react";
 import { createClient } from "@/lib/supabase/client";
 import { registrarConCorreo } from "@/app/acciones/autenticacion";
+import { Captcha, CAPTCHA_ACTIVO } from "@/components/auth/captcha";
 import { Aviso } from "@/components/auth/marco-auth";
 import { LogoGoogle } from "@/components/auth/logo-google";
 import { CasillaContrato } from "@/components/legal/casilla-contrato";
@@ -26,6 +27,8 @@ export function FormularioRegistro() {
   const [acepta, setAcepta] = useState(false);
   const [conCorreo, setConCorreo] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const [intento, setIntento] = useState(0);
   const [enviado, setEnviado] = useState<string | null>(null);
   const [conGoogle, setConGoogle] = useState(false);
   const [pendiente, iniciar] = useTransition();
@@ -51,9 +54,9 @@ export function FormularioRegistro() {
     iniciar(async () => {
       const r = await registrarConCorreo({
         nombre: String(f.get("nombre") ?? ""), email, clave: String(f.get("clave") ?? ""),
-        acepta: acepta as true, tipo: tipo ?? undefined, next,
+        acepta: acepta as true, tipo: tipo ?? undefined, next, captcha: captcha ?? undefined,
       });
-      if (r.ok) setEnviado(email); else setError(r.error);
+      if (r.ok) setEnviado(email); else { setError(r.error); setIntento(i => i + 1); }
     });
   }
 
@@ -116,7 +119,8 @@ export function FormularioRegistro() {
             <input id="email" name="email" type="email" required maxLength={254} autoComplete="email" className="kp-input" /></div>
           <div><label className="kp-label" htmlFor="clave">Contraseña (mínimo 10 caracteres)</label>
             <input id="clave" name="clave" type="password" required minLength={10} maxLength={200} autoComplete="new-password" className="kp-input" /></div>
-          <button type="submit" className="btn btn-primary" disabled={pendiente || !acepta} style={{ width: "100%", height: 40, justifyContent: "center" }}>
+          <Captcha onToken={setCaptcha} reiniciar={intento} />
+          <button type="submit" className="btn btn-primary" disabled={pendiente || !acepta || (CAPTCHA_ACTIVO && !captcha)} style={{ width: "100%", height: 40, justifyContent: "center" }}>
             {pendiente ? <IconLoader2 size={14} style={{ animation: "spin 1s linear infinite" }} aria-hidden /> : "Crear cuenta"}
           </button>
         </form>

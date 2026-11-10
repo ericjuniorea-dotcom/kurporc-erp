@@ -28,15 +28,17 @@ function esPublica(pathname: string) {
 const SUPABASE = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://evpnnotjjhwovirceyyl.supabase.co";
 const SUPABASE_WS = SUPABASE.replace(/^https:/, "wss:");
 const ES_DEV = process.env.NODE_ENV !== "production";
+const TURNSTILE = "https://challenges.cloudflare.com"; // CAPTCHA de Cloudflare (Anexo F.1)
 
 function politica(nonce: string): string {
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${ES_DEV ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${TURNSTILE}${ES_DEV ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'", // React escribe estilos en línea (style={{…}})
     `img-src 'self' data: blob: ${SUPABASE} https://lh3.googleusercontent.com`,
     "font-src 'self' data:",
-    `connect-src 'self' ${SUPABASE} ${SUPABASE_WS}${ES_DEV ? " ws:" : ""}`,
+    `connect-src 'self' ${SUPABASE} ${SUPABASE_WS} ${TURNSTILE}${ES_DEV ? " ws:" : ""}`,
+    `frame-src 'self' ${TURNSTILE}`, // CAPTCHA (Turnstile) se muestra en un iframe
     "frame-ancestors 'none'",
     "object-src 'none'",
     "base-uri 'self'",

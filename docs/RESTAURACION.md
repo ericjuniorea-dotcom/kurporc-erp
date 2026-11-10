@@ -59,3 +59,4 @@ Cada tres meses: hacer un respaldo, restaurarlo con el procedimiento A y anotar 
 | Fecha | Respaldo | Resultado | Responsable (puesto) |
 |---|---|---|---|
 | 07/11/2026 | `public.dump` (89 tablas) | Restaurado en local; se corrieron las migraciones de las Fases 1 y 2 y sus pruebas sobre la copia | Administración |
+| 10/11/2026 | `public_pre_fase14.dump` (140 tablas, 13 MB) | Restaurado en una base local nueva en 6 s; filas por tabla iguales a producción (910.131), salvo la migración aplicada después. Los 2 avisos de `pg_restore` son del entorno local (sin esquema `auth` ni extensiones de Supabase): en un proyecto de Supabase no aparecen | Administración |

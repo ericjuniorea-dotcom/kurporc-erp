@@ -8,6 +8,7 @@ import { LogoGoogle } from "@/components/auth/logo-google";
 import { CasillaContrato } from "@/components/legal/casilla-contrato";
 import { createClient } from "@/lib/supabase/client";
 import { ingresarConCorreo, ingresarConUsuario } from "@/app/acciones/autenticacion";
+import { Captcha, CAPTCHA_ACTIVO } from "@/components/auth/captcha";
 import { Aviso } from "@/components/auth/marco-auth";
 
 type Modo = "correo" | "usuario";
@@ -21,6 +22,8 @@ export function FormularioIngreso() {
   const params = useSearchParams();
   const next = params.get("next");
   const [modo, setModo] = useState<Modo>("correo");
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const [intento, setIntento] = useState(0);
   const [error, setError] = useState<string | null>(ERRORES_URL[params.get("error") ?? ""] ?? null);
   const [verClave, setVerClave] = useState(false);
   const [pendiente, iniciar] = useTransition();
@@ -50,10 +53,10 @@ export function FormularioIngreso() {
     iniciar(async () => {
       const clave = String(form.get("clave") ?? "");
       const r = modo === "correo"
-        ? await ingresarConCorreo({ email: String(form.get("email") ?? ""), clave, next })
-        : await ingresarConUsuario({ usuario: String(form.get("usuario") ?? ""), codigo: String(form.get("codigo") ?? ""), clave, next });
+        ? await ingresarConCorreo({ email: String(form.get("email") ?? ""), clave, next, captcha: captcha ?? undefined })
+        : await ingresarConUsuario({ usuario: String(form.get("usuario") ?? ""), codigo: String(form.get("codigo") ?? ""), clave, next, captcha: captcha ?? undefined });
       if (r.ok) window.location.href = r.destino ?? "/dashboard";
-      else setError(r.error);
+      else { setError(r.error); setIntento(i => i + 1); } // cada token sirve una sola vez
     });
   }
 
@@ -131,7 +134,8 @@ export function FormularioIngreso() {
           </div>
         </div>
 
-        <button type="submit" disabled={ocupado} className="btn btn-primary"
+        <Captcha onToken={setCaptcha} reiniciar={intento} />
+        <button type="submit" disabled={ocupado || (CAPTCHA_ACTIVO && !captcha)} className="btn btn-primary"
           style={{ width: "100%", height: 40, justifyContent: "center" }}>
           {pendiente ? <><IconLoader2 size={13} style={{ animation: "spin 1s linear infinite" }} aria-hidden /> Ingresando…</> : "Ingresar"}
         </button>

@@ -4,10 +4,13 @@ import Link from "next/link";
 import { IconLoader2 } from "@tabler/icons-react";
 import { MarcoAuth, Aviso } from "@/components/auth/marco-auth";
 import { recuperarClave } from "@/app/acciones/autenticacion";
+import { Captcha, CAPTCHA_ACTIVO } from "@/components/auth/captcha";
 
 export default function RecuperarPage() {
   const [error, setError] = useState<string | null>(null);
   const [enviado, setEnviado] = useState(false);
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const [intento, setIntento] = useState(0);
   const [pendiente, iniciar] = useTransition();
 
   return (
@@ -21,8 +24,8 @@ export default function RecuperarPage() {
           action={(f) => {
             setError(null);
             iniciar(async () => {
-              const r = await recuperarClave({ email: String(f.get("email") ?? "") });
-              if (r.ok) setEnviado(true); else setError(r.error);
+              const r = await recuperarClave({ email: String(f.get("email") ?? ""), captcha: captcha ?? undefined });
+              if (r.ok) setEnviado(true); else { setError(r.error); setIntento(i => i + 1); }
             });
           }}
           style={{ display: "flex", flexDirection: "column", gap: 12 }}
@@ -32,7 +35,8 @@ export default function RecuperarPage() {
             <label className="kp-label" htmlFor="email">Correo</label>
             <input id="email" name="email" type="email" autoComplete="email" required maxLength={254} className="kp-input" />
           </div>
-          <button type="submit" disabled={pendiente} className="btn btn-primary" style={{ width: "100%", height: 36, justifyContent: "center" }}>
+          <Captcha onToken={setCaptcha} reiniciar={intento} />
+          <button type="submit" disabled={pendiente || (CAPTCHA_ACTIVO && !captcha)} className="btn btn-primary" style={{ width: "100%", height: 36, justifyContent: "center" }}>
             {pendiente ? <IconLoader2 size={13} style={{ animation: "spin 1s linear infinite" }} aria-hidden /> : "Enviar enlace"}
           </button>
           <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
