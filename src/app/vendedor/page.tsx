@@ -21,12 +21,24 @@ export default async function InicioVendedor() {
     prisma.tienda.findUnique({ where: { organizacionId: t.org.id } }),
     prisma.favorito.count({ where: { publicacionId: { in: (await prisma.publicacion.findMany({ where: { tiendaId: t.org.id }, select: { id: true } })).map(p => p.id) } } }),
   ]);
+  const [pedidosNuevos, enCurso, sinResponder] = await Promise.all([
+    prisma.pedido.count({ where: { tiendaId: t.org.id, estado: "ENVIADO" } }),
+    prisma.pedido.count({ where: { tiendaId: t.org.id, estado: { in: ["CONFIRMADO", "EN_CAMINO"] } } }),
+    prisma.solicitudCotizacionTienda.count({ where: { tiendaId: t.org.id, solicitud: { estado: "ABIERTA", venceEn: { gt: new Date() }, respuestas: { none: { tiendaId: t.org.id } } } } }),
+  ]);
   const n = (e: string) => porEstado.find(x => x.estado === e)?._count._all ?? 0;
   const total = porEstado.reduce((s, x) => s + x._count._all, 0);
   const faltaPerfil = !tienda?.descripcion || !t.org.whatsapp;
   return (
     <>
+      {(pedidosNuevos > 0 || sinResponder > 0) && (
+        <div style={{ padding: "10px 14px", fontSize: 13, borderRadius: "var(--radius-md)", background: "var(--accent-subtle, var(--bg-subtle))", display: "flex", gap: 14, flexWrap: "wrap" }}>
+          {pedidosNuevos > 0 && <Link href="/vendedor/pedidos" style={{ fontWeight: 600 }}>{pedidosNuevos} pedido{pedidosNuevos > 1 ? "s" : ""} nuevo{pedidosNuevos > 1 ? "s" : ""} para confirmar →</Link>}
+          {sinResponder > 0 && <Link href="/vendedor/cotizaciones" style={{ fontWeight: 600 }}>{sinResponder} cotizaci{sinResponder > 1 ? "ones" : "ón"} sin responder →</Link>}
+        </div>
+      )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10 }}>
+        <Dato t="Pedidos en curso" v={pedidosNuevos + enCurso} sub={pedidosNuevos ? `${pedidosNuevos} sin confirmar` : undefined} />
         <Dato t="Publicaciones activas" v={n("ACTIVA")} sub={`${total} en total`} />
         <Dato t="En borrador" v={n("BORRADOR")} sub={n("PAUSADA") ? `${n("PAUSADA")} pausadas` : undefined} />
         <Dato t="Guardadas como favorito" v={favoritos} />
@@ -36,7 +48,7 @@ export default async function InicioVendedor() {
         <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Primeros pasos</div>
         <div>{faltaPerfil ? "1. Completá tu tienda: descripción, zonas de entrega y WhatsApp." : "✓ Tu tienda tiene descripción y WhatsApp."} <Link href="/vendedor/tienda">Mi tienda →</Link></div>
         <div>{total === 0 ? "2. Cargá tu primer producto. Elegilo del catálogo para que los productores lo encuentren al comparar." : `✓ Tenés ${total} producto${total === 1 ? "" : "s"} cargado${total === 1 ? "" : "s"}.`} <Link href="/vendedor/productos/nuevo">Nuevo producto →</Link></div>
-        <div>3. Los pedidos y las cotizaciones de los productores llegan acá en los próximos días; mientras tanto te consultan por WhatsApp.</div>
+        <div>3. Cuando un productor de tu zona pide cotización de algo que publicás, te llega un aviso: respondé rápido, pesa en el orden de las tiendas.</div>
       </div>
       {n("RECHAZADA") > 0 && (
         <div style={{ padding: "10px 14px", fontSize: 13, borderRadius: "var(--radius-md)", background: "var(--danger-subtle)", color: "var(--danger-text)" }}>

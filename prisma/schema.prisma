@@ -290,6 +290,8 @@ model Tenant {
 
   // Finanzas (Fase 8)
   tienda                Tienda?
+  solicitudesCotizacion SolicitudCotizacion[]
+  pedidosMercado        Pedido[]
   cuentasFondos         CuentaFondos[]
   categoriasFinancieras CategoriaFinanciera[]
   contrapartes          Contraparte[]
@@ -352,14 +354,16 @@ model User {
   ultimoAcceso       DateTime?
   bajaSolicitadaEn   DateTime?
 
-  tenant              Tenant?                 @relation(fields: [tenantId], references: [id])
-  userRoles           UserRole[]
-  pushTokens          PushToken[]
-  notificationPref    NotificationPreference?
-  assignedHealthTasks HealthTask[]            @relation("AssignedHealthTasks")
-  membresias          Miembro[]
-  adminPlataforma     AdminPlataforma?
-  favoritosMercado    Favorito[]
+  tenant                Tenant?                 @relation(fields: [tenantId], references: [id])
+  userRoles             UserRole[]
+  pushTokens            PushToken[]
+  notificationPref      NotificationPreference?
+  assignedHealthTasks   HealthTask[]            @relation("AssignedHealthTasks")
+  membresias            Miembro[]
+  adminPlataforma       AdminPlataforma?
+  favoritosMercado      Favorito[]
+  solicitudesCotizacion SolicitudCotizacion[]
+  pedidosMercado        Pedido[]
 
   @@index([tenantId])
   @@map("users")
@@ -3246,8 +3250,11 @@ model ProductoCatalogo {
   propuestoPor        String?    @map("propuesto_por") // organización vendedora que lo propuso (aprobado = false hasta revisión)
   createdAt           DateTime   @default(now()) @map("created_at")
 
-  categoria     CategoriaMercado @relation(fields: [categoriaId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "producto_catalogo_categoria_fk")
-  publicaciones Publicacion[]
+  categoria      CategoriaMercado          @relation(fields: [categoriaId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "producto_catalogo_categoria_fk")
+  publicaciones  Publicacion[]
+  itemsSolicitud SolicitudCotizacionItem[]
+  itemsPedido    PedidoItem[]
+  stockItems     StockItemCatalogo[]
 
   @@map("producto_catalogo")
 }
@@ -3261,8 +3268,12 @@ model Tienda {
   totalResenas   Int      @default(0) @map("total_resenas")
   updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
 
-  organizacion  Tenant        @relation(fields: [organizacionId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "tienda_organizacion_fk")
+  organizacion  Tenant                      @relation(fields: [organizacionId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "tienda_organizacion_fk")
   publicaciones Publicacion[]
+  solicitudes   SolicitudCotizacionTienda[]
+  respuestas    RespuestaCotizacion[]
+  pedidos       Pedido[]
+  resenas       Resena[]
 
   @@map("tienda")
 }
@@ -3297,6 +3308,7 @@ model Publicacion {
   categoria        CategoriaMercado      @relation(fields: [categoriaId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "publicacion_categoria_fk")
   favoritos        Favorito[]
   denuncias        DenunciaPublicacion[]
+  itemsPedido      PedidoItem[]
 
   @@index([productoCatalogoId, estado])
   @@index([categoriaId, estado])
@@ -3331,4 +3343,200 @@ model DenunciaPublicacion {
 
   @@index([estado, createdAt])
   @@map("denuncia_publicacion")
+}
+
+// ================================================================
+// FASE 13: COTIZACIONES, PEDIDOS Y RECEPCIÓN EN STOCK
+// Cada cambio de pedido.estado lo registra el trigger registrar_evento_pedido (con app.actor_id):
+// no hay cambio de estado sin pedido_evento.
+// ================================================================
+
+enum EstadoPedido {
+  BORRADOR
+  PENDIENTE_APROBACION
+  ENVIADO
+  CONFIRMADO
+  RECHAZADO
+  EN_CAMINO
+  ENTREGADO
+  RECIBIDO
+  CANCELADO
+}
+
+enum MetodoPagoPedido {
+  TRANSFERENCIA
+  EFECTIVO
+  CONTRA_ENTREGA
+  CREDITO_VENDEDOR
+}
+
+model SolicitudCotizacion {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  compradorId     String    @map("comprador_id")
+  organizacionId  String    @map("organizacion_id")
+  granjaDestinoId String?   @map("granja_destino_id")
+  departamento    String
+  fechaRequerida  DateTime? @map("fecha_requerida") @db.Date
+  origen          String    @default("MANUAL") // MANUAL | MOTOR_NECESIDADES
+  estado          String    @default("ABIERTA") // ABIERTA | CERRADA | VENCIDA | CANCELADA
+  nota            String?
+  venceEn         DateTime  @map("vence_en")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  comprador    User                        @relation(fields: [compradorId], references: [id], onDelete: Cascade)
+  organizacion Tenant                      @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  items        SolicitudCotizacionItem[]
+  tiendas      SolicitudCotizacionTienda[]
+  respuestas   RespuestaCotizacion[]
+
+  @@index([organizacionId, estado])
+  @@map("solicitud_cotizacion")
+}
+
+model SolicitudCotizacionItem {
+  id                 String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  solicitudId        String  @map("solicitud_id") @db.Uuid
+  productoCatalogoId String  @map("producto_catalogo_id") @db.Uuid
+  cantidadBase       Decimal @map("cantidad_base") @db.Decimal(14, 3)
+  nota               String?
+
+  solicitud SolicitudCotizacion @relation(fields: [solicitudId], references: [id], onDelete: Cascade)
+  producto  ProductoCatalogo    @relation(fields: [productoCatalogoId], references: [id])
+
+  @@map("solicitud_cotizacion_item")
+}
+
+// Tiendas a las que se envió la solicitud (hasta 10)
+model SolicitudCotizacionTienda {
+  solicitudId String    @map("solicitud_id") @db.Uuid
+  tiendaId    String    @map("tienda_id")
+  vistaEn     DateTime? @map("vista_en")
+
+  solicitud SolicitudCotizacion @relation(fields: [solicitudId], references: [id], onDelete: Cascade)
+  tienda    Tienda              @relation(fields: [tiendaId], references: [organizacionId], onDelete: Cascade)
+
+  @@id([solicitudId, tiendaId])
+  @@index([tiendaId])
+  @@map("solicitud_cotizacion_tienda")
+}
+
+model RespuestaCotizacion {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  solicitudId   String   @map("solicitud_id") @db.Uuid
+  tiendaId      String   @map("tienda_id")
+  items         Json // [{ itemId, publicacionId, descripcion, precioUnitarioGs, unidadVenta, contenidoBase, cantidad }]
+  costoEnvioGs  BigInt   @default(0) @map("costo_envio_gs")
+  plazoDias     Int      @map("plazo_dias")
+  validaHasta   DateTime @map("valida_hasta") @db.Date
+  nota          String?
+  respondidaPor String   @map("respondida_por")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  solicitud SolicitudCotizacion @relation(fields: [solicitudId], references: [id], onDelete: Cascade)
+  tienda    Tienda              @relation(fields: [tiendaId], references: [organizacionId], onDelete: Cascade)
+  pedidos   Pedido[]
+
+  @@unique([solicitudId, tiendaId])
+  @@map("respuesta_cotizacion")
+}
+
+model Pedido {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  numero          String           @unique // PED-2026-000123
+  compradorId     String           @map("comprador_id")
+  organizacionId  String           @map("organizacion_id")
+  unidadId        String?          @map("unidad_id") @db.Uuid
+  granjaDestinoId String?          @map("granja_destino_id")
+  tiendaId        String           @map("tienda_id")
+  respuestaId     String?          @map("respuesta_id") @db.Uuid
+  estado          EstadoPedido     @default(BORRADOR)
+  subtotalGs      BigInt           @map("subtotal_gs")
+  envioGs         BigInt           @default(0) @map("envio_gs")
+  totalGs         BigInt           @map("total_gs")
+  metodoPago      MetodoPagoPedido @map("metodo_pago")
+  pagado          Boolean          @default(false)
+  direccion       String?
+  fechaEstimada   DateTime?        @map("fecha_estimada") @db.Date
+  aprobadoPor     String?          @map("aprobado_por")
+  notas           String?
+  movimientoId    String?          @map("movimiento_id") @db.Uuid
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @default(now()) @updatedAt @map("updated_at")
+
+  comprador    User                 @relation(fields: [compradorId], references: [id])
+  organizacion Tenant               @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  tienda       Tienda               @relation(fields: [tiendaId], references: [organizacionId])
+  respuesta    RespuestaCotizacion? @relation(fields: [respuestaId], references: [id], onDelete: SetNull)
+  items        PedidoItem[]
+  eventos      PedidoEvento[]
+  resena       Resena?
+
+  @@index([tiendaId, estado])
+  @@index([organizacionId, estado])
+  @@map("pedido")
+}
+
+model PedidoItem {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pedidoId           String   @map("pedido_id") @db.Uuid
+  publicacionId      String?  @map("publicacion_id") @db.Uuid
+  productoCatalogoId String?  @map("producto_catalogo_id") @db.Uuid
+  descripcion        String
+  unidadVenta        String   @map("unidad_venta")
+  unidadBase         String   @map("unidad_base")
+  cantidad           Decimal  @db.Decimal(14, 3)
+  contenidoBase      Decimal  @map("contenido_base") @db.Decimal(12, 3)
+  precioUnitarioGs   BigInt   @map("precio_unitario_gs")
+  subtotalGs         BigInt   @map("subtotal_gs")
+  cantidadRecibida   Decimal? @map("cantidad_recibida") @db.Decimal(14, 3)
+
+  pedido      Pedido            @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  publicacion Publicacion?      @relation(fields: [publicacionId], references: [id], onDelete: SetNull)
+  producto    ProductoCatalogo? @relation(fields: [productoCatalogoId], references: [id])
+
+  @@map("pedido_item")
+}
+
+model PedidoEvento {
+  id        String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pedidoId  String       @map("pedido_id") @db.Uuid
+  estado    EstadoPedido
+  actorId   String       @map("actor_id")
+  nota      String?
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  pedido Pedido @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+
+  @@index([pedidoId, createdAt])
+  @@map("pedido_evento")
+}
+
+model Resena {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pedidoId     String   @unique @map("pedido_id") @db.Uuid
+  tiendaId     String   @map("tienda_id")
+  autorId      String   @map("autor_id")
+  calificacion Int
+  comentario   String?
+  respuesta    String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  pedido Pedido @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  tienda Tienda @relation(fields: [tiendaId], references: [organizacionId], onDelete: Cascade)
+
+  @@index([tiendaId, createdAt])
+  @@map("resena")
+}
+
+// Qué producto del stock de la granja corresponde a cada producto del catálogo (se aprende al recibir; lo usa la Fase 14)
+model StockItemCatalogo {
+  organizacionId     String @map("organizacion_id")
+  stockItemId        String @map("stock_item_id")
+  productoCatalogoId String @map("producto_catalogo_id") @db.Uuid
+
+  producto ProductoCatalogo @relation(fields: [productoCatalogoId], references: [id], onDelete: Cascade)
+
+  @@id([organizacionId, stockItemId])
+  @@index([organizacionId, productoCatalogoId])
+  @@map("stock_item_catalogo")
 }

@@ -1,6 +1,7 @@
-// Cómo se mueve el Mercado (Fase 11). Pedidos, GMV, ticket y tiempo de respuesta llegan con la Fase 13.
+// Cómo se mueve el Mercado (Fase 11): venta, pedidos, conversión de cotizaciones, tiempo de respuesta y publicaciones.
 import prisma from "@/lib/db/prisma";
 import { registrarAcceso, requireAdmin } from "@/lib/admin/acceso";
+import { NOMBRE_ESTADO, type Estado } from "@/lib/pedidos/reglas";
 
 const tarjeta: React.CSSProperties = { background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-lg)" };
 
@@ -22,6 +23,16 @@ export default async function MercadoAdmin() {
     prisma.publicacion.groupBy({ by: ["categoriaId"], where: { estado: "ACTIVA" }, _count: { _all: true } }),
     prisma.categoriaMercado.findMany({ select: { id: true, nombre: true, padreId: true } }),
   ]);
+  const inicioMes = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
+  const [gmv, pedidosEstado, solicitudes30, conPedido30, respuesta] = await Promise.all([
+    prisma.pedido.aggregate({ where: { createdAt: { gte: inicioMes }, estado: { in: ["CONFIRMADO", "EN_CAMINO", "ENTREGADO", "RECIBIDO"] } }, _sum: { totalGs: true }, _count: { _all: true } }),
+    prisma.pedido.groupBy({ by: ["estado"], _count: { _all: true } }),
+    prisma.solicitudCotizacion.count({ where: { createdAt: { gte: hace30 } } }),
+    prisma.solicitudCotizacion.count({ where: { createdAt: { gte: hace30 }, respuestas: { some: { pedidos: { some: {} } } } } }),
+    prisma.$queryRaw<{ horas: number | null }[]>`select avg(extract(epoch from rc.created_at - sc.created_at)) / 3600 as horas from respuesta_cotizacion rc join solicitud_cotizacion sc on sc.id = rc.solicitud_id where rc.created_at >= ${hace30}`,
+  ]);
+  const gmvMes = Number(gmv._sum.totalGs ?? 0n), pedidosMes = gmv._count._all;
+  const horas = respuesta[0]?.horas === null || respuesta[0]?.horas === undefined ? null : Number(respuesta[0].horas);
   await registrarAcceso({ adminId: a.usuario.id, organizacionId: null, seccion: "/admin/mercado", motivo: "ESTADISTICA" });
   const n = (e: string) => porEstado.find(x => x.estado === e)?._count._all ?? 0;
   // Agrupado por categoría principal
@@ -32,6 +43,17 @@ export default async function MercadoAdmin() {
   const max = Math.max(1, ...filas.map(f => f[1]));
   return (
     <>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10 }}>
+        <Dato t="Venta del mes (GMV)" v={`Gs ${gmvMes.toLocaleString("es-PY")}`} sub={`${pedidosMes} pedidos confirmados o más`} />
+        <Dato t="Ticket promedio" v={pedidosMes ? `Gs ${Math.round(gmvMes / pedidosMes).toLocaleString("es-PY")}` : "—"} />
+        <Dato t="Cotización → pedido (30 días)" v={solicitudes30 ? `${Math.round((conPedido30 / solicitudes30) * 100)} %` : "—"} sub={`${conPedido30} de ${solicitudes30} solicitudes`} />
+        <Dato t="Tiempo de respuesta" v={horas === null ? "—" : horas < 1 ? `${Math.round(horas * 60)} min` : `${horas.toLocaleString("es-PY", { maximumFractionDigits: 1 })} h`} sub="promedio de las tiendas, 30 días" />
+      </div>
+      <div style={{ ...tarjeta, padding: 14, display: "flex", gap: 14, flexWrap: "wrap", fontSize: 12.5 }}>
+        <strong>Pedidos por estado:</strong>
+        {pedidosEstado.length === 0 ? <span style={{ color: "var(--text-muted)" }}>todavía no hay pedidos</span>
+          : pedidosEstado.map(x => <span key={x.estado}>{NOMBRE_ESTADO[x.estado as Estado]}: <strong>{x._count._all}</strong></span>)}
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10 }}>
         <Dato t="Tiendas activas" v={tiendas} sub={`${verificadas} verificadas · ${conActivas} con publicaciones`} />
         <Dato t="Publicaciones activas" v={n("ACTIVA")} sub={`${n("BORRADOR")} borradores · ${n("PAUSADA")} pausadas · ${n("RECHAZADA")} rechazadas`} />
@@ -50,7 +72,6 @@ export default async function MercadoAdmin() {
           </div>
         ))}
       </div>
-      <div style={{ fontSize: 12, color: "var(--text-muted)" }}>GMV, pedidos por estado, ticket promedio, tasa cotización → pedido y tiempo de respuesta aparecen cuando se habiliten los pedidos (Fase 13).</div>
     </>
   );
 }

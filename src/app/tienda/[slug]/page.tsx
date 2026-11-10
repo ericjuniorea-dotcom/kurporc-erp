@@ -1,5 +1,6 @@
 // Perfil público de una tienda y sus publicaciones (Fase 12).
 import { notFound } from "next/navigation";
+import prisma from "@/lib/db/prisma";
 import type { Metadata } from "next";
 import { MarcoMercado, TarjetaPublicacion, Verificado, tarjetaEstilo } from "@/components/mercado/marco";
 import { buscarPublicaciones, tiendaPorSlug } from "@/lib/mercado/consultas";
@@ -16,7 +17,10 @@ export default async function TiendaPublica({ params }: { params: Promise<{ slug
   const { slug } = await params;
   const t = await tiendaPorSlug(slug);
   if (!t) notFound();
-  const { tarjetas, total } = await buscarPublicaciones({ tienda: slug, orden: "nuevos" });
+  const [{ tarjetas, total }, resenas] = await Promise.all([
+    buscarPublicaciones({ tienda: slug, orden: "nuevos" }),
+    prisma.resena.findMany({ where: { tiendaId: t.org.id }, orderBy: { createdAt: "desc" }, take: 10, include: { pedido: { select: { organizacion: { select: { farmName: true } } } } } }),
+  ]);
   const desde = t.org.createdAt.toLocaleDateString("es-PY", { month: "long", year: "numeric" });
   return (
     <MarcoMercado>
@@ -42,6 +46,18 @@ export default async function TiendaPublica({ params }: { params: Promise<{ slug
       {tarjetas.length > 0
         ? <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>{tarjetas.map(x => <TarjetaPublicacion key={x.id} t={x} />)}</div>
         : <div style={{ ...tarjetaEstilo, padding: 24, textAlign: "center", fontSize: 13, color: "var(--text-muted)" }}>Esta tienda todavía no tiene publicaciones activas.</div>}
+      {resenas.length > 0 && (
+        <section style={{ ...tarjetaEstilo, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+          <h2 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>Reseñas de compradores</h2>
+          {resenas.map(r => (
+            <div key={r.id} style={{ fontSize: 13, display: "flex", flexDirection: "column", gap: 2 }}>
+              <div><span style={{ color: "#E8A317" }} aria-label={`${r.calificacion} de 5`}>{"★".repeat(r.calificacion)}{"☆".repeat(5 - r.calificacion)}</span> <span style={{ color: "var(--text-muted)", fontSize: 12 }}>· compra verificada · {r.createdAt.toLocaleDateString("es-PY", { month: "long", year: "numeric" })}</span></div>
+              {r.comentario && <div style={{ color: "var(--text-secondary)" }}>{r.comentario}</div>}
+              {r.respuesta && <div style={{ color: "var(--text-muted)", fontSize: 12.5, paddingLeft: 10, borderLeft: "2px solid var(--border-default)" }}>Respuesta de la tienda: {r.respuesta}</div>}
+            </div>
+          ))}
+        </section>
+      )}
     </MarcoMercado>
   );
 }

@@ -5,6 +5,8 @@ import { signOut } from "@/lib/auth/sesion-cliente";
 
 const SECCIONES = [
   { href: "/vendedor", label: "Inicio" },
+  { href: "/vendedor/pedidos", label: "Pedidos" },
+  { href: "/vendedor/cotizaciones", label: "Cotizaciones" },
   { href: "/vendedor/productos", label: "Productos" },
   { href: "/vendedor/tienda", label: "Mi tienda" },
 ];

@@ -19,9 +19,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return { title: `${d.p.titulo} · ${d.org.farmName} · Mercado KurPorc`, description: d.p.descripcion?.slice(0, 160) ?? `${d.p.titulo}, ${d.p.unidadVenta}, en el Mercado KurPorc.` };
 }
 
-export default async function DetallePublicacion({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ accion?: string }> }) {
+export default async function DetallePublicacion({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { accion } = await searchParams;
   const usuario = await getUsuario();
   const session = usuario ? await getSession() : null;
   const miTienda = session?.membresias.find(m => m.tipo === "VENDEDOR")?.organizacionId ?? null;
@@ -31,7 +30,8 @@ export default async function DetallePublicacion({ params, searchParams }: { par
   const volver = `/mercado/p/${slug}`;
   const fav = usuario ? !!(await prisma.favorito.findUnique({ where: { userId_publicacionId: { userId: usuario.id, publicacionId: p.id } } })) : false;
   const base = textoPrecioBase(p.precioGs, Number(p.contenidoBase), p.unidadBase as UnidadBase);
-  const login = (a: string) => `/registro?next=${encodeURIComponent(`${volver}?accion=${a}`)}`;
+  // Sin cuenta: se registra y vuelve a esta misma publicación
+  const login = (_a: string) => `/registro?next=${encodeURIComponent(volver)}`;
   const esPropia = miTienda === p.tiendaId;
 
   return (
@@ -89,16 +89,10 @@ export default async function DetallePublicacion({ params, searchParams }: { par
           {!esPropia && (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {usuario ? (
-                accion === "pedir" || accion === "cotizar" ? (
-                  <div style={{ ...tarjetaEstilo, padding: 12, fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.55 }}>
-                    Los pedidos y las cotizaciones dentro de KurPorc se habilitan en los próximos días. Mientras tanto, consultá a la tienda por WhatsApp.
-                  </div>
-                ) : (
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <Link href={`${volver}?accion=pedir`} className="btn btn-primary" style={{ height: 38 }}><IconShoppingCart size={16} aria-hidden /> Pedir</Link>
-                    <Link href={`${volver}?accion=cotizar`} className="btn" style={{ height: 38 }}><IconFileInvoice size={16} aria-hidden /> Solicitar cotización</Link>
-                  </div>
-                )
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <Link href={`/compras/pedidos/nuevo?publicacion=${p.slug}`} className="btn btn-primary" style={{ height: 38 }}><IconShoppingCart size={16} aria-hidden /> Pedir</Link>
+                  <Link href={p.productoCatalogoId ? `/compras/cotizaciones/nueva?producto=${p.productoCatalogoId}` : "/compras/cotizaciones/nueva"} className="btn" style={{ height: 38 }}><IconFileInvoice size={16} aria-hidden /> Solicitar cotización</Link>
+                </div>
               ) : (
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <Link href={login("pedir")} className="btn btn-primary" style={{ height: 38 }}><IconShoppingCart size={16} aria-hidden /> Pedir</Link>
