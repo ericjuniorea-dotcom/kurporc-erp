@@ -4,6 +4,7 @@ import { div, sumaN } from "@/lib/finanzas/hojas";
 import { corteDelAnio, paginaFinanzas } from "@/lib/finanzas/pagina";
 import { SelectorAnio, TablaMensual, anioDe, type Fila } from "../tabla-mensual";
 
+import { idsCamadasAbiertas } from "@/lib/maternidad/camadas";
 export const metadata = { title: "Producción · Finanzas · KurPorc" };
 const tarjeta: React.CSSProperties = { background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-lg)" };
 
@@ -14,7 +15,7 @@ export default async function ProduccionFinanzas({ searchParams }: { searchParam
   const [{ prod, matricesHoy }, machos, enMaternidad, enDestete] = await Promise.all([
     datosAnio(org, anio),
     prisma.boar.count({ where: { tenantId: org, isActive: true } }),
-    prisma.farrowingEvent.findMany({ where: { tenantId: org, weaning: null }, select: { bornAlive: true, deaths: { select: { quantity: true } } } }),
+    prisma.farrowingEvent.findMany({ where: { tenantId: org, id: { in: await idsCamadasAbiertas(org) } }, select: { bornAlive: true, deaths: { select: { quantity: true } } } }),
     prisma.nurseryBatch.aggregate({ where: { tenantId: org, isActive: true }, _sum: { currentCount: true } }),
   ]);
   const lechonesMaternidad = enMaternidad.reduce((s, f) => s + f.bornAlive - f.deaths.reduce((t, d) => t + d.quantity, 0), 0);

@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { getPermisos, puede } from "@/lib/permisos/servidor";
 
+import { idsCamadasAbiertas } from "@/lib/maternidad/camadas";
 // kg recomendados por fase
 function kgRec(fase: string, count: number, piglets = 0): number {
   switch (fase) {
@@ -78,7 +79,7 @@ export async function GET(req: NextRequest) {
   // ── 1. Farrowings activos (maternidad) ──────────────────────────────────────
   if (!faseParam || faseParam === "maternidad") {
     const farrowings = await prisma.farrowingEvent.findMany({
-      where: { tenantId, weaning: null },
+      where: { tenantId, id: { in: await idsCamadasAbiertas(tenantId) } },
       include: { sow: { select: { identCode: true } } },
       orderBy: { startDatetime: "asc" },
     });

@@ -5,6 +5,7 @@ import prisma from "@/lib/db/prisma";
 import { getGestacionStates } from "@/lib/gestacion/sow-state";
 import { getPermisos, puede } from "@/lib/permisos/servidor";
 
+import { idsCamadasAbiertas } from "@/lib/maternidad/camadas";
 export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -21,7 +22,7 @@ export async function GET() {
   // ── Hembras en Maternidad: misma fuente que el módulo de Maternidad ──
   // Partos activos sin destete registrado
   const hembrasEnMaternidad = await prisma.farrowingEvent.count({
-    where: { tenantId, weaning: null },
+    where: { tenantId, id: { in: await idsCamadasAbiertas(tenantId) } },
   });
 
   // ── Cuarentena: sows activas en estado QUARANTINE ─────────────────

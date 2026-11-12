@@ -6,6 +6,7 @@ import { addDays } from "@/lib/utils";
 import { getGestacionStates } from "@/lib/gestacion/sow-state";
 import { getPermisos, puedeAlguno } from "@/lib/permisos/servidor";
 
+import { idsCamadasAbiertas } from "@/lib/maternidad/camadas";
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
     // ── Estado de cada cerda con servicio activo ──────────────────────
     getGestacionStates(tenantId),
     // Maternidad: partos activos sin destete (misma fuente que el módulo de Maternidad)
-    prisma.farrowingEvent.count({ where: { tenantId, weaning: null } }),
+    prisma.farrowingEvent.count({ where: { tenantId, id: { in: await idsCamadasAbiertas(tenantId) } } }),
     // Cuarentena: sows activas en estado QUARANTINE
     prisma.sow.count({ where: { tenantId, isActive: true, plantelState: "QUARANTINE" } }),
     // ── Total activas (base para disponibles) ─────────────────────────

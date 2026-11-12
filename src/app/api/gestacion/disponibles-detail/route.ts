@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db/prisma";
 import { getGestacionStates } from "@/lib/gestacion/sow-state";
 import { getPermisos, puedeAlguno } from "@/lib/permisos/servidor";
 
+import { idsCamadasAbiertas } from "@/lib/maternidad/camadas";
 const ESTADO_LABEL: Record<string, string> = {
   EMPTY:                   "Vacía",
   REPLACEMENT_READY:       "Lista para primer servicio",
@@ -35,7 +36,7 @@ export async function GET() {
   const [states, enMaternidad] = await Promise.all([
     getGestacionStates(tenantId),
     prisma.farrowingEvent.findMany({
-      where:  { tenantId, weaning: null },
+      where:  { tenantId, id: { in: await idsCamadasAbiertas(tenantId) } },
       select: { sowId: true },
     }),
   ]);

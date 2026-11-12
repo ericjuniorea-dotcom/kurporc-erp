@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import prisma from "@/lib/db/prisma";
 
+import { idsCamadasAbiertas } from "@/lib/maternidad/camadas";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
@@ -35,7 +36,7 @@ export async function GET(req: NextRequest) {
     farrowingsFromWindow,
   ] = await Promise.all([
     prisma.sow.count({ where: { tenantId, isActive: true } }),
-    prisma.farrowingEvent.count({ where: { tenantId, weaning: null } }),
+    prisma.farrowingEvent.count({ where: { tenantId, id: { in: await idsCamadasAbiertas(tenantId) } } }),
     prisma.nurseryBatch.count({ where: { tenantId, isActive: true } }),
     prisma.healthTask.count({ where: { tenantId, isCompleted: false } }),
     prisma.healthTask.count({ where: { tenantId, isCompleted: false, dueDate: { lt: today } } }),

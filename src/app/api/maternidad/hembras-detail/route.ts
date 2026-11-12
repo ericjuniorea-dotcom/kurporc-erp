@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { getPermisos, puedeAlguno } from "@/lib/permisos/servidor";
 
+import { idsCamadasAbiertas } from "@/lib/maternidad/camadas";
 export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -13,7 +14,7 @@ export async function GET() {
   const today = new Date();
 
   const farrowings = await prisma.farrowingEvent.findMany({
-    where:   { tenantId, weaning: null },
+    where:   { tenantId, id: { in: await idsCamadasAbiertas(tenantId) } },
     include: {
       sow: {
         select: {

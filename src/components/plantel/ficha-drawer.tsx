@@ -114,6 +114,9 @@ export function FichaDrawer({ sowId, canEdit, onClose }: Props) {
         setShowBaja(false);
         setBajaCause("");
         loadSow();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error ?? "No se pudo registrar la baja");
       }
     } finally {
       setBajaSaving(false);

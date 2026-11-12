@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import prisma from "@/lib/db/prisma";
 import { getPermisos, puede } from "@/lib/permisos/servidor";
+import { darDeBajaCerda, ErrorBaja } from "@/lib/plantel/baja";
 
 export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -17,54 +18,14 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
   const body = await req.json();
   const { action, cause, notes, newState } = body;
 
-  if (action === "register_death") {
-    const prevState = sow.plantelState;
-    const updated = await prisma.sow.update({
-      where: { id: params.id },
-      data: {
-        plantelState: "DEAD",
-        isActive: false,
-        animalEvents: {
-          create: {
-            tenantId,
-            eventType: "DEATH",
-            eventDate: new Date(),
-            previousState: prevState ?? undefined,
-            newState: "DEAD",
-            description: `Muerte registrada. Causa: ${cause || "No especificada"}`,
-            moduleSource: "PLANTEL",
-            userId,
-            metadata: { notes },
-          },
-        },
-      },
-    });
-    return NextResponse.json(updated);
-  }
-
-  if (action === "register_discard") {
-    const prevState = sow.plantelState;
-    const updated = await prisma.sow.update({
-      where: { id: params.id },
-      data: {
-        plantelState: "CULLED",
-        isActive: false,
-        animalEvents: {
-          create: {
-            tenantId,
-            eventType: "DISCARD",
-            eventDate: new Date(),
-            previousState: prevState ?? undefined,
-            newState: "CULLED",
-            description: `Descarte registrado. Causa: ${cause || "No especificada"}`,
-            moduleSource: "PLANTEL",
-            userId,
-            metadata: { notes },
-          },
-        },
-      },
-    });
-    return NextResponse.json(updated);
+  if (action === "register_death" || action === "register_discard") {
+    try {
+      const r = await darDeBajaCerda({ tenantId, sowId: params.id, userId, tipo: action === "register_death" ? "MUERTE" : "DESCARTE", fecha: new Date(), motivo: String(cause || "No especificada").slice(0, 300), extra: { observaciones: notes ?? null } });
+      return NextResponse.json(r.sow);
+    } catch (e) {
+      if (e instanceof ErrorBaja) return NextResponse.json({ error: e.message, codigo: e.codigo }, { status: e.codigo === "NO_EXISTE" ? 404 : 409 });
+      throw e;
+    }
   }
 
   if (action === "quarantine_release" && sow.plantelState === "QUARANTINE") {

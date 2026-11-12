@@ -8,6 +8,7 @@ import { generarEventosParto } from "@/lib/sanidad/generate-eventos";
 import { addDays, diffDays } from "@/lib/utils";
 import { getPermisos, puede, puedeAlguno } from "@/lib/permisos/servidor";
 
+import { idsCamadasAbiertas } from "@/lib/maternidad/camadas";
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
@@ -21,7 +22,7 @@ export async function GET(req: NextRequest) {
     where: {
       tenantId: session.user.tenantId,
       ...(sowId ? { sowId } : {}),
-      ...(onlyActive ? { weaning: null } : {}),
+      ...(onlyActive ? { id: { in: await idsCamadasAbiertas(session.user.tenantId) } } : {}),
     },
     include: {
       sow:    { select: { id: true, identCode: true, currentParityCount: true } },

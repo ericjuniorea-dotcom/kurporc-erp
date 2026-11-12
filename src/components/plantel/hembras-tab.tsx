@@ -277,6 +277,9 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
         setDeathModal(null);
         setDeathCause(""); setDeathNotes("");
         loadSows();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error ?? "No se pudo registrar la muerte");
       }
     } finally {
       setSaving(false);

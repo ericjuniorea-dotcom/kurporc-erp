@@ -9,6 +9,7 @@
 
 import { prisma } from "@/lib/db/prisma";
 
+import { idsCamadasAbiertas } from "@/lib/maternidad/camadas";
 export interface SowGestacionState {
   sowId:         string;
   serviceEventId: string;
@@ -44,7 +45,7 @@ export async function getGestacionStates(tenantId: string): Promise<SowGestacion
     }),
     // 3. Sows actualmente en Maternidad — excluir de gestación sin excepción
     prisma.farrowingEvent.findMany({
-      where:  { tenantId, weaning: null },
+      where:  { tenantId, id: { in: await idsCamadasAbiertas(tenantId) } },
       select: { sowId: true },
     }),
   ]);

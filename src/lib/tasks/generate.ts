@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
 
+import { idsCamadasAbiertas } from "@/lib/maternidad/camadas";
 // ── Responsables ─────────────────────────────────────────────────────────────
 export const RESPONSABLES = {
   veterinario: { nombre: "Veterinario",             key: "veterinario"   },
@@ -246,7 +247,7 @@ export async function generarTareasDiarias(tenantId: string) {
 
   const [gestCount, matCount, nurseryCount, engordCount] = await Promise.all([
     prisma.sow.count({ where: { tenantId, plantelState: { in: ["PREGNANT", "MATED"] } } }),
-    prisma.farrowingEvent.count({ where: { tenantId, weaning: null } }),
+    prisma.farrowingEvent.count({ where: { tenantId, id: { in: await idsCamadasAbiertas(tenantId) } } }),
     prisma.nurseryBatch.count({ where: { tenantId, isActive: true } }),
     prisma.growingBatch.count({ where: { tenantId, isActive: true } }),
   ]);

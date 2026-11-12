@@ -2,6 +2,7 @@ import prisma from "@/lib/db/prisma";
 import { sendText } from "../sender";
 import { WaSession, saveSession, clearFlow } from "../session";
 
+import { idsCamadasAbiertas } from "@/lib/maternidad/camadas";
 const STEP = {
   ASK_SOW:      "MUERTE_ASK_SOW",
   ASK_QUANTITY: "MUERTE_ASK_QUANTITY",
@@ -51,7 +52,7 @@ export async function handleMuerteStep(
     }
     // Buscar parto activo (sin destete)
     const farrowing = await prisma.farrowingEvent.findFirst({
-      where:   { tenantId: session.tenantId, sowId: sow.id, weaning: null },
+      where:   { tenantId: session.tenantId, sowId: sow.id, id: { in: await idsCamadasAbiertas(session.tenantId) } },
       orderBy: { startDatetime: "desc" },
     });
     if (!farrowing) {
