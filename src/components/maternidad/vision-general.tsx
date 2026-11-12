@@ -8,6 +8,7 @@ import {
 } from "@tabler/icons-react";
 import { HembrasMaternidadModal } from "@/components/maternidad/kpi-modals";
 
+import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 interface KpiData {
   hembras:         number;
   lechones:        number;
@@ -215,7 +216,7 @@ export function VisionGeneralMaternidad() {
                 <tbody>
                   {data.inconsistencias.map((inc) => (
                     <tr key={inc.farrowingId}>
-                      <td style={{ fontWeight: 500 }}><a href={`/plantel?cerda=${inc.sowId}`} title="Ver la ficha de la cerda" style={{ color: "var(--accent-text, var(--accent))" }}>{inc.sowCode}</a></td>
+                      <td style={{ fontWeight: 500 }}><CaravanaFicha sowId={inc.sowId} caravana={inc.sowCode} /></td>
                       <td style={{ color: "var(--text-muted)" }}>
                         {inc.location ?? "—"}{inc.pen ? ` C.${inc.pen}` : ""}
                       </td>

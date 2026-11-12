@@ -737,6 +737,7 @@ model ServiceBatch {
 
 model ServiceEvent {
   id              String      @id @default(cuid())
+  codigo          String? // S-0001 · lo asigna la base al crear (trigger asignar_codigo)
   tenantId        String
   sowId           String
   boarId          String?
@@ -756,6 +757,7 @@ model ServiceEvent {
   pregnancyChecks PregnancyCheck[]
   farrowing       FarrowingEvent?
 
+  @@unique([tenantId, codigo], map: "service_events_codigo_key")
   @@index([tenantId, sowId])
   @@index([tenantId, serviceDate])
   @@map("service_events")
@@ -865,6 +867,7 @@ model SowDiscard {
 
 model FarrowingEvent {
   id                  String        @id @default(cuid())
+  codigo              String? // P-0001
   tenantId            String
   sowId               String
   serviceEventId      String?       @unique
@@ -912,6 +915,7 @@ model FarrowingEvent {
   procedimientosMaternidad ProcedimientoMaternidad[]
   necropsias               Necropsia[]
 
+  @@unique([tenantId, codigo], map: "farrowing_events_codigo_key")
   @@index([tenantId, sowId])
   @@index([tenantId, startDatetime])
   @@map("farrowing_events")
@@ -943,6 +947,7 @@ model Piglet {
 
 model PigletDeath {
   id             String           @id @default(cuid())
+  codigo         String? // M-0001 (mortandad)
   tenantId       String
   farrowingId    String
   pigletId       String? // Si se identificó individualmente
@@ -957,6 +962,7 @@ model PigletDeath {
   farrowing FarrowingEvent @relation(fields: [farrowingId], references: [id])
   piglet    Piglet?        @relation(fields: [pigletId], references: [id])
 
+  @@unique([tenantId, codigo], map: "piglet_deaths_codigo_key")
   @@index([tenantId, farrowingId])
   @@map("piglet_deaths")
 }
@@ -964,6 +970,7 @@ model PigletDeath {
 // Adopción: mueve lechones de una cerda donadora a una receptora
 model PigletMovement {
   id            String   @id @default(cuid())
+  codigo        String? // AD-0001 (adopción)
   tenantId      String
   originId      String // Cerda donadora
   destinationId String // Cerda receptora
@@ -975,6 +982,7 @@ model PigletMovement {
   origin      FarrowingEvent @relation("MovementOrigin", fields: [originId], references: [id])
   destination FarrowingEvent @relation("MovementDestination", fields: [destinationId], references: [id])
 
+  @@unique([tenantId, codigo], map: "piglet_movements_codigo_key")
   @@index([tenantId])
   @@map("piglet_movements")
 }
@@ -1241,6 +1249,7 @@ model GrowingOtherExit {
 
 model BatchSale {
   id             String   @id @default(cuid())
+  codigo         String? // E-0001 (salida); una salida repartida en varios lotes repite el código
   tenantId       String
   nurseryBatchId String?
   growingBatchId String?
@@ -1258,6 +1267,7 @@ model BatchSale {
   growingBatch GrowingBatch? @relation(fields: [growingBatchId], references: [id])
 
   @@index([tenantId])
+  @@index([tenantId, codigo], map: "batch_sales_codigo_idx")
   @@map("batch_sales")
 }
 

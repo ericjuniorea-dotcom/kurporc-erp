@@ -26,7 +26,7 @@ export async function auditarGranja(db: Db, org: string, hoy = new Date()): Prom
     db.serviceEvent.findMany({ where: { tenantId: org }, select: { id: true, sowId: true, serviceDate: true } }),
     db.farrowingEvent.findMany({
       where: { tenantId: org },
-      select: { id: true, sowId: true, serviceEventId: true, startDatetime: true, bornAlive: true, notes: true,
+      select: { id: true, codigo: true, sowId: true, serviceEventId: true, startDatetime: true, bornAlive: true, notes: true,
         deaths: { select: { quantity: true, deathDatetime: true } },
         movementsAsOrigin: { select: { quantity: true, movementDate: true } }, movementsAsDestination: { select: { quantity: true, movementDate: true } },
         weaning: { select: { weaningDate: true, pigletsWeaned: true, pigletsAvailable: true } } },
@@ -39,7 +39,7 @@ export async function auditarGranja(db: Db, org: string, hoy = new Date()): Prom
   const codigo = new Map(sows.map(s => [s.id, s.identCode]));
   const baja = new Map(bajas.map(b => [b.sowId, b.discardDate]));
   const nombre = (id: string) => `cerda ${codigo.get(id) ?? id}`;
-  const etiquetaParto = (p: { notes: string | null; sowId: string; startDatetime: Date }) => `${p.notes?.match(/P-\d{4}/)?.[0] ?? "parto"} (${nombre(p.sowId)}, ${f(p.startDatetime)})`;
+  const etiquetaParto = (p: { codigo: string | null; notes: string | null; sowId: string; startDatetime: Date }) => `${p.codigo ?? p.notes?.match(/P-\d{4}/)?.[0] ?? "parto"} (${nombre(p.sowId)}, ${f(p.startDatetime)})`;
 
   // ── Cerdas dadas de baja: fuera de todo ──
   for (const s of sows) {

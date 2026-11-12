@@ -10,10 +10,10 @@ export async function ciclosDeCerda(org: string, id: string) {
   if (!sow) return null;
 
   const [servicios, partos, chequeos, abortos, repeticiones, descarte, recibidas, donadas, p] = await Promise.all([
-    prisma.serviceEvent.findMany({ where: { tenantId: org, sowId: id }, select: { id: true, serviceDate: true }, orderBy: { serviceDate: "asc" } }),
+    prisma.serviceEvent.findMany({ where: { tenantId: org, sowId: id }, select: { id: true, codigo: true, serviceDate: true }, orderBy: { serviceDate: "asc" } }),
     prisma.farrowingEvent.findMany({
       where: { tenantId: org, sowId: id }, orderBy: { startDatetime: "asc" },
-      select: { id: true, serviceEventId: true, startDatetime: true, durationMinutes: true, bornAlive: true, bornDead: true, mummified: true, avgPigletWeightKg: true,
+      select: { id: true, codigo: true, serviceEventId: true, startDatetime: true, durationMinutes: true, bornAlive: true, bornDead: true, mummified: true, avgPigletWeightKg: true,
         deaths: { select: { quantity: true } },
         weaning: { select: { weaningDate: true, pigletsWeaned: true, avgPigletWeightKg: true, lastMinuteReceived: true, lastMinuteDonated: true } } },
     }),
@@ -33,9 +33,9 @@ export async function ciclosDeCerda(org: string, id: string) {
   const filas = ciclosCerda({
     ingreso: sow.entryDate, nacimiento: sow.birthDate, hoy: hoyUTC(), descarte: descarte?.discardDate ?? null,
     compra: !!sow.purchasePriceGs || (!!sow.sourceProvider && !/propia/i.test(sow.sourceProvider)),
-    servicios: servicios.map(s => ({ id: s.id, fecha: s.serviceDate })),
+    servicios: servicios.map(s => ({ id: s.id, codigo: s.codigo, fecha: s.serviceDate })),
     partos: partos.map(x => ({
-      id: x.id, servicioId: x.serviceEventId, inicio: x.startDatetime, duracionMin: x.durationMinutes, vivos: x.bornAlive, muertos: x.bornDead, momias: x.mummified,
+      id: x.id, codigo: x.codigo, servicioId: x.serviceEventId, inicio: x.startDatetime, duracionMin: x.durationMinutes, vivos: x.bornAlive, muertos: x.bornDead, momias: x.mummified,
       pesoMedio: x.avgPigletWeightKg === null ? null : Number(x.avgPigletWeightKg), muertesLechones: x.deaths.reduce((s, d) => s + d.quantity, 0),
       destete: x.weaning ? { fecha: x.weaning.weaningDate, destetados: x.weaning.pigletsWeaned, pesoMedio: Number(x.weaning.avgPigletWeightKg) || null, recibidos: x.weaning.lastMinuteReceived, donados: x.weaning.lastMinuteDonated } : null,
     })),

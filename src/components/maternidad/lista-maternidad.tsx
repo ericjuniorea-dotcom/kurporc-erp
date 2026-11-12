@@ -9,8 +9,10 @@ import {
   IconSkull, IconArrowsLeftRight, IconScale,
 } from "@tabler/icons-react";
 
+import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 interface FarrowingRow {
   id:                  string;
+  codigo?:             string | null;
   sow:                 { id: string; identCode: string; currentParityCount: number };
   startDatetime:       string;
   bornAlive:           number;
@@ -167,10 +169,10 @@ function CardCerdaMaternidad({ farrowing: f, canRegister, onDeath, onAdopt, onWe
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
         <div>
           <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 2 }}>
-            Cerda <a href={`/plantel?cerda=${f.sow.id}`} title="Ver la ficha de la cerda" style={{ color: "var(--accent-text, var(--accent))" }}>{f.sow.identCode}</a>
+            Cerda <CaravanaFicha sowId={f.sow.id} caravana={f.sow.identCode} />
           </div>
           <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-            Parto #{f.sow.currentParityCount} · {formatDate(f.startDatetime)}
+            {f.codigo ? `${f.codigo} · ` : ""}Parto #{f.sow.currentParityCount} · {formatDate(f.startDatetime)}
             {f.pen && ` · ${f.pen.location.name} corral ${f.pen.number}`}
           </div>
         </div>

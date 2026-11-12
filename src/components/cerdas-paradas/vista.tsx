@@ -5,6 +5,7 @@ import { ACCION, NOMBRE_CAUSA } from "@/lib/cerdas-paradas/calculo";
 import type { resumenParadas, detalleCerda, sinDiagnostico } from "@/lib/cerdas-paradas/datos";
 import { BotonTarea, Tendencia } from "./cliente";
 
+import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 type Resumen = Awaited<ReturnType<typeof resumenParadas>>;
 type Detalle = NonNullable<Awaited<ReturnType<typeof detalleCerda>>>;
 type SinDiagnostico = Awaited<ReturnType<typeof sinDiagnostico>>;
@@ -50,7 +51,7 @@ export function VistaParadas({ r, conMontos, base, puedeTarea, detalle, ecografi
               <tbody>
                 {r.paradas.map(p => (
                   <tr key={p.id}>
-                    <td><Link href={`${base}?cerda=${p.id}`} style={{ fontWeight: 500, color: "var(--accent-text)" }}>{p.codigo}</Link></td>
+                    <td><CaravanaFicha sowId={p.id} caravana={p.codigo} /> <Link href={`${base}?cerda=${p.id}`} style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 4 }}>días</Link></td>
                     <td><span style={{ padding: "2px 8px", borderRadius: 999, fontSize: 12, background: p.causa === "VACIA" || p.causa === "ABORTO" ? "var(--danger-subtle)" : "var(--warning-subtle)", color: p.causa === "VACIA" || p.causa === "ABORTO" ? "var(--danger)" : "var(--warning-text)" }}>{NOMBRE_CAUSA[p.causa]}</span></td>
                     <td>{new Date(`${p.desde}T12:00:00Z`).toLocaleDateString("es-PY")}</td>
                     <td style={{ textAlign: "right" }}>{p.dias}{p.alerta && <span title="Pasó el plazo de aviso" aria-label="pasó el plazo de aviso" style={{ color: "var(--danger)", marginLeft: 4 }}>●</span>}</td>
@@ -78,7 +79,7 @@ export function VistaParadas({ r, conMontos, base, puedeTarea, detalle, ecografi
               <tbody>
                 {ecografias.cerdas.map(c => (
                   <tr key={c.id}>
-                    <td><Link href={`${base}?cerda=${c.id}`} style={{ fontWeight: 500, color: "var(--accent-text)" }}>{c.codigo}</Link></td>
+                    <td><CaravanaFicha sowId={c.id} caravana={c.codigo} /></td>
                     <td>{new Date(`${c.servicio}T12:00:00Z`).toLocaleDateString("es-PY")}</td>
                     <td style={{ textAlign: "right" }}>{c.dias}</td>
                     <td>Hacer ecografía</td>

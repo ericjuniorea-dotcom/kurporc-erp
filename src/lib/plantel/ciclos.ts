@@ -6,8 +6,8 @@
 const DIA = 86_400_000;
 const dias = (a: Date, b: Date) => Math.max(0, Math.round((b.getTime() - a.getTime()) / DIA));
 
-export type Servicio = { id: string; fecha: Date };
-export type Parto = { id: string; servicioId: string | null; inicio: Date; duracionMin: number | null; vivos: number; muertos: number; momias: number; pesoMedio: number | null; destete: Destete | null; muertesLechones: number };
+export type Servicio = { id: string; fecha: Date; codigo?: string | null };
+export type Parto = { id: string; codigo?: string | null; servicioId: string | null; inicio: Date; duracionMin: number | null; vivos: number; muertos: number; momias: number; pesoMedio: number | null; destete: Destete | null; muertesLechones: number };
 export type Destete = { fecha: Date; destetados: number; pesoMedio: number | null; recibidos: number; donados: number };
 export type Fallo = { servicioId: string | null; fecha: Date; tipo: "REPETICION" | "ABORTO" | "VACIA" };
 
@@ -29,11 +29,11 @@ const kg = (v: number | null) => (v === null ? null : `${v.toLocaleString("es-PY
 /** Agrupa servicios del mismo celo (dentro de 4 días): el círculo muestra cuántas montas o inseminaciones hubo. */
 function celos(servicios: Servicio[]) {
   const orden = [...servicios].sort((a, b) => a.fecha.getTime() - b.fecha.getTime());
-  const grupos: { fecha: Date; ids: string[] }[] = [];
+  const grupos: { fecha: Date; ids: string[]; codigos: string[] }[] = [];
   for (const s of orden) {
     const g = grupos[grupos.length - 1];
-    if (g && s.fecha.getTime() - g.fecha.getTime() <= 4 * DIA) g.ids.push(s.id);
-    else grupos.push({ fecha: s.fecha, ids: [s.id] });
+    if (g && s.fecha.getTime() - g.fecha.getTime() <= 4 * DIA) { g.ids.push(s.id); if (s.codigo) g.codigos.push(s.codigo); }
+    else grupos.push({ fecha: s.fecha, ids: [s.id], codigos: s.codigo ? [s.codigo] : [] });
   }
   return grupos;
 }
@@ -64,12 +64,12 @@ export function ciclosCerda(e: Entrada): Fila[] {
     const parto = e.partos.find(p => p.servicioId && g.ids.includes(p.servicioId))
       ?? e.partos.find(p => p.inicio.getTime() > g.fecha.getTime() && (!siguiente || p.inicio.getTime() < siguiente.getTime()) && dias(g.fecha, p.inicio) <= 130);
     const fallo = e.fallos.find(f => (f.servicioId && g.ids.includes(f.servicioId)) || (f.fecha.getTime() > g.fecha.getTime() && (!siguiente || f.fecha.getTime() <= siguiente.getTime())));
-    const nServ: Nodo = { tipo: "SERVICIO", fecha: g.fecha, arriba: `Servicio\n${fmt(g.fecha)}`, centro: String(g.ids.length), abajo: [] };
+    const nServ: Nodo = { tipo: "SERVICIO", fecha: g.fecha, arriba: `Servicio${g.codigos.length ? ` ${g.codigos.join(" · ")}` : ""}\n${fmt(g.fecha)}`, centro: String(g.ids.length), abajo: [] };
     if (parto) {
       paridad++;
       const nodos: Nodo[] = [nServ], tramos: Tramo[] = [];
       tramos.push({ dias: dias(g.fecha, parto.inicio), etiqueta: "Gestación", abajo: [], perdida: false });
-      nodos.push({ tipo: "PARTO", fecha: parto.inicio, arriba: `Parto\n${fmt(parto.inicio)}`, centro: `${parto.vivos}/${parto.muertos + parto.momias}`, abajo: [kg(parto.pesoMedio), hm(parto.duracionMin)].filter((x): x is string => !!x) });
+      nodos.push({ tipo: "PARTO", fecha: parto.inicio, arriba: `Parto${parto.codigo ? ` ${parto.codigo}` : ""}\n${fmt(parto.inicio)}`, centro: `${parto.vivos}/${parto.muertos + parto.momias}`, abajo: [kg(parto.pesoMedio), hm(parto.duracionMin)].filter((x): x is string => !!x) });
       const desde = parto.inicio, hastaLact = parto.destete?.fecha ?? null;
       const recibidos = e.adopcionesRecibidas.filter(a => a.fecha >= desde && (!hastaLact || a.fecha <= hastaLact)).reduce((s, a) => s + a.cantidad, 0) + (parto.destete?.recibidos ?? 0);
       const donados = e.adopcionesDonadas.filter(a => a.fecha >= desde && (!hastaLact || a.fecha <= hastaLact)).reduce((s, a) => s + a.cantidad, 0) + (parto.destete?.donados ?? 0);

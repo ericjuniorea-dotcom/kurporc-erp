@@ -24,6 +24,9 @@ type J = Record<string, any>; // filas del JSON del paquete (estructura document
 const D = (s: string) => new Date(`${s}T12:00:00Z`); // mediodía UTC: el mismo día en Paraguay
 const dias = (a: Date, b: Date) => Math.round((b.getTime() - a.getTime()) / 86_400_000);
 const MARCA = "importacion-paquete";
+// Fechas aproximadas indicadas por el titular cuando no se conoce la exacta
+const FECHA_REABSORCION: Record<string, string> = { "S-0040": "2026-09-28" };
+const RESUELTAS: Record<string, string> = { "SERVICIOS · S-0040 (cerda 13018)": "Resuelto el 12/11: reabsorción embrionaria (primera ecografía positiva, segunda negativa); fecha aproximada 28/09/2026." };
 class Deshacer extends Error {}
 
 function semanaIso(d: Date) {
@@ -123,8 +126,8 @@ async function importar(tx: Tx, org: string, actor: string, d: J) {
     const reps = [s.reproductor_1, s.reproductor_2].filter(Boolean);
     const cambio = s.resultado_planilla !== s.resultado_corregido ? ` · Planilla: «${s.resultado_planilla ?? "—"}», corregido: «${s.resultado_corregido}»` : "";
     const x = await tx.serviceEvent.create({ data: {
-      tenantId: org, sowId: c.id, serviceBatchId: tanda.get(clave)!, serviceDate: f, serviceType: "AI", employeeId: actor,
-      notes: `${s.codigo} · ${s.dosis ?? "?"} dosis IA · ${reps.join(" + ") || "reproductor sin cargar"}${s.banda ? ` · banda ${s.banda}` : ""}${cambio}${s.nota ? ` · ${s.nota}` : ""}`,
+      tenantId: org, codigo: s.codigo, sowId: c.id, serviceBatchId: tanda.get(clave)!, serviceDate: f, serviceType: "AI", employeeId: actor,
+      notes: `${s.dosis ?? "?"} dosis IA · ${reps.join(" + ") || "reproductor sin cargar"}${s.banda ? ` · banda ${s.banda}` : ""}${cambio}${s.nota ? ` · ${s.nota}` : ""}`,
     } });
     servicio.set(s.codigo, { id: x.id, fecha: f, cerda: String(s.cerda) }); mas("servicios");
     const res = s.resultado_corregido, fd = s.fecha_diagnostico ? D(s.fecha_diagnostico) : null;
@@ -133,11 +136,13 @@ async function importar(tx: Tx, org: string, actor: string, d: J) {
     else if (res === "Vacía" && fd) { await tx.pregnancyCheck.create({ data: { tenantId: org, sowId: c.id, serviceEventId: x.id, checkDate: fd, method: metodo, result: "NOT_PREGNANT", notes: s.metodo_diagnostico } }); mas("diagnosticos"); }
     else if (res === "Repitió celo" && fd) { await tx.heatRepeat.create({ data: { tenantId: org, sowId: c.id, serviceEventId: x.id, repeatDate: fd, cause: s.metodo_diagnostico ?? "Repetición de celo" } }); mas("repeticiones"); }
     else if (res === "Aborto") {
-      // La planilla tenía una ecografía de preñez: se conserva; la fecha del aborto queda a confirmar
-      if (fd) { await tx.pregnancyCheck.create({ data: { tenantId: org, sowId: c.id, serviceEventId: x.id, checkDate: fd, method: metodo, result: "PREGNANT", notes: `${s.metodo_diagnostico} (antes del aborto)` } }); mas("diagnosticos"); }
-      const siguiente = (d.servicios as J[]).filter(z => String(z.cerda) === String(s.cerda) && z.fecha_servicio > s.fecha_servicio).sort((a, b) => a.fecha_servicio.localeCompare(b.fecha_servicio))[0];
-      await tx.abortionEvent.create({ data: { tenantId: org, sowId: c.id, serviceEventId: x.id, abortionDate: siguiente ? D(siguiente.fecha_servicio) : fd ?? f,
-        cause: "A CONFIRMAR: fecha del aborto entre el 19/09 y el 06/10/2026 (informado por el titular el 12/11). Se registra a la fecha del nuevo servicio.", vetDiagnosis: s.nota } });
+      // Reabsorción embrionaria (informado por el titular el 12/11): la primera ecografía dio positiva y la segunda negativa.
+      // La fecha exacta no se conoce: se usa una aproximada dentro de la ventana (entre el 19/09 y el 06/10/2026).
+      const aprox = D(FECHA_REABSORCION[s.codigo] ?? s.fecha_diagnostico ?? s.fecha_servicio);
+      if (fd) { await tx.pregnancyCheck.create({ data: { tenantId: org, sowId: c.id, serviceEventId: x.id, checkDate: fd, method: metodo, result: "PREGNANT", notes: `${s.metodo_diagnostico}: positiva (primera ecografía)` } }); mas("diagnosticos"); }
+      await tx.pregnancyCheck.create({ data: { tenantId: org, sowId: c.id, serviceEventId: x.id, checkDate: aprox, method: "ULTRASOUND", result: "NOT_PREGNANT", notes: "Segunda ecografía: negativa (reabsorción embrionaria). Fecha aproximada." } }); mas("diagnosticos");
+      await tx.abortionEvent.create({ data: { tenantId: org, sowId: c.id, serviceEventId: x.id, abortionDate: aprox,
+        cause: "Reabsorción embrionaria", vetDiagnosis: "Primera ecografía positiva, segunda negativa. Fecha aproximada (entre el 19/09 y el 06/10/2026); informado por el titular el 12/11/2026." } });
       mas("abortos");
     } else if (res === "Repitió celo o aborto (a confirmar)") {
       const siguiente = (d.servicios as J[]).filter(z => String(z.cerda) === String(s.cerda) && z.fecha_servicio > s.fecha_servicio).sort((a, b) => a.fecha_servicio.localeCompare(b.fecha_servicio))[0];
@@ -153,10 +158,10 @@ async function importar(tx: Tx, org: string, actor: string, d: J) {
     const s = servicio.get(p.servicio); if (!s) throw new Error(`${p.codigo}: no existe el servicio ${p.servicio}`);
     const f = D(p.fecha_parto), peso = p.peso_camada_kg ?? 0;
     const x = await tx.farrowingEvent.create({ data: {
-      tenantId: org, sowId: cerdaDe(p.cerda).id, serviceEventId: s.id, farrowingType: p.tipo_parto === "Distócico" ? "DYSTOCIA" : "NORMAL", startDatetime: f,
+      tenantId: org, codigo: p.codigo, sowId: cerdaDe(p.cerda).id, serviceEventId: s.id, farrowingType: p.tipo_parto === "Distócico" ? "DYSTOCIA" : "NORMAL", startDatetime: f,
       gestationDays: p.dias_gestacion ?? dias(s.fecha, f), bornAlive: p.nacidos_vivos, bornDead: p.nacidos_muertos, mummified: 0, totalBorn: p.nacidos_totales,
       totalLitterWeightKg: peso, avgPigletWeightKg: peso && p.nacidos_vivos ? Math.round((peso / p.nacidos_vivos) * 1000) / 1000 : null, employeeId: actor,
-      notes: [p.codigo, p.reproductor ? `Reproductor ${p.reproductor}` : null, p.peso_estimado ? "Peso de camada estimado" : null, p.estado_camada === "Cerrada" ? "Camada cerrada" : null, p.observacion].filter(Boolean).join(" · "),
+      notes: [p.reproductor ? `Reproductor ${p.reproductor}` : null, p.peso_estimado ? "Peso de camada estimado" : null, p.estado_camada === "Cerrada" ? "Camada cerrada" : null, p.observacion].filter(Boolean).join(" · "),
     } });
     parto.set(p.codigo, { id: x.id, fecha: f, vivos: p.nacidos_vivos, cerda: String(p.cerda), aCargo: p.lechones_a_cargo ?? p.nacidos_vivos }); mas("partos");
     await tx.animalEvent.create({ data: { tenantId: org, sowId: cerdaDe(p.cerda).id, eventType: "FARROWING", eventDate: f, description: `Parto ${p.codigo}: ${p.nacidos_vivos} vivos, ${p.nacidos_muertos} muertos${p.tipo_parto === "Distócico" ? " (distócico)" : ""}`, moduleSource: "MATERNIDAD", userId: actor, metadata: { farrowingId: x.id } } });
@@ -165,13 +170,13 @@ async function importar(tx: Tx, org: string, actor: string, d: J) {
 
   // ── Adopciones (los lechones de la cerda 74 conservan su trazabilidad en la cerda que los recibió) ──
   for (const a of d.adopciones as J[]) {
-    await tx.pigletMovement.create({ data: { tenantId: org, originId: partoDe(a.parto_dona).id, destinationId: partoDe(a.parto_recibe).id, movementDate: D(a.fecha), quantity: a.cantidad, employeeId: actor } }); mas("adopciones");
+    await tx.pigletMovement.create({ data: { tenantId: org, codigo: a.codigo, originId: partoDe(a.parto_dona).id, destinationId: partoDe(a.parto_recibe).id, movementDate: D(a.fecha), quantity: a.cantidad, employeeId: actor } }); mas("adopciones");
   }
 
   // ── Mortandad en lactancia (las de recría van con su lote; la de las cerdas, con su baja) ──
   for (const m of (d.mortandad as J[]).filter(x => x.categoria === "Lechón en lactancia")) {
     const p = partoDe(m.parto), f = D(m.fecha);
-    await tx.pigletDeath.create({ data: { tenantId: org, farrowingId: p.id, deathDatetime: f, quantity: m.cantidad, ageAtDeathDays: m.edad_dias ?? dias(p.fecha, f), cause: CAUSA[m.causa ?? "Otra"] ?? "OTHER", employeeId: actor } });
+    await tx.pigletDeath.create({ data: { tenantId: org, codigo: m.numero ? `M-${String(m.numero).padStart(4, "0")}` : null, farrowingId: p.id, deathDatetime: f, quantity: m.cantidad, ageAtDeathDays: m.edad_dias ?? dias(p.fecha, f), cause: CAUSA[m.causa ?? "Otra"] ?? "OTHER", employeeId: actor } });
     mas("muertesLactancia", m.cantidad);
   }
   // Lechones a cargo de una camada en una fecha (vivos + recibidos − donados − muertos hasta ese día)
@@ -209,7 +214,7 @@ async function importar(tx: Tx, org: string, actor: string, d: J) {
     if (!l) throw new Error(`Muerte en recría n.º ${m.numero}: no se sabe de qué lote es`);
     await tx.animalEvent.create({ data: { tenantId: org, eventType: "DEATH", eventDate: D(m.fecha), moduleSource: "RECRIA", userId: actor,
       description: `Muerte en lote ${codigo}: ${m.cantidad} animal${m.cantidad > 1 ? "es" : ""} — ${m.causa ?? "sin causa registrada"}`,
-      metadata: { batchId: l.id, batchCode: codigo, quantity: m.cantidad, cause: CAUSA[m.causa ?? "Otra"] ?? "OTHER", ageAtDeath: m.edad_dias, notes: m.observacion ?? (m.causa ? null : "Falta la causa"), numero: m.numero } } });
+      metadata: { codigo: m.numero ? `M-${String(m.numero).padStart(4, "0")}` : null, batchId: l.id, batchCode: codigo, quantity: m.cantidad, cause: CAUSA[m.causa ?? "Otra"] ?? "OTHER", ageAtDeath: m.edad_dias, notes: m.observacion ?? (m.causa ? null : "Falta la causa"), numero: m.numero } } });
     mas("muertesRecria", m.cantidad);
   }
 
@@ -219,8 +224,8 @@ async function importar(tx: Tx, org: string, actor: string, d: J) {
       const l = lote.get(parte.lote); if (!l) throw new Error(`${s.codigo}: no existe el lote ${parte.lote}`);
       const prop = parte.cantidad / s.cantidad;
       const kg = s.kg_total ? Math.round(s.kg_total * prop * 1000) / 1000 : 0;
-      await tx.batchSale.create({ data: { tenantId: org, nurseryBatchId: l.id, saleDate: D(s.fecha), animalCount: parte.cantidad, totalWeightKg: kg, pricePerKg: s.precio_por_kg ?? 0,
-        totalAmount: Math.round(s.importe_gs * prop), buyerName: s.cliente, transferGuide: s.remito ?? `${s.codigo} · sin remito (a confirmar)`, employeeId: actor } });
+      await tx.batchSale.create({ data: { tenantId: org, codigo: s.codigo, nurseryBatchId: l.id, saleDate: D(s.fecha), animalCount: parte.cantidad, totalWeightKg: kg, pricePerKg: s.precio_por_kg ?? 0,
+        totalAmount: Math.round(s.importe_gs * prop), buyerName: s.cliente, transferGuide: s.remito ?? "Sin remito (a confirmar)", employeeId: actor } });
       mas("salidas"); mas("vendidos", parte.cantidad);
     }
     if (s.remito) {
@@ -336,6 +341,7 @@ async function importar(tx: Tx, org: string, actor: string, d: J) {
       tenantId: org, tipo: "revision-datos", sector, alcance: "granja", titulo: `Revisar (${k.prioridad}): ${k.registro}`, descripcion: k.problema, instrucciones: k.accion,
       prioridad: PRIORIDAD[k.prioridad] ?? "programada", fechaVencimiento: D(d.meta.fecha_corte_produccion), responsableNombre: k.tipo === "Sanidad" ? "Jefatura de Sanidad" : "Jefatura de Producción",
       generadaPor: "sistema", disparador: `${MARCA}-correccion-${i + 1}`,
+      ...(RESUELTAS[k.registro] ? { fechaCompletada: D(d.meta.fecha_corte_produccion), notas: RESUELTAS[k.registro] } : {}),
     } });
     mas("tareasRevision");
   }

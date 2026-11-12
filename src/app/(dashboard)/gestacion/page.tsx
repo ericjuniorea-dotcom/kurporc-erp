@@ -20,6 +20,7 @@ import {
   IconAlertTriangle, IconAlertCircle, IconLoader2,
 } from "@tabler/icons-react";
 
+import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 const ALLOWED      = [1, 2, 3, 4, 5, 11];
 const CAN_REGISTER = [1, 2, 3, 4, 5, 11, 13];
 
@@ -289,7 +290,7 @@ function VisionGeneralGestacion({ onOpenLotes }: { onOpenLotes: () => void }) {
                       const color    = isDanger ? "var(--danger-text)" : "var(--warning-text)";
                       return (
                         <tr key={inc.sowId}>
-                          <td style={{ fontWeight: 500 }}>{inc.caravana}</td>
+                          <td style={{ fontWeight: 500 }}><CaravanaFicha sowId={inc.sowId} caravana={inc.caravana} /></td>
                           <td>{inc.ubicacion}</td>
                           <td style={{ fontWeight: 600, color }}>{inc.diasGestacion}d</td>
                           <td>{fmtDate(inc.fechaPartoProyectada)}</td>
