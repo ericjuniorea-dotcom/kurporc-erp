@@ -11,7 +11,7 @@ import {
 
 interface FarrowingRow {
   id:                  string;
-  sow:                 { identCode: string; currentParityCount: number };
+  sow:                 { id: string; identCode: string; currentParityCount: number };
   startDatetime:       string;
   bornAlive:           number;
   bornDead:            number;
@@ -167,7 +167,7 @@ function CardCerdaMaternidad({ farrowing: f, canRegister, onDeath, onAdopt, onWe
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
         <div>
           <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 2 }}>
-            Cerda {f.sow.identCode}
+            Cerda <a href={`/plantel?cerda=${f.sow.id}`} title="Ver la ficha de la cerda" style={{ color: "var(--accent-text, var(--accent))" }}>{f.sow.identCode}</a>
           </div>
           <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
             Parto #{f.sow.currentParityCount} · {formatDate(f.startDatetime)}

@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   IconX, IconLoader2, IconHeart, IconVaccine,
   IconHistory, IconShieldHalf, IconInfoCircle,
-  IconUserOff, IconAlertTriangle,
+  IconUserOff, IconAlertTriangle, IconTimeline,
 } from "@tabler/icons-react";
 import { EstadoBadgeSow } from "./estado-badge";
 import { TabGeneral }      from "./ficha/tab-general";
@@ -11,6 +11,7 @@ import { TabReproductivo } from "./ficha/tab-reproductivo";
 import { TabSanitario }    from "./ficha/tab-sanitario";
 import { TabVacunas }      from "./ficha/tab-vacunas";
 import { TabHistorial }    from "./ficha/tab-historial";
+import { TabCiclos }       from "./ficha/tab-ciclos";
 
 interface SowDetail {
   id: string;
@@ -37,10 +38,11 @@ interface SowDetail {
   isActive: boolean;
 }
 
-type TabKey = "general" | "reproductivo" | "sanitario" | "vacunas" | "historial";
+type TabKey = "general" | "ciclos" | "reproductivo" | "sanitario" | "vacunas" | "historial";
 
 const TABS: Array<{ key: TabKey; label: string; icon: typeof IconHeart }> = [
   { key: "general",      label: "General",      icon: IconInfoCircle   },
+  { key: "ciclos",       label: "Ciclos",       icon: IconTimeline     },
   { key: "reproductivo", label: "Reproductivo", icon: IconHeart        },
   { key: "sanitario",    label: "Sanitario",    icon: IconShieldHalf   },
   { key: "vacunas",      label: "Vacunas",      icon: IconVaccine      },
@@ -221,6 +223,7 @@ export function FichaDrawer({ sowId, canEdit, onClose }: Props) {
         ) : sow ? (
           <>
             {tab === "general"      && <TabGeneral sow={sow} canEdit={canEdit} onUpdated={loadSow} />}
+            {tab === "ciclos"       && <TabCiclos sowId={sow.id} />}
             {tab === "reproductivo" && <TabReproductivo sowId={sow.id} />}
             {tab === "sanitario"    && <TabSanitario    sowId={sow.id} />}
             {tab === "vacunas"      && <TabVacunas      sowId={sow.id} />}

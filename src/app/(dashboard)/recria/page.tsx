@@ -4,6 +4,7 @@ import { useSession, usePermisos } from "@/lib/auth/sesion-cliente";
 import { useRouter }         from "next/navigation";
 import { BatchCard }         from "@/components/recria/batch-card";
 import { TareasModuloPanel } from "@/components/shared/tareas-modulo-panel";
+import { TarjetasLotes }     from "@/components/recria/tarjetas-lotes";
 import { Topbar }            from "@/components/layout/topbar";
 import { IconBuildingWarehouse, IconSearch, IconRefresh, IconLoader2 } from "@tabler/icons-react";
 
@@ -121,6 +122,7 @@ export default function RecriaPage() {
               ))}
             </div>
           )}
+          <TarjetasLotes />
           <TareasModuloPanel sector="iniciacion" accentColor="var(--info)" />
         </div>
       )}

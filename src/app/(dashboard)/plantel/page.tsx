@@ -46,7 +46,12 @@ export default function PlantelPage() {
   const { alguno } = usePermisos();
   const [tab, setTab]               = useState<Tab>("Hembras");
   const [stats, setStats]           = useState<Stats | null>(null);
+  // ?cerda=<id> abre la ficha directamente (enlaces desde Maternidad, Gestación, Cerdas paradas…)
   const [selectedSowId, setSelectedSowId] = useState<string | null>(null);
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("cerda");
+    if (id) { setTab("Hembras"); setSelectedSowId(id); }
+  }, []);
   const [showMatModal, setShowMatModal]   = useState(false);
   const [matData, setMatData]             = useState<HembraMaternidad[] | null>(null);
   const [matLoading, setMatLoading]       = useState(false);

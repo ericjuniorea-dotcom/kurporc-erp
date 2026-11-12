@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
       ...(onlyActive ? { weaning: null } : {}),
     },
     include: {
-      sow:    { select: { identCode: true, currentParityCount: true } },
+      sow:    { select: { id: true, identCode: true, currentParityCount: true } },
       pen:    { select: { number: true, location: { select: { name: true } } } },
       deaths: { select: { quantity: true } },
       movementsAsDestination: { select: { quantity: true } },

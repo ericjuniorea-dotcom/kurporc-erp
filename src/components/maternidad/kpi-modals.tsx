@@ -230,7 +230,7 @@ export function HembrasMaternidadModal({ onClose }: { onClose: () => void }) {
             <tbody>
               {filtered.map(row => (
                 <tr key={row.farrowingId}>
-                  <td style={{ fontWeight: 600 }}>{row.caravana}</td>
+                  <td style={{ fontWeight: 600 }}><a href={`/plantel?cerda=${row.sowId}`} title="Ver la ficha de la cerda" style={{ color: "var(--accent-text, var(--accent))" }}>{row.caravana}</a></td>
                   <td style={{ fontSize: 11, color: "var(--text-muted)" }}>{row.ubicacion}</td>
                   <td>{fmtDate(row.fechaIngreso)}</td>
                   <td style={{ fontWeight: 500 }}>{row.diasEnMaternidad}d</td>

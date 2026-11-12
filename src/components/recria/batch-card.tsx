@@ -193,7 +193,7 @@ export function BatchCard({ batch, canEdit, onRefresh }: Props) {
               : <IconChevronRight size={13} style={{ color: "var(--text-muted)", flexShrink: 0 }} aria-hidden />}
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>{batch.batchCode}</span>
+                <a href={`/recria/lotes/${batch.id}`} title="Ver la ficha del lote" style={{ fontSize: 13, fontWeight: 600, color: "var(--accent-text, var(--accent))" }}>{batch.batchCode}</a>
                 <span className={`badge ${batch.phase === "PHASE_1" ? "badge-info" : "badge-ok"}`}>
                   {PHASE_LABEL[batch.phase]}
                 </span>

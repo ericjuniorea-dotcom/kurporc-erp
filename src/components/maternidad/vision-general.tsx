@@ -15,6 +15,7 @@ interface KpiData {
   ageDistribution: { label: string; count: number }[];
   inconsistencias: {
     farrowingId:         string;
+    sowId:               string;
     sowCode:             string;
     location:            string | null;
     pen:                 string | null;
@@ -214,7 +215,7 @@ export function VisionGeneralMaternidad() {
                 <tbody>
                   {data.inconsistencias.map((inc) => (
                     <tr key={inc.farrowingId}>
-                      <td style={{ fontWeight: 500, color: "var(--text-primary)" }}>{inc.sowCode}</td>
+                      <td style={{ fontWeight: 500 }}><a href={`/plantel?cerda=${inc.sowId}`} title="Ver la ficha de la cerda" style={{ color: "var(--accent-text, var(--accent))" }}>{inc.sowCode}</a></td>
                       <td style={{ color: "var(--text-muted)" }}>
                         {inc.location ?? "—"}{inc.pen ? ` C.${inc.pen}` : ""}
                       </td>

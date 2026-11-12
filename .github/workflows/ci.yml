@@ -84,6 +84,8 @@ jobs:
         run: npm run prueba:necesidades
         env:
           NODE_OPTIONS: --conditions=react-server
+      - name: Línea de tiempo de los ciclos de la cerda
+        run: npm run prueba:ciclos
       - name: Control de super administradores (Fase 11)
         run: psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f supabase/tests/fase11_admin.sql
       - name: Las migraciones coinciden con el esquema

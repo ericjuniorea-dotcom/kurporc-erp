@@ -31,6 +31,7 @@ export async function GET() {
 
   const inconsistencias: Array<{
     farrowingId:         string;
+    sowId:               string;
     sowCode:             string;
     location:            string | null;
     pen:                 string | null;
@@ -60,6 +61,7 @@ export async function GET() {
     if (dias > 21) {
       inconsistencias.push({
         farrowingId:         f.id,
+        sowId:               f.sowId,
         sowCode:             f.sow.identCode,
         location:            f.pen?.location?.name ?? null,
         pen:                 f.pen?.number ?? null,

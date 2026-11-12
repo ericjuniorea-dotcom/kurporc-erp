@@ -29,6 +29,7 @@
     "prueba:mercado": "ts-node --transpile-only -r tsconfig-paths/register -P scripts/tsconfig.json scripts/pruebas/mercado.ts",
     "prueba:pedidos": "ts-node --transpile-only -r tsconfig-paths/register -P scripts/tsconfig.json scripts/pruebas/pedidos.ts",
     "prueba:necesidades": "ts-node --transpile-only -r tsconfig-paths/register -P scripts/tsconfig.json scripts/pruebas/necesidades.ts",
+    "prueba:ciclos": "ts-node --transpile-only -r tsconfig-paths/register -P scripts/tsconfig.json scripts/pruebas/ciclos.ts",
     "db:seed": "ts-node --transpile-only -P scripts/tsconfig.json prisma/seed.ts",
     "db:setup": "prisma migrate deploy && ts-node --transpile-only -P scripts/tsconfig.json prisma/seed.ts",
     "infra:up": "docker compose up -d",
