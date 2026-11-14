@@ -10,6 +10,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { AyudaSoporte } from "@/components/layout/ayuda-soporte";
 import { LatidoUso } from "@/components/layout/latido-uso";
 
+import { esCuentaDePlataforma } from "@/lib/admin/cuenta-plataforma";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardLayout({
@@ -27,7 +28,7 @@ export default async function DashboardLayout({
   const session = await getSession();
   // Autenticado pero sin ninguna organización activa: primeros pasos o su cuenta (Fase 6)
   // El Super Administrador no es una granja: no usa los módulos; solo ve una granja con «Ver ERP» (modo plataforma)
-  if (usuario.esSuperadmin && !session?.modoPlataforma) redirect("/admin");
+  if (esCuentaDePlataforma(usuario) && !session?.modoPlataforma) redirect("/admin");
   if (!session) redirect(usuario.onboardingCompleto ? "/cuenta/sin-organizacion" : "/onboarding");
   // Una tienda no usa el ERP productivo: tiene su propio panel
   const activa = session.membresias.find(m => m.organizacionId === session.user.tenantId);

@@ -5,6 +5,7 @@ import { getUsuario } from "@/lib/auth/config";
 import { documentoVigente } from "@/lib/legal/documentos";
 import { Asistente } from "./asistente";
 
+import { esCuentaDePlataforma } from "@/lib/admin/cuenta-plataforma";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Primeros pasos · KurPorc" };
 
@@ -13,7 +14,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
   if (!usuario) redirect("/login?next=/onboarding");
   if (usuario.faltaSegundoFactor) redirect("/auth/segundo-factor");
   if (usuario.faltaAceptarContrato) redirect("/legal/aceptar");
-  if (usuario.esSuperadmin) redirect("/admin"); // el Super Administrador no crea granjas ni tiendas
+  if (esCuentaDePlataforma(usuario)) redirect("/admin"); // el Super Administrador no crea granjas ni tiendas
 
   const [{ tipo }, perfil, acuerdoOrg, acuerdoVendedor] = await Promise.all([
     searchParams,

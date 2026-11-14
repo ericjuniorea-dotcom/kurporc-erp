@@ -10,6 +10,7 @@ import { LatidoUso } from "@/components/layout/latido-uso";
 import { Verificado } from "@/components/mercado/marco";
 import { NavVendedor, Salir } from "./nav";
 
+import { esCuentaDePlataforma } from "@/lib/admin/cuenta-plataforma";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Mi tienda · KurPorc" };
 
@@ -19,7 +20,7 @@ export default async function LayoutVendedor({ children }: { children: React.Rea
   if (usuario.faltaSegundoFactor) redirect("/auth/segundo-factor");
   if (usuario.faltaAceptarContrato) redirect("/legal/aceptar");
   // El Super Administrador no tiene tienda propia: la ve solo con «Ver ERP» (modo plataforma)
-  if (usuario.esSuperadmin && !(await getSession())?.modoPlataforma) redirect("/admin");
+  if (esCuentaDePlataforma(usuario) && !(await getSession())?.modoPlataforma) redirect("/admin");
   const t = await contextoTienda();
   if (!t) redirect("/onboarding?tipo=VENDEDOR");
   const session = await getSession();
