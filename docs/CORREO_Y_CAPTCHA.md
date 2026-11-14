@@ -26,6 +26,9 @@ Opción sugerida: **Resend** (plan gratuito con 3.000 correos por mes; confirmar
 5. Supabase → Authentication → Rate Limits → subir "emails por hora" (por ejemplo, a 100).
 6. Probar: registrar una cuenta con un correo propio y pedir recuperación de contraseña. Revisar que no llegue a Spam.
 
+7. **Avisos del buzón (Fase 15)**: con la misma cuenta, crear otra API key solo de envío y cargarla en Vercel como `RESEND_API_KEY` (Production) y hacer Redeploy.
+   Sin esa variable la app no manda avisos y el buzón funciona igual. El resumen diario usa el mismo `CRON_SECRET` que el cálculo de necesidades.
+
 Al elegir el proveedor, avisar al asesor legal para agregarlo a la Política de Privacidad (ver docs/REGISTRO_TRATAMIENTOS.md).
 
 ## 3. Política de seguridad del navegador en modo bloqueo

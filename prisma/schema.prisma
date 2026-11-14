@@ -3198,20 +3198,48 @@ model CurvaEngorde {
 /// Consultas, sugerencias y problemas que mandan las personas desde la app (soporte@kurporc.com).
 /// Las lee y responde el equipo de KurPorc desde el panel de plataforma.
 model Sugerencia {
-  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  usuarioId      String   @map("usuario_id")
-  organizacionId String?  @map("organizacion_id")
-  tipo           String // CONSULTA | SUGERENCIA | PROBLEMA
-  mensaje        String
-  pagina         String?
-  estado         String   @default("NUEVA") // NUEVA | EN_REVISION | HECHA | DESCARTADA
-  respuesta      String?
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id                 String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuarioId          String           @map("usuario_id")
+  organizacionId     String?          @map("organizacion_id")
+  tipo               String // CONSULTA | SUGERENCIA | PROBLEMA | FUNCION_NUEVA
+  mensaje            String
+  pagina             String?
+  estado             String           @default("NUEVA") // NUEVA | EN_REVISION | EN_DESARROLLO | HECHA | DESCARTADA
+  respuesta          String?
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+  // Fase 15.2: categoría, función nueva, hoja de ruta pública y agrupación
+  modulo             String? // clave de src/lib/modulos.ts
+  titulo             String?
+  problema           String?
+  comoFuncionaria    String?          @map("como_funcionaria")
+  prioridad          String? // BAJA | MEDIA | ALTA
+  publica            Boolean          @default(false)
+  tituloPublico      String?          @map("titulo_publico")
+  descripcionPublica String?          @map("descripcion_publica")
+  agrupadaEn         String?          @map("agrupada_en") @db.Uuid
+  grupo              Sugerencia?      @relation("SugerenciaGrupo", fields: [agrupadaEn], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  agrupadas          Sugerencia[]     @relation("SugerenciaGrupo")
+  votos              SugerenciaVoto[]
 
   @@index([estado, createdAt])
   @@index([usuarioId])
+  @@index([tipo, estado])
+  @@index([modulo])
   @@map("sugerencia")
+}
+
+/// Un voto por persona en la hoja de ruta; se cuentan organizaciones distintas.
+model SugerenciaVoto {
+  sugerenciaId   String     @map("sugerencia_id") @db.Uuid
+  usuarioId      String     @map("usuario_id")
+  organizacionId String?    @map("organizacion_id")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  sugerencia     Sugerencia @relation(fields: [sugerenciaId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([sugerenciaId, usuarioId])
+  @@index([sugerenciaId, organizacionId], map: "sugerencia_voto_org_idx")
+  @@map("sugerencia_voto")
 }
 
 // ================================================================

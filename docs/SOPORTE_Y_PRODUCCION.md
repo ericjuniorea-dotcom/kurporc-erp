@@ -3,9 +3,14 @@
 ## Soporte (soporte@kurporc.com)
 - **soporte@kurporc.com**: consultas, problemas y sugerencias de quienes usan KurPorc. Siempre a la vista.
 - **info@kurporc.com**: lo institucional (prensa, alianzas, temas legales y de privacidad).
-- Botón fijo «Ayuda y sugerencias» en el panel, la cuenta y el panel de tiendas: se elige idea, problema o duda y se escribe.
-  Lo que llega se ve en **Panel de plataforma → Sugerencias** (tabla `sugerencia`), con estado y respuesta;
-  la persona ve la respuesta en el mismo botón. Límite: 20 por persona por día.
+- Pestaña «Ayuda y sugerencias» en el borde derecho (se pliega y se arrastra; no aparece en modo plataforma) en el panel, la cuenta y el panel de tiendas.
+  Cuatro tipos: algo no funciona, duda, idea y **función nueva** (título, qué problema resuelve y cómo debería funcionar). El módulo viene de la pantalla de origen.
+- **El buzón vive en la base** (tabla `sugerencia`, votos en `sugerencia_voto`). El correo solo avisa: un problema avisa al momento a soporte@ y el resto va en un resumen diario
+  (`/api/cron/buzon-resumen`, 08:00 de Asunción). El aviso nunca lleva el texto del cliente: solo tipo, módulo, organización y el enlace al panel.
+- Se gestiona en **Panel de plataforma → Buzón** (`/admin/buzon`; `/admin/sugerencias` redirige): recategorizar, prioridad, estado, respuesta,
+  agrupar mensajes repetidos y publicar en la hoja de ruta con texto reescrito. La persona ve la respuesta en el mismo botón y recibe un aviso (punto en la pestaña).
+- Hoja de ruta para clientes en `/cuenta/hoja-de-ruta`: solo título y descripción públicos, estado y cuántas granjas la piden. Nunca el mensaje, el autor ni la organización.
+- Límite: 20 mensajes por persona por día.
 - El correo de soporte también aparece en las pantallas de acceso, el pie de la página pública, el panel de tiendas y el menú del bot de WhatsApp.
 - Los correos que lleguen directo a la casilla no entran a la bandeja: se responden desde la casilla.
 

@@ -92,6 +92,8 @@ jobs:
           NODE_OPTIONS: --conditions=react-server
       - name: Control de super administradores (Fase 11)
         run: psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f supabase/tests/fase11_admin.sql
+      - name: Buzón y latido de uso (Fase 15)
+        run: psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f supabase/tests/fase15_buzon.sql
       - name: Las migraciones coinciden con el esquema
         run: |
           out=$(npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --script)

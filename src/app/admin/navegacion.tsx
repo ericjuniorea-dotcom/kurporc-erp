@@ -18,7 +18,7 @@ const SECCIONES = [
   { href: "/admin/seguridad", label: "Seguridad" },
   { href: "/admin/privacidad", label: "Privacidad" },
   { href: "/admin/legal", label: "Legal" },
-  { href: "/admin/sugerencias", label: "Sugerencias" },
+  { href: "/admin/buzon", label: "Buzón" },
   { href: "/admin/configuracion", label: "Configuración" },
   { href: "/admin/administradores", label: "Administradores" },
 ];
