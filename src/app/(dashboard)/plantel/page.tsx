@@ -13,6 +13,7 @@ import { VerracosTab }    from "@/components/plantel/verracos-tab";
 import { SemenTab }       from "@/components/plantel/semen-tab";
 import { FichaDrawer }    from "@/components/plantel/ficha-drawer";
 import { DescartadosTab } from "@/components/plantel/descartados-tab";
+import { ModalGrupoPlantel, type GrupoPlantel } from "@/components/plantel/modal-grupo";
 
 import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 const TABS = ["Hembras", "Reproductores", "Semen Externo", "Descartados"] as const;
@@ -54,6 +55,8 @@ export default function PlantelPage() {
     if (id) { setTab("Hembras"); setSelectedSowId(id); }
   }, []);
   const [showMatModal, setShowMatModal]   = useState(false);
+  const [grupo, setGrupo]                 = useState<GrupoPlantel | null>(null);
+  const cerrarGrupo = useCallback(() => setGrupo(null), []);
   const [matData, setMatData]             = useState<HembraMaternidad[] | null>(null);
   const [matLoading, setMatLoading]       = useState(false);
 
@@ -96,6 +99,7 @@ export default function PlantelPage() {
       value: stats?.total,
       icon:  IconUsers,
       color: "var(--text-primary)",
+      onClick: () => setGrupo("GENERAL"),
     },
     {
       label:   "Hembras en Maternidad",
@@ -111,6 +115,7 @@ export default function PlantelPage() {
       value: stats?.preñadas,
       icon:  IconHeartbeat,
       color: "var(--info-text)",
+      onClick: () => setGrupo("PRENADAS"),
     },
     {
       label: "Servidas",
@@ -118,6 +123,7 @@ export default function PlantelPage() {
       value: stats?.servidas,
       icon:  IconHeart,
       color: "var(--success-text)",
+      onClick: () => setGrupo("SERVIDAS"),
     },
     {
       label: "Disponibles",
@@ -125,6 +131,7 @@ export default function PlantelPage() {
       value: stats?.disponibles,
       icon:  IconUser,
       color: "var(--text-secondary)",
+      onClick: () => setGrupo("DISPONIBLES"),
     },
     {
       label: "Reproductores",
@@ -132,6 +139,7 @@ export default function PlantelPage() {
       value: stats?.activeBoars,
       icon:  IconMars,
       color: "var(--accent)",
+      onClick: () => setGrupo("REPRODUCTORES"),
     },
     {
       label: "Cuarentena",
@@ -139,6 +147,7 @@ export default function PlantelPage() {
       value: stats?.cuarentena,
       icon:  IconShieldCheck,
       color: "var(--warning-text)",
+      onClick: () => setGrupo("CUARENTENA"),
     },
   ];
 
@@ -366,6 +375,10 @@ export default function PlantelPage() {
             </div>
           </div>
         </div>
+      )}
+      {grupo && (
+        <ModalGrupoPlantel grupo={grupo} onClose={cerrarGrupo}
+          onVerFicha={id => { setGrupo(null); setTab("Hembras"); setSelectedSowId(id); }} />
       )}
     </div>
   );

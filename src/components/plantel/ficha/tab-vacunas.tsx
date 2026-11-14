@@ -1,6 +1,7 @@
 "use client";
 import { Fragment, useState, useEffect, useCallback } from "react";
 import { IconLoader2, IconShieldCheck, IconShieldX, IconShieldExclamation, IconVaccine, IconX } from "@tabler/icons-react";
+import { ProximasProtocolo, type ProximaVacuna } from "./proximas-protocolo";
 
 interface VacunaCarnet {
   id:                string;
@@ -34,6 +35,7 @@ const ESTADO_CONFIG: Record<string, { label: string; bg: string; color: string; 
 
 export function TabVacunas({ sowId }: { sowId: string }) {
   const [carnet,  setCarnet]  = useState<VacunaCarnet[]>([]);
+  const [proximas, setProximas] = useState<ProximaVacuna[]>([]);
   const [loading, setLoading] = useState(true);
   const [openId,  setOpenId]  = useState<string | null>(null);
   const [form,    setForm]    = useState({ ...EMPTY_APLICACION_FORM });
@@ -44,7 +46,7 @@ export function TabVacunas({ sowId }: { sowId: string }) {
     setLoading(true);
     fetch(`/api/plantel/animales/${sowId}/vacunas`)
       .then(r => r.json())
-      .then(d => setCarnet(d.carnet ?? []))
+      .then(d => { setCarnet(d.carnet ?? []); setProximas(d.proximas ?? []); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [sowId]);
@@ -97,6 +99,8 @@ export function TabVacunas({ sowId }: { sowId: string }) {
 
   if (carnet.length === 0) {
     return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <ProximasProtocolo proximas={proximas} onAplicada={load} />
       <div style={{
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
         padding: "48px 0", gap: 8, textAlign: "center",
@@ -109,16 +113,20 @@ export function TabVacunas({ sowId }: { sowId: string }) {
           Configurá el protocolo sanitario en Configuración → Sanidad
         </div>
       </div>
+      </div>
     );
   }
 
   // Stats
   const alDia     = carnet.filter(v => v.estado === "AL_DIA").length;
-  const proximas  = carnet.filter(v => v.estado === "PROXIMA").length;
+  const proximasCarnet = carnet.filter(v => v.estado === "PROXIMA").length;
   const vencidas  = carnet.filter(v => v.estado === "VENCIDA").length;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <ProximasProtocolo proximas={proximas} onAplicada={load} />
+
+      <div style={{ fontSize: 12, fontWeight: 500, color: "var(--text-secondary)" }}>Carnet de vacunas</div>
       {/* Status pills */}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         {alDia > 0 && (
@@ -126,9 +134,9 @@ export function TabVacunas({ sowId }: { sowId: string }) {
             <IconShieldCheck size={11} /> {alDia} al día
           </span>
         )}
-        {proximas > 0 && (
+        {proximasCarnet > 0 && (
           <span style={{ display: "flex", alignItems: "center", gap: 5, background: "var(--warning-subtle)", border: "0.5px solid var(--warning-border)", color: "var(--warning-text)", borderRadius: 99, padding: "3px 10px", fontSize: 11, fontWeight: 500 }}>
-            <IconShieldExclamation size={11} /> {proximas} próxima{proximas > 1 ? "s" : ""}
+            <IconShieldExclamation size={11} /> {proximasCarnet} próxima{proximasCarnet > 1 ? "s" : ""}
           </span>
         )}
         {vencidas > 0 && (

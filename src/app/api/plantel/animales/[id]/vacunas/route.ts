@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import prisma from "@/lib/db/prisma";
 import { getPermisos, puede, puedeAlguno } from "@/lib/permisos/servidor";
+import { hoyUTC } from "@/lib/finanzas/calculos";
+import { parametrosParadas } from "@/lib/cerdas-paradas/datos";
+import { idsCamadasAbiertas } from "@/lib/maternidad/camadas";
+import { proximasCerda } from "@/lib/sanidad/proximas-cerda";
 
 export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -12,7 +16,7 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
 
   const sow = await prisma.sow.findFirst({
     where: { id: params.id, tenantId },
-    select: { id: true },
+    select: { id: true, isActive: true, plantelState: true },
   });
   if (!sow) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
 
@@ -78,7 +82,31 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
     };
   });
 
-  return NextResponse.json({ carnet });
+  return NextResponse.json({ carnet, proximas: await proximasDe(tenantId, params.id, sow) });
+}
+
+/** Próximas vacunas según el protocolo: las agendadas con fecha real y las del próximo tramo, estimadas. */
+async function proximasDe(tenantId: string, sowId: string, sow: { isActive: boolean; plantelState: string | null }) {
+  const [abiertas, ultimoServicio, agenda, items, p] = await Promise.all([
+    idsCamadasAbiertas(tenantId, sowId),
+    prisma.serviceEvent.findFirst({ where: { tenantId, sowId }, orderBy: { serviceDate: "desc" }, select: { serviceDate: true } }),
+    prisma.eventoVacunacion.findMany({ where: { tenantId, animalId: sowId }, orderBy: { fecha: "asc" }, select: { id: true, fecha: true, estado: true, protocoloItemId: true, vacuna: { select: { nombre: true } } } }),
+    prisma.protocoloItem.findMany({ where: { tenantId, protocolo: { tipoAnimal: "cerda", isActive: true } }, select: { id: true, diaCiclo: true, disparador: true, descripcion: true, vacuna: { select: { nombre: true } } } }),
+    parametrosParadas(tenantId),
+  ]);
+  const parto = abiertas.length
+    ? await prisma.farrowingEvent.findFirst({ where: { id: { in: abiertas } }, orderBy: { startDatetime: "desc" }, select: { startDatetime: true } })
+    : null;
+  const desc = new Map(items.map(i => [i.id, i.descripcion]));
+  const lista = proximasCerda({
+    hoy: hoyUTC(), estado: sow.plantelState, activa: sow.isActive,
+    partoAbierto: parto?.startDatetime ?? null,
+    servicioEnCurso: !parto && ultimoServicio && ["MATED", "PREGNANT"].includes(sow.plantelState ?? "") ? ultimoServicio.serviceDate : null,
+    agenda: agenda.map(a => ({ id: a.id, fecha: a.fecha, estado: a.estado, vacuna: a.vacuna.nombre, descripcion: a.protocoloItemId ? desc.get(a.protocoloItemId) ?? null : null, protocoloItemId: a.protocoloItemId })),
+    items: items.map(i => ({ id: i.id, dia: i.diaCiclo, disparador: i.disparador, vacuna: i.vacuna.nombre, descripcion: i.descripcion })),
+    param: { gestacion: p.gestacionDias, lactancia: p.lactanciaDias, ids: p.calc.intervaloObjetivoDias },
+  });
+  return lista.map(x => ({ ...x, fecha: x.fecha?.toISOString() ?? null }));
 }
 
 export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
