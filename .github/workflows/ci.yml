@@ -86,6 +86,10 @@ jobs:
           NODE_OPTIONS: --conditions=react-server
       - name: Línea de tiempo de los ciclos de la cerda
         run: npm run prueba:ciclos
+      - name: Ruta → módulo (Fase 15)
+        run: npm run prueba:modulos
+      - name: Semáforo de salud del cliente (Fase 15)
+        run: npm run prueba:salud
       - name: Cerdas dadas de baja fuera de Maternidad y de la agenda
         run: npm run prueba:bajas
         env:

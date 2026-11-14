@@ -43,7 +43,7 @@ export async function cuentasPlataforma() {
     }),
     prisma.$queryRaw<{ user_id: string }[]>`select distinct user_id::text from auth.mfa_factors where status = 'verified'`.catch(() => []),
     prisma.aceptacionDocumento.findMany({ where: { codigo: "TERMINOS", aceptado: true }, select: { userId: true, version: true, createdAt: true }, orderBy: { createdAt: "desc" } }),
-    prisma.miembro.findMany({ select: { userId: true, esPropietario: true, organizacion: { select: { farmName: true, tipo: true } } } }),
+    prisma.miembro.findMany({ select: { userId: true, organizacionId: true, esPropietario: true, organizacion: { select: { farmName: true, tipo: true } } } }),
     prisma.actividadDiaria.groupBy({ by: ["userId"], where: { fecha: { gte: hace30 } }, _count: { _all: true } }),
   ]);
   const conMfa = new Set(mfa.map(m => m.user_id));
@@ -54,7 +54,7 @@ export async function cuentasPlataforma() {
     ...u,
     segundoFactor: !!u.authUserId && conMfa.has(u.authUserId),
     contrato: contrato.get(u.id) ?? null,
-    organizaciones: miembros.filter(m => m.userId === u.id).map(m => ({ nombre: m.organizacion.farmName, tipo: m.organizacion.tipo, propietario: m.esPropietario })),
+    organizaciones: miembros.filter(m => m.userId === u.id).map(m => ({ id: m.organizacionId, nombre: m.organizacion.farmName, tipo: m.organizacion.tipo, propietario: m.esPropietario })),
     diasActivo30: dias.get(u.id) ?? 0,
   }));
 }
@@ -66,16 +66,17 @@ export async function organizacionesPlataforma() {
     prisma.miembro.groupBy({ by: ["organizacionId"], where: { estado: "ACTIVO" }, _count: { _all: true } }),
     prisma.granja.groupBy({ by: ["organizacionId"], where: { activa: true }, _count: { _all: true } }),
     prisma.sow.groupBy({ by: ["tenantId"], where: { isActive: true }, _count: { _all: true } }),
-    prisma.movimiento.groupBy({ by: ["organizacionId"], where: { tipo: "INGRESO", mes, estado: { not: "ANULADO" }, esInterno: false }, _sum: { montoGs: true } }),
+    prisma.movimiento.groupBy({ by: ["organizacionId", "tipo"], where: { tipo: { in: ["INGRESO", "GASTO"] }, mes, estado: { not: "ANULADO" }, esInterno: false }, _sum: { montoGs: true } }),
     prisma.actividadDiaria.groupBy({ by: ["organizacionId"], _max: { fecha: true } }),
   ]);
-  const de = <T extends { _count: { _all: number } }>(xs: T[], k: keyof T, id: string) => xs.find(x => x[k] === id)?._count._all ?? 0;
+  const de =<T extends { _count: { _all: number } }>(xs: T[], k: keyof T, id: string) => xs.find(x => x[k] === id)?._count._all ?? 0;
   return orgs.map(o => ({
     ...o,
     miembros: de(miembros, "organizacionId", o.id),
     granjas: de(granjas, "organizacionId", o.id),
     madres: de(madres, "tenantId", o.id),
-    ingresosMesGs: ingresos.find(i => i.organizacionId === o.id)?._sum.montoGs ?? 0n,
+    ingresosMesGs: ingresos.find(i => i.organizacionId === o.id && i.tipo === "INGRESO")?._sum.montoGs ?? 0n,
+    gastosMesGs: ingresos.find(i => i.organizacionId === o.id && i.tipo === "GASTO")?._sum.montoGs ?? 0n,
     ultimaActividad: ultimaActividad.find(a => a.organizacionId === o.id)?._max.fecha ?? null,
   }));
 }

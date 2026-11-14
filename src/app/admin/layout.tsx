@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import prisma from "@/lib/db/prisma";
 import { getAdmin } from "@/lib/admin/acceso";
 import { NavegacionAdmin } from "./navegacion";
 
@@ -27,9 +28,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     );
   }
 
+  const tieneOrganizacion = (await prisma.miembro.count({ where: { userId: admin.usuario.id, estado: "ACTIVO" } })) > 0;
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg-base)" }}>
-      <NavegacionAdmin nombre={admin.usuario.name} nivel={admin.nivel} />
+      <NavegacionAdmin nombre={admin.usuario.name} nivel={admin.nivel} tieneOrganizacion={tieneOrganizacion} />
       <main style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 14, maxWidth: 1320 }}>{children}</main>
     </div>
   );

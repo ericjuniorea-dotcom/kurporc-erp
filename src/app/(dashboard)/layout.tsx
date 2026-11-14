@@ -26,6 +26,8 @@ export default async function DashboardLayout({
 
   const session = await getSession();
   // Autenticado pero sin ninguna organización activa: primeros pasos o su cuenta (Fase 6)
+  // El Super Administrador no es una granja: sin organización entra directo al panel (Fase 15.4)
+  if (!session && usuario.esSuperadmin) redirect("/admin");
   if (!session) redirect(usuario.onboardingCompleto ? "/cuenta/sin-organizacion" : "/onboarding");
   // Una tienda no usa el ERP productivo: tiene su propio panel
   const activa = session.membresias.find(m => m.organizacionId === session.user.tenantId);
@@ -62,7 +64,8 @@ export default async function DashboardLayout({
             <div role="status" style={{ padding: "8px 20px", fontSize: 12, background: "var(--danger-subtle)", color: "var(--danger-text)", borderBottom: "0.5px solid var(--border-default)", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
               <strong>Modo plataforma · solo lectura</strong>
               <span>{session.user.farmName} · motivo: {MOTIVOS[plataforma.motivo as Motivo] ?? plataforma.motivo}{plataforma.detalle ? ` (${plataforma.detalle})` : ""} · cada página queda registrada y la organización la ve.</span>
-              <a href="/admin/salir-modo-plataforma" style={{ color: "inherit", fontWeight: 600, marginLeft: "auto" }}>Salir del modo plataforma</a>
+              <a href={`/admin/organizaciones/${plataforma.org}`} style={{ color: "inherit", fontWeight: 600, marginLeft: "auto" }}>Volver a la ficha</a>
+              <a href="/admin/salir-modo-plataforma" style={{ color: "inherit", fontWeight: 600 }}>Salir del modo plataforma</a>
             </div>
           )}
           {!plataforma && permisos && permisos.bloqueadosPorSegundoFactor.length > 0 && (

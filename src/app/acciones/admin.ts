@@ -72,21 +72,40 @@ export async function quitarAdmin(userId: string): Promise<R> {
   } catch (e) { return manejar(e); }
 }
 
-/** "Ver todo" (Fase 11): abre el ERP de la organización en modo plataforma, solo lectura, con el motivo vigente. */
-export async function entrarModoPlataforma(organizacionId: string): Promise<R> {
+/**
+ * Fase 15.4 · «Ver ERP» en un clic. Si no hay motivo vigente usa el recibido o «Mejora del producto».
+ * Si se eligió un motivo explícito, se registra ese (el registro tiene que reflejar el motivo real).
+ * Todo lo demás igual: banner, cada request en acceso_plataforma, auditoría y la organización lo ve.
+ */
+export async function abrirERPEnLectura(organizacionId: string, motivo?: string, detalle?: string): Promise<R> {
   try {
-    const a = await getAdmin();
-    if (!a || !a.verificado || (a.nivel !== "TOTAL" && a.nivel !== "SOPORTE")) throw new Error("•Tu nivel no permite abrir el ERP de una organización.");
-    const m = await motivoVigente(organizacionId);
-    if (!m) throw new Error("•Elegí el motivo primero.");
-    const org = await prisma.tenant.findUnique({ where: { id: organizacionId }, select: { tipo: true } });
-    if (!org) throw new Error("•Esa organización no existe.");
-    const hasta = Math.min(m.hasta, Date.now() + DURACION_MS);
-    (await cookies()).set(COOKIE_PLATAFORMA, codificar({ org: organizacionId, motivo: m.motivo, detalle: m.detalle, hasta, admin: a.usuario.id }), {
-      httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: Math.floor((hasta - Date.now()) / 1000),
-    });
-    const h = await headers();
-    await registrarAuditoria("SUPERADMIN_LECTURA", "tenant", organizacionId, { tipo: "modo_plataforma", motivo: m.motivo }, { organizacionId, actorId: a.usuario.id, actorEsPlataforma: true, ip: ipDe(h), userAgent: userAgentDe(h) });
+    const a = await adminLectura();
+    if (motivo !== undefined && !(motivo in MOTIVOS)) throw new Error("•Motivo inválido.");
+    if (motivo === "OTRO" && (detalle ?? "").trim().length < 5) throw new Error("•Detallá el motivo.");
+    let m = await motivoVigente(organizacionId);
+    if (!m || motivo) {
+      const elegido = (motivo ?? "MEJORA_DEL_PRODUCTO") as Motivo;
+      await guardarMotivo(organizacionId, elegido, (detalle ?? "").trim());
+      m = { motivo: elegido, detalle: (detalle ?? "").trim().slice(0, 200), hasta: Date.now() + DURACION_MS };
+    }
+    await abrirConMotivo(a.usuario.id, organizacionId, m);
     return { ok: true };
   } catch (e) { return manejar(e); }
+}
+
+async function adminLectura() {
+  const a = await getAdmin();
+  if (!a || !a.verificado || (a.nivel !== "TOTAL" && a.nivel !== "SOPORTE")) throw new Error("•Tu nivel no permite abrir el ERP de una organización.");
+  return a;
+}
+
+async function abrirConMotivo(adminId: string, organizacionId: string, m: { motivo: string; detalle: string; hasta: number }) {
+  const org = await prisma.tenant.findUnique({ where: { id: organizacionId }, select: { tipo: true } });
+  if (!org) throw new Error("•Esa organización no existe.");
+  const hasta = Math.min(m.hasta, Date.now() + DURACION_MS);
+  (await cookies()).set(COOKIE_PLATAFORMA, codificar({ org: organizacionId, motivo: m.motivo, detalle: m.detalle, hasta, admin: adminId }), {
+    httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: Math.floor((hasta - Date.now()) / 1000),
+  });
+  const h = await headers();
+  await registrarAuditoria("SUPERADMIN_LECTURA", "tenant", organizacionId, { tipo: "modo_plataforma", motivo: m.motivo }, { organizacionId, actorId: adminId, actorEsPlataforma: true, ip: ipDe(h), userAgent: userAgentDe(h) });
 }

@@ -1,5 +1,9 @@
 import { requireAdmin } from "@/lib/admin/acceso";
 import { cuentasPlataforma } from "@/lib/admin/datos";
+import { horas, usoPorPersona } from "@/lib/admin/uso";
+import { VerERP } from "../ver-erp";
+
+export const dynamic = "force-dynamic";
 
 const tarjeta: React.CSSProperties = { background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-lg)" };
 const fecha = (d: Date | null) => d ? d.toLocaleDateString("es-PY", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
@@ -8,7 +12,7 @@ const si = (b: boolean) => <span style={{ color: b ? "var(--success-text)" : "va
 
 export default async function CuentasAdmin() {
   await requireAdmin(["TOTAL", "SOPORTE"]);
-  const cuentas = await cuentasPlataforma();
+  const [cuentas, tiempo] = await Promise.all([cuentasPlataforma(), usoPorPersona(7)]);
   const embudo = [
     ["Registrados", cuentas.length],
     ["Aceptaron los términos", cuentas.filter(c => c.contrato).length],
@@ -29,9 +33,9 @@ export default async function CuentasAdmin() {
         ))}
       </div>
       <div style={{ ...tarjeta, overflowX: "auto" }}>
-        <table className="kp-table" style={{ minWidth: 1000 }}>
+        <table className="kp-table" style={{ minWidth: 1180 }}>
           <thead>
-            <tr><th>Persona</th><th>Tipo</th><th>Ingresa con</th><th>2.º factor</th><th>Términos</th><th>Primeros pasos</th><th>Organizaciones</th><th>Días activo (30)</th><th>Último acceso</th><th>Alta</th></tr>
+            <tr><th>Persona</th><th>Tipo</th><th>Ingresa con</th><th>2.º factor</th><th>Términos</th><th>Primeros pasos</th><th>Organizaciones</th><th>Días activo (30)</th><th style={{ textAlign: "right" }}>Tiempo (7 días)</th><th>Último acceso</th><th>Alta</th><th aria-label="Ver ERP" /></tr>
           </thead>
           <tbody>
             {cuentas.map(c => (
@@ -47,8 +51,10 @@ export default async function CuentasAdmin() {
                 <td>{si(c.onboardingCompleto)}</td>
                 <td style={{ fontSize: 11.5 }}>{c.organizaciones.length ? c.organizaciones.map(o => `${o.nombre}${o.propietario ? " (dueño)" : ""}`).join(", ") : "—"}</td>
                 <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{c.diasActivo30}</td>
+                <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{horas(tiempo.get(c.id) ?? 0).toLocaleString("es-PY")} h</td>
                 <td>{fecha(c.ultimoAcceso)}</td>
                 <td>{fecha(c.createdAt)}</td>
+                <td style={{ textAlign: "right" }}>{c.organizaciones.length > 0 && <VerERP chico opciones={[...c.organizaciones].sort((a, b) => Number(b.propietario) - Number(a.propietario)).map(o => ({ id: o.id, nombre: o.nombre }))} />}</td>
               </tr>
             ))}
           </tbody>
