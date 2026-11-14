@@ -105,14 +105,18 @@ export async function actualizarSugerencia(datos: z.input<typeof cambio>): Promi
     return { ok: false, error: "Para pasarla a «Función nueva» abrí el detalle: necesita título, problema y cómo funcionaría." };
   const data = {
     ...(d.estado ? { estado: d.estado } : {}),
-    ...(d.respuesta !== undefined ? { respuesta: d.respuesta || null } : {}),
+    ...(d.respuesta ? { respuesta: d.respuesta } : {}),
     ...(d.tipo ? { tipo: d.tipo } : {}),
     ...(d.modulo ? { modulo: d.modulo } : {}),
     ...(d.prioridad !== undefined ? { prioridad: d.prioridad || null } : {}),
   };
-  await prisma.sugerencia.update({ where: { id: d.id }, data });
+  // Cada respuesta se suma a la conversación (registro por granja); `respuesta` guarda la última
+  const cambioRespuesta = !!d.respuesta;
+  await prisma.$transaction([
+    prisma.sugerencia.update({ where: { id: d.id }, data }),
+    ...(cambioRespuesta ? [prisma.sugerenciaMensaje.create({ data: { sugerenciaId: d.id, autorId: a.usuario.id, dePlataforma: true, texto: d.respuesta! } })] : []),
+  ]);
   const cambioEstado = !!d.estado && d.estado !== antes.estado;
-  const cambioRespuesta = d.respuesta !== undefined && (d.respuesta || null) !== antes.respuesta && !!d.respuesta;
   if (cambioEstado || cambioRespuesta) {
     await prisma.notificacion.create({ data: {
       userId: antes.usuarioId, organizacionId: antes.organizacionId, tipo: "BUZON",
@@ -190,9 +194,30 @@ export async function misSugerencias() {
   if (!usuario) return [];
   const filas = await prisma.sugerencia.findMany({
     where: { usuarioId: usuario.id }, orderBy: { createdAt: "desc" }, take: 10,
-    select: { id: true, tipo: true, mensaje: true, titulo: true, modulo: true, estado: true, respuesta: true, createdAt: true },
+    select: { id: true, tipo: true, mensaje: true, titulo: true, modulo: true, estado: true, respuesta: true, createdAt: true,
+      mensajes: { orderBy: { createdAt: "asc" }, select: { id: true, dePlataforma: true, texto: true, createdAt: true } } },
   });
-  return filas.map(f => ({ ...f, createdAt: f.createdAt.toISOString() }));
+  return filas.map(f => ({ ...f, createdAt: f.createdAt.toISOString(), mensajes: f.mensajes.map(m => ({ ...m, createdAt: m.createdAt.toISOString() })) }));
+}
+
+/** El cliente sigue la conversación de un mensaje suyo. Si estaba cerrado, vuelve a «En revisión». */
+export async function responderComoCliente(sugerenciaId: string, texto: string): Promise<R> {
+  const usuario = await getUsuario();
+  if (!usuario) return { ok: false, error: "Iniciá sesión." };
+  const session = await getSession().catch(() => null);
+  if (session?.modoPlataforma) return { ok: false, error: "En modo plataforma no se puede responder." };
+  const t = texto.trim();
+  if (t.length < 2 || t.length > 4000) return { ok: false, error: "Escribí tu respuesta (hasta 4.000 caracteres)." };
+  if (!z.string().uuid().safeParse(sugerenciaId).success) return { ok: false, error: "Datos inválidos" };
+  const s = await prisma.sugerencia.findFirst({ where: { id: sugerenciaId, usuarioId: usuario.id }, select: { id: true, estado: true } });
+  if (!s) return { ok: false, error: "No encontramos ese mensaje." };
+  if (!(await consumirIntento("sugerencias", usuario.id))) return { ok: false, error: `Ya mandaste muchas hoy. Escribinos a ${CORREO_SOPORTE}.` };
+  await prisma.$transaction([
+    prisma.sugerenciaMensaje.create({ data: { sugerenciaId, autorId: usuario.id, dePlataforma: false, texto: t } }),
+    ...(s.estado === "HECHA" || s.estado === "DESCARTADA" ? [prisma.sugerencia.update({ where: { id: sugerenciaId }, data: { estado: "EN_REVISION" } })] : []),
+  ]);
+  refrescar();
+  return { ok: true };
 }
 
 /** Respuestas del buzón sin leer (punto en la pestaña de Ayuda). */

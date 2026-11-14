@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { usePathname } from "next/navigation";
 import { IconChevronLeft, IconChevronRight, IconLoader2 } from "@tabler/icons-react";
 import { Aviso } from "@/components/auth/marco-auth";
-import { avisosBuzon, enviarSugerencia, marcarAvisosBuzonLeidos, misSugerencias } from "@/app/acciones/sugerencias";
+import { avisosBuzon, enviarSugerencia, marcarAvisosBuzonLeidos, misSugerencias, responderComoCliente } from "@/app/acciones/sugerencias";
 import { CLAVES_MODULO, MODULOS, moduloDeRuta, type ModuloClave } from "@/lib/modulos";
 import { CORREO_SOPORTE } from "@/lib/contacto";
 
@@ -122,8 +122,10 @@ export function AyudaSoporte({ oculto = false }: { oculto?: boolean }) {
             </div>
             <button type="button" className="btn" aria-label="Plegar ayuda" style={{ height: 28, padding: "0 6px" }} onClick={() => cambiar(false)}><IconChevronRight size={15} /></button>
           </div>
-          {msg && <Aviso tipo={msg.tipo}>{msg.texto}</Aviso>}
-          <form onSubmit={e => { e.preventDefault(); setMsg(null); iniciar(async () => {
+          <form noValidate onSubmit={e => { e.preventDefault(); setMsg(null);
+            const falta = faltaParaEnviar(tipo, { mensaje, titulo, problema, comoFuncionaria });
+            if (falta) { setMsg({ tipo: "error", texto: falta }); return; }
+            iniciar(async () => {
             const r = await enviarSugerencia(tipo === "FUNCION_NUEVA" ? { tipo, titulo, problema, comoFuncionaria, modulo, pagina: ruta } : { tipo, mensaje, modulo, pagina: ruta });
             if (r.ok) { setMensaje(""); setTitulo(""); setProblema(""); setComoFuncionaria(""); setMias(null); setMsg({ tipo: "ok", texto: "¡Gracias! Lo recibimos. Te respondemos acá mismo." }); }
             else setMsg({ tipo: "error", texto: r.error });
@@ -142,22 +144,24 @@ export function AyudaSoporte({ oculto = false }: { oculto?: boolean }) {
             </label>
             {tipo === "FUNCION_NUEVA" ? (
               <>
-                <input className="kp-input" value={titulo} onChange={e => setTitulo(e.target.value)} required minLength={5} maxLength={80} aria-label="Título" placeholder="Título corto (ej.: Alerta de celo por WhatsApp)" style={{ height: 34 }} />
-                <textarea className="kp-input" value={problema} onChange={e => setProblema(e.target.value)} required minLength={10} maxLength={1500} rows={3}
+                <input className="kp-input" value={titulo} onChange={e => setTitulo(e.target.value)} maxLength={80} aria-label="Título" placeholder="Título corto (ej.: Alerta de celo por WhatsApp)" style={{ height: 34 }} />
+                <Minimo valor={titulo} minimo={5} />
+                <textarea className="kp-input" value={problema} onChange={e => setProblema(e.target.value)} maxLength={1500} rows={3}
                   aria-label="¿Qué problema te resuelve?" placeholder="¿Qué problema te resuelve?" style={{ height: "auto", minHeight: 70, padding: 8, resize: "vertical" }} />
-                <textarea className="kp-input" value={comoFuncionaria} onChange={e => setComoFuncionaria(e.target.value)} required minLength={10} maxLength={1500} rows={3}
+                <Minimo valor={problema} minimo={10} />
+                <textarea className="kp-input" value={comoFuncionaria} onChange={e => setComoFuncionaria(e.target.value)} maxLength={1500} rows={3}
                   aria-label="¿Cómo querés que funcione?" placeholder="¿Cómo querés que funcione?" style={{ height: "auto", minHeight: 70, padding: 8, resize: "vertical" }} />
+                <Minimo valor={comoFuncionaria} minimo={10} />
               </>
             ) : (
-              <textarea className="kp-input" value={mensaje} onChange={e => setMensaje(e.target.value)} required minLength={3} maxLength={4000} rows={4}
+              <textarea className="kp-input" value={mensaje} onChange={e => setMensaje(e.target.value)} maxLength={4000} rows={4}
                 aria-label="Mensaje" placeholder={tipo === "PROBLEMA" ? "¿Qué estabas haciendo y qué pasó?" : tipo === "CONSULTA" ? "Escribí tu duda" : "¿Qué te gustaría que cambie o que tenga KurPorc?"}
                 style={{ height: "auto", minHeight: 90, padding: 8, resize: "vertical" }} />
             )}
-            <button type="submit" className="btn btn-primary" disabled={pendiente || (tipo === "FUNCION_NUEVA"
-              ? titulo.trim().length < 5 || problema.trim().length < 10 || comoFuncionaria.trim().length < 10
-              : mensaje.trim().length < 3)}>
+            <button type="submit" className="btn btn-primary" disabled={pendiente}>
               {pendiente && <IconLoader2 size={14} className="animate-spin" aria-hidden />} Enviar
             </button>
+            {msg && <div role={msg.tipo === "error" ? "alert" : "status"}><Aviso tipo={msg.tipo}>{msg.texto}</Aviso></div>}
           </form>
           <a href="/cuenta/hoja-de-ruta" style={{ fontSize: 12, color: "var(--accent-text)", fontWeight: 500 }}>Ver lo que piden otros →</a>
           <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
@@ -172,8 +176,7 @@ export function AyudaSoporte({ oculto = false }: { oculto?: boolean }) {
                     <span style={{ color: "var(--text-muted)" }}>{new Date(m.createdAt).toLocaleDateString("es-PY")}</span>
                     <span style={{ fontWeight: 500, color: "var(--text-primary)" }}>{ESTADO[m.estado] ?? m.estado}</span>
                   </div>
-                  <div style={{ marginTop: 2, whiteSpace: "pre-wrap" }}>{m.titulo ?? (m.mensaje.length > 160 ? `${m.mensaje.slice(0, 160)}…` : m.mensaje)}</div>
-                  {m.respuesta && <div style={{ marginTop: 4, color: "var(--text-primary)" }}><strong>KurPorc:</strong> {m.respuesta}</div>}
+                  <Conversacion m={m} onRespondido={() => setMias(null)} />
                 </div>
               ))}
             </div>
@@ -181,5 +184,62 @@ export function AyudaSoporte({ oculto = false }: { oculto?: boolean }) {
         </section>
       )}
     </>
+  );
+}
+
+/** Qué falta para poder enviar (null = está todo). Se muestra al tocar Enviar, en vez de un botón que no hace nada. */
+function faltaParaEnviar(tipo: string, d: { mensaje: string; titulo: string; problema: string; comoFuncionaria: string }): string | null {
+  if (tipo !== "FUNCION_NUEVA") return d.mensaje.trim().length < 3 ? "Escribí tu mensaje (al menos 3 letras)." : null;
+  const faltas: string[] = [];
+  if (d.titulo.trim().length < 5) faltas.push("un título de al menos 5 letras");
+  if (d.problema.trim().length < 10) faltas.push("qué problema te resuelve (al menos 10 letras)");
+  if (d.comoFuncionaria.trim().length < 10) faltas.push("cómo querés que funcione (al menos 10 letras)");
+  return faltas.length ? `Para enviarla falta: ${faltas.join(", ")}.` : null;
+}
+
+function Minimo({ valor, minimo }: { valor: string; minimo: number }) {
+  const n = valor.trim().length;
+  if (n >= minimo) return null;
+  return <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: -4 }}>{n}/{minimo} letras como mínimo</div>;
+}
+
+/** Hilo de un mensaje: lo que mandó la persona, las respuestas de KurPorc y la opción de seguir la conversación. */
+function Conversacion({ m, onRespondido }: { m: Mia; onRespondido: () => void }) {
+  const [texto, setTexto] = useState("");
+  const [abierta, setAbierta] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pendiente, iniciar] = useTransition();
+  const hora = (s: string) => new Date(s).toLocaleString("es-PY", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 4 }}>
+      <div style={{ whiteSpace: "pre-wrap", color: "var(--text-primary)" }}>{m.titulo ?? (m.mensaje.length > 220 ? `${m.mensaje.slice(0, 220)}…` : m.mensaje)}</div>
+      {m.mensajes.map(x => (
+        <div key={x.id} style={{ alignSelf: x.dePlataforma ? "flex-start" : "flex-end", maxWidth: "92%", padding: "6px 8px", borderRadius: 8,
+          background: x.dePlataforma ? "var(--bg-surface)" : "var(--accent-subtle, var(--bg-overlay))", border: "0.5px solid var(--border-default)" }}>
+          <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{x.dePlataforma ? "KurPorc" : "Vos"} · {hora(x.createdAt)}</div>
+          <div style={{ whiteSpace: "pre-wrap", color: "var(--text-primary)" }}>{x.texto}</div>
+        </div>
+      ))}
+      {!abierta ? (
+        <button type="button" onClick={() => setAbierta(true)} style={{ alignSelf: "flex-start", background: "none", border: "none", padding: 0, fontSize: 12, color: "var(--accent-text)", cursor: "pointer", fontWeight: 500 }}>
+          Responder
+        </button>
+      ) : (
+        <form onSubmit={e => { e.preventDefault(); setError(null); iniciar(async () => {
+          const r = await responderComoCliente(m.id, texto);
+          if (r.ok) { setTexto(""); setAbierta(false); onRespondido(); } else setError(r.error);
+        }); }} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <textarea className="kp-input" value={texto} onChange={e => setTexto(e.target.value)} rows={2} maxLength={4000} aria-label="Tu respuesta"
+            placeholder="Escribí tu respuesta" style={{ height: "auto", minHeight: 52, padding: 8 }} />
+          {error && <div role="alert" style={{ fontSize: 11.5, color: "var(--danger-text)" }}>{error}</div>}
+          <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+            <button type="button" className="btn" style={{ height: 28, fontSize: 12 }} onClick={() => setAbierta(false)}>Cancelar</button>
+            <button type="submit" className="btn btn-primary" style={{ height: 28, fontSize: 12 }} disabled={pendiente || texto.trim().length < 2}>
+              {pendiente && <IconLoader2 size={12} className="animate-spin" aria-hidden />} Enviar
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
   );
 }

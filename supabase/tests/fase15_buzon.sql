@@ -44,15 +44,22 @@ begin
     raise exception '3: se aceptó un voto duplicado';
   exception when unique_violation then null; end;
 
-  -- Borrar el mensaje borra sus votos
+  -- Conversación: texto vacío no; borrar el mensaje borra votos y conversación
+  insert into sugerencia_mensaje (sugerencia_id, autor_id, de_plataforma, texto) values (v_id, 'plataforma', true, 'Gracias, lo vemos');
+  begin
+    insert into sugerencia_mensaje (sugerencia_id, autor_id, texto) values (v_id, 'prueba-f15', '');
+    raise exception 'se guardó una respuesta vacía';
+  exception when check_violation then null; end;
   delete from sugerencia where id = v_id;
   if exists (select 1 from sugerencia_voto where sugerencia_id = v_id) then raise exception 'quedaron votos huérfanos'; end if;
+  if exists (select 1 from sugerencia_mensaje where sugerencia_id = v_id) then raise exception 'quedó la conversación huérfana'; end if;
 
   -- 4. anon y authenticated no leen el buzón (si los roles existen)
   foreach r in array array['anon', 'authenticated'] loop
     if exists (select 1 from pg_roles where rolname = r) then
       if has_table_privilege(r, 'public.sugerencia', 'select') then raise exception '4: % lee sugerencia', r; end if;
       if has_table_privilege(r, 'public.sugerencia_voto', 'select') then raise exception '4: % lee sugerencia_voto', r; end if;
+      if has_table_privilege(r, 'public.sugerencia_mensaje', 'select') then raise exception '4: % lee sugerencia_mensaje', r; end if;
     end if;
   end loop;
 

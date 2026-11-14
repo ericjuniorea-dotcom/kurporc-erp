@@ -69,7 +69,9 @@ export default async function DetalleOrganizacion({ params }: { params: Promise<
     prisma.serviceEvent.count({ where: { tenantId: id, serviceDate: { gte: inicioMes } } }),
     prisma.movimiento.groupBy({ by: ["tipo"], where: { organizacionId: id, mes, estado: { not: "ANULADO" }, esInterno: false }, _sum: { montoGs: true } }),
     prisma.sugerencia.count({ where: { organizacionId: id } }),
-    prisma.sugerencia.findMany({ where: { organizacionId: id }, orderBy: { createdAt: "desc" }, take: 3, select: { id: true, tipo: true, modulo: true, estado: true, titulo: true, mensaje: true, createdAt: true } }),
+    prisma.sugerencia.findMany({ where: { organizacionId: id }, orderBy: { createdAt: "desc" }, take: 100,
+      select: { id: true, usuarioId: true, tipo: true, modulo: true, estado: true, titulo: true, mensaje: true, createdAt: true,
+        mensajes: { orderBy: { createdAt: "asc" }, select: { id: true, dePlataforma: true, texto: true, createdAt: true } } } }),
     prisma.auditoria.findMany({ where: { organizacionId: id }, orderBy: { createdAt: "desc" }, take: 40, select: { id: true, createdAt: true, accion: true, actorId: true, entidad: true, actorEsPlataforma: true } }),
   ]);
   const suma = (t: string) => finMes.find(x => x.tipo === t)?._sum.montoGs ?? 0n;
@@ -86,6 +88,7 @@ export default async function DetalleOrganizacion({ params }: { params: Promise<
   const actores = await prisma.user.findMany({ where: { id: { in: Array.from(new Set(auditoria.map(a => a.actorId).filter((x): x is string => !!x))) } }, select: { id: true, name: true } });
   const nombre = new Map(actores.map(a => [a.id, a.name]));
   const s = salud[id];
+  const autores = new Map(miembros.map(m => [m.userId, m.perfil.name]));
 
   return (
     <>
@@ -148,16 +151,33 @@ export default async function DetalleOrganizacion({ params }: { params: Promise<
       </div>
 
       <section style={{ ...tarjeta, padding: 16, display: "flex", flexDirection: "column", gap: 8 }} aria-labelledby="buzon">
-        <h2 id="buzon" style={h2}>Mensajes al buzón ({buzonTotal})</h2>
-        {buzon.length === 0 && <div style={{ fontSize: 12, color: "var(--text-muted)" }}>No mandó mensajes.</div>}
+        <h2 id="buzon" style={h2}>Registro de conversaciones con la granja ({buzonTotal})</h2>
+        <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>Todo lo que mandaron por «Ayuda y sugerencias» y lo que les respondimos, de lo más nuevo a lo más viejo.</div>
+        {buzon.length === 0 && <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Todavía no hubo conversaciones.</div>}
         {buzon.map(b => (
-          <Link key={b.id} href={`/admin/buzon?id=${b.id}`} style={{ display: "flex", gap: 8, fontSize: 12.5, textDecoration: "none", color: "var(--text-secondary)", flexWrap: "wrap" }}>
-            <span style={{ color: "var(--text-muted)" }}>{fecha(b.createdAt)}</span>
-            <span style={{ fontWeight: 500, color: "var(--text-primary)" }}>{TIPO_BUZON[b.tipo] ?? b.tipo}</span>
-            <span>{etiquetaModulo(b.modulo)}</span>
-            <span style={{ flex: 1, minWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.titulo ?? b.mensaje}</span>
-            <span>{ESTADO_BUZON[b.estado] ?? b.estado}</span>
-          </Link>
+          <details key={b.id} style={{ borderTop: "0.5px solid var(--border-default)", paddingTop: 8 }}>
+            <summary style={{ display: "flex", gap: 8, fontSize: 12.5, color: "var(--text-secondary)", flexWrap: "wrap", cursor: "pointer", listStyle: "none" }}>
+              <span style={{ color: "var(--text-muted)" }}>{fecha(b.createdAt)}</span>
+              <span style={{ fontWeight: 500, color: "var(--text-primary)" }}>{TIPO_BUZON[b.tipo] ?? b.tipo}</span>
+              <span>{etiquetaModulo(b.modulo)}</span>
+              <span style={{ flex: 1, minWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.titulo ?? b.mensaje}</span>
+              <span>{b.mensajes.length} respuesta{b.mensajes.length === 1 ? "" : "s"} · {ESTADO_BUZON[b.estado] ?? b.estado}</span>
+            </summary>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "8px 0 4px" }}>
+              <div style={{ alignSelf: "flex-start", maxWidth: "85%", padding: "6px 10px", borderRadius: 8, fontSize: 12.5, background: "var(--info-subtle)", border: "0.5px solid var(--border-default)" }}>
+                <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{autores.get(b.usuarioId) ?? "Cliente"} · {b.createdAt.toLocaleString("es-PY")}</div>
+                <div style={{ whiteSpace: "pre-wrap", color: "var(--text-primary)" }}>{b.mensaje}</div>
+              </div>
+              {b.mensajes.map(m => (
+                <div key={m.id} style={{ alignSelf: m.dePlataforma ? "flex-end" : "flex-start", maxWidth: "85%", padding: "6px 10px", borderRadius: 8, fontSize: 12.5,
+                  background: m.dePlataforma ? "var(--bg-base)" : "var(--info-subtle)", border: "0.5px solid var(--border-default)" }}>
+                  <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{m.dePlataforma ? "KurPorc" : autores.get(b.usuarioId) ?? "Cliente"} · {m.createdAt.toLocaleString("es-PY")}</div>
+                  <div style={{ whiteSpace: "pre-wrap", color: "var(--text-primary)" }}>{m.texto}</div>
+                </div>
+              ))}
+              <Link href={`/admin/buzon?id=${b.id}`} style={{ fontSize: 12, color: "var(--accent-text, var(--accent))", alignSelf: "flex-start" }}>Responder o gestionar en el buzón →</Link>
+            </div>
+          </details>
         ))}
       </section>
 

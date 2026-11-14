@@ -12,19 +12,25 @@ export type S = {
   id: string; tipo: string; modulo: string | null; prioridad: string | null; mensaje: string; titulo: string | null; problema: string | null; comoFuncionaria: string | null;
   pagina: string | null; estado: string; respuesta: string | null; fecha: string; persona: string; email: string | null; organizacion: string | null;
   publica: boolean; tituloPublico: string | null; descripcionPublica: string | null; agrupadaEn: string | null;
+  mensajes: { id: string; dePlataforma: boolean; texto: string; fecha: string }[];
+  esperaRespuesta: boolean;
 };
 
 const chico = { height: 28, fontSize: 12 } as const;
 
 export function FilaBuzon({ s, pedidas, agrupadas, candidatos }: { s: S; pedidas: number; agrupadas: S[]; candidatos: { id: string; etiqueta: string }[] }) {
-  const [respuesta, setRespuesta] = useState(s.respuesta ?? "");
+  const [respuesta, setRespuesta] = useState("");
   const [titPub, setTitPub] = useState(s.tituloPublico ?? s.titulo ?? "");
   const [descPub, setDescPub] = useState(s.descripcionPublica ?? "");
   const [destino, setDestino] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
   const correr = (fn: () => Promise<{ ok: boolean; error?: string }>) => { setError(null); iniciar(async () => { const r = await fn(); if (!r.ok) setError(r.error ?? "No se pudo guardar."); }); };
-  const cambiar = (d: Parameters<typeof actualizarSugerencia>[0]) => correr(() => actualizarSugerencia(d));
+  const cambiar = (d: Parameters<typeof actualizarSugerencia>[0]) => correr(async () => {
+    const r = await actualizarSugerencia(d);
+    if (r.ok && d.respuesta) setRespuesta("");
+    return r;
+  });
 
   return (
     <article id={`m-${s.id}`} style={{ background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-lg)", padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
@@ -49,6 +55,7 @@ export function FilaBuzon({ s, pedidas, agrupadas, candidatos }: { s: S; pedidas
         <span>Estado: <strong style={{ fontWeight: 500, color: "var(--text-primary)" }}>{ESTADO[s.estado] ?? s.estado}</strong></span>
         <span>Pedida por <strong style={{ fontWeight: 500, color: "var(--text-primary)" }}>{pedidas}</strong> organización{pedidas === 1 ? "" : "es"}</span>
         {s.publica && <span style={{ color: "var(--success-text)" }}>Publicada en la hoja de ruta</span>}
+        {s.esperaRespuesta && <span style={{ color: "var(--danger-text)", fontWeight: 500 }}>Espera respuesta</span>}
         {agrupadas.length > 0 && <span>{agrupadas.length} mensaje{agrupadas.length === 1 ? "" : "s"} agrupado{agrupadas.length === 1 ? "" : "s"}</span>}
       </div>
 
@@ -64,14 +71,26 @@ export function FilaBuzon({ s, pedidas, agrupadas, candidatos }: { s: S; pedidas
         </select>
       </div>
 
+      {s.mensajes.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "8px 0", borderTop: "0.5px solid var(--border-default)" }}>
+          <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>Conversación</span>
+          {s.mensajes.map(m => (
+            <div key={m.id} style={{ alignSelf: m.dePlataforma ? "flex-end" : "flex-start", maxWidth: "85%", padding: "6px 10px", borderRadius: 8, fontSize: 12.5,
+              background: m.dePlataforma ? "var(--bg-base)" : "var(--info-subtle)", border: "0.5px solid var(--border-default)" }}>
+              <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{m.dePlataforma ? "KurPorc" : s.persona} · {new Date(m.fecha).toLocaleString("es-PY")}</div>
+              <div style={{ whiteSpace: "pre-wrap", color: "var(--text-primary)" }}>{m.texto}</div>
+            </div>
+          ))}
+        </div>
+      )}
       <textarea className="kp-input" value={respuesta} onChange={e => setRespuesta(e.target.value)} rows={2} maxLength={4000} aria-label="Respuesta"
-        placeholder="Respuesta (la persona la ve en el botón de ayuda y recibe un aviso)" style={{ height: "auto", minHeight: 52, padding: 8 }} />
+        placeholder="Escribí una respuesta (se suma a la conversación; la persona la ve en el botón de ayuda y recibe un aviso)" style={{ height: "auto", minHeight: 52, padding: 8 }} />
       {error && <div role="alert" style={{ fontSize: 12, color: "var(--danger-text)" }}>{error}</div>}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         {[["EN_REVISION", "En revisión"], ["EN_DESARROLLO", "En desarrollo"], ["HECHA", "Hecha"], ["DESCARTADA", "Descartar"], ["NUEVA", "Volver a nuevas"]].filter(([k]) => k !== s.estado).map(([k, v]) => (
-          <button key={k} type="button" className={k === "HECHA" ? "btn btn-primary" : "btn"} style={chico} disabled={pendiente} onClick={() => cambiar({ id: s.id, estado: k as never, respuesta })}>{v}</button>
+          <button key={k} type="button" className={k === "HECHA" ? "btn btn-primary" : "btn"} style={chico} disabled={pendiente} onClick={() => cambiar({ id: s.id, estado: k as never, ...(respuesta.trim() ? { respuesta } : {}) })}>{v}</button>
         ))}
-        {respuesta !== (s.respuesta ?? "") && <button type="button" className="btn" style={chico} disabled={pendiente} onClick={() => cambiar({ id: s.id, respuesta })}>Guardar respuesta</button>}
+        {respuesta.trim() && <button type="button" className="btn btn-primary" style={chico} disabled={pendiente} onClick={() => cambiar({ id: s.id, respuesta })}>Enviar respuesta</button>}
       </div>
 
       {!s.agrupadaEn && (

@@ -22,6 +22,7 @@ export default async function Buzon({ searchParams }: { searchParams: Promise<Re
   const modulo = sp.modulo && sp.modulo in MODULOS ? sp.modulo : null;
   const prioridad = sp.prioridad && sp.prioridad in PRIORIDADES ? sp.prioridad : null;
   const conVotos = sp.votos === "1";
+  const esperan = sp.esperan === "1";
   const orden = sp.orden === "pedidas" ? "pedidas" : "recientes";
   const unId = sp.id && /^[0-9a-f-]{36}$/i.test(sp.id) ? sp.id : null;
 
@@ -34,13 +35,17 @@ export default async function Buzon({ searchParams }: { searchParams: Promise<Re
   };
   const where: Prisma.SugerenciaWhereInput = unId ? { id: unId } : { ...base, ...(tipo ? { tipo } : {}) };
   const [filas, porTipo, candidatos] = await Promise.all([
-    prisma.sugerencia.findMany({ where, orderBy: { createdAt: "desc" }, take: 300, include: { agrupadas: { orderBy: { createdAt: "desc" } } } }),
+    prisma.sugerencia.findMany({ where, orderBy: { createdAt: "desc" }, take: 300, include: { agrupadas: { orderBy: { createdAt: "desc" }, include: { mensajes: { orderBy: { createdAt: "asc" } } } }, mensajes: { orderBy: { createdAt: "asc" } } } }),
     prisma.sugerencia.groupBy({ by: ["tipo"], where: base, _count: { _all: true } }),
     prisma.sugerencia.findMany({
       where: { agrupadaEn: null, tipo: { in: ["FUNCION_NUEVA", "SUGERENCIA"] }, estado: { not: "DESCARTADA" } },
       orderBy: { createdAt: "desc" }, take: 150, select: { id: true, titulo: true, tituloPublico: true, mensaje: true },
     }),
   ]);
+  // «Esperan respuesta»: abiertas cuyo último mensaje es del cliente (o que nunca respondimos)
+  const esperaRespuesta = (f: { estado: string; mensajes: { dePlataforma: boolean }[] }) =>
+    !["HECHA", "DESCARTADA"].includes(f.estado) && (f.mensajes.length === 0 || !f.mensajes[f.mensajes.length - 1].dePlataforma);
+  if (esperan) for (let i = filas.length - 1; i >= 0; i--) if (!esperaRespuesta(filas[i])) filas.splice(i, 1);
   const n = await demanda(filas.map(f => f.id));
   if (orden === "pedidas") filas.sort((a, b) => (n.get(b.id) ?? 0) - (n.get(a.id) ?? 0) || b.createdAt.getTime() - a.createdAt.getTime());
 
@@ -58,12 +63,14 @@ export default async function Buzon({ searchParams }: { searchParams: Promise<Re
 
   const url = (cambios: Record<string, string | null>) => {
     const q = new URLSearchParams();
-    const actual: Record<string, string | null> = { tipo, estado, modulo, prioridad, votos: conVotos ? "1" : null, orden: orden === "pedidas" ? "pedidas" : null, ...cambios };
+    const actual: Record<string, string | null> = { tipo, estado, modulo, prioridad, votos: conVotos ? "1" : null, esperan: esperan ? "1" : null, orden: orden === "pedidas" ? "pedidas" : null, ...cambios };
     for (const [k, v] of Object.entries(actual)) if (v) q.set(k, v);
     const s = q.toString();
     return `/admin/buzon${s ? `?${s}` : ""}`;
   };
   const fila = (f: (typeof filas)[number]["agrupadas"][number]) => ({
+    mensajes: f.mensajes.map(m => ({ id: m.id, dePlataforma: m.dePlataforma, texto: m.texto, fecha: m.createdAt.toISOString() })),
+    esperaRespuesta: esperaRespuesta(f),
     id: f.id, tipo: f.tipo, modulo: f.modulo, prioridad: f.prioridad, mensaje: f.mensaje, titulo: f.titulo, problema: f.problema, comoFuncionaria: f.comoFuncionaria,
     pagina: f.pagina, estado: f.estado, respuesta: f.respuesta, fecha: f.createdAt.toISOString(),
     persona: quien.get(f.usuarioId)?.nombre ?? "—", email: quien.get(f.usuarioId)?.email ?? null,
@@ -109,6 +116,9 @@ export default async function Buzon({ searchParams }: { searchParams: Promise<Re
             </select>
             <label style={{ display: "inline-flex", gap: 4, alignItems: "center", color: "var(--text-secondary)" }}>
               <input type="checkbox" name="votos" value="1" defaultChecked={conVotos} /> Con votos
+            </label>
+            <label style={{ display: "inline-flex", gap: 4, alignItems: "center", color: "var(--text-secondary)" }}>
+              <input type="checkbox" name="esperan" value="1" defaultChecked={esperan} /> Esperan respuesta
             </label>
             <button type="submit" className="btn" style={{ height: 30, fontSize: 12 }}>Filtrar</button>
           </form>
