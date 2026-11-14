@@ -18,6 +18,8 @@ export default async function LayoutVendedor({ children }: { children: React.Rea
   if (!usuario) redirect("/login?next=/vendedor");
   if (usuario.faltaSegundoFactor) redirect("/auth/segundo-factor");
   if (usuario.faltaAceptarContrato) redirect("/legal/aceptar");
+  // El Super Administrador no tiene tienda propia: la ve solo con «Ver ERP» (modo plataforma)
+  if (usuario.esSuperadmin && !(await getSession())?.modoPlataforma) redirect("/admin");
   const t = await contextoTienda();
   if (!t) redirect("/onboarding?tipo=VENDEDOR");
   const session = await getSession();

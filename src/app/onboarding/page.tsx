@@ -13,6 +13,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
   if (!usuario) redirect("/login?next=/onboarding");
   if (usuario.faltaSegundoFactor) redirect("/auth/segundo-factor");
   if (usuario.faltaAceptarContrato) redirect("/legal/aceptar");
+  if (usuario.esSuperadmin) redirect("/admin"); // el Super Administrador no crea granjas ni tiendas
 
   const [{ tipo }, perfil, acuerdoOrg, acuerdoVendedor] = await Promise.all([
     searchParams,

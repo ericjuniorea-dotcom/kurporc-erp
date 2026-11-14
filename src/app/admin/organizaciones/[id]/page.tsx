@@ -130,8 +130,8 @@ export default async function DetalleOrganizacion({ params }: { params: Promise<
 
       <div style={{ ...tarjeta, overflowX: "auto" }}>
         <div style={{ padding: "12px 14px 0" }}><h2 style={h2}>Miembros ({miembros.length})</h2></div>
-        <table className="kp-table" style={{ minWidth: 680 }}>
-          <thead><tr><th>Persona</th><th>Rol</th><th>Estado</th><th>Último acceso</th><th style={{ textAlign: "right" }}>Horas de la semana</th></tr></thead>
+        <table className="kp-table" style={{ minWidth: 860 }}>
+          <thead><tr><th>Persona</th><th>Rol</th><th>Estado</th><th>Último acceso</th><th style={{ textAlign: "right" }}>Horas de la semana</th><th>Lo que más usa (7 días)</th></tr></thead>
           <tbody>
             {miembros.map(m => (
               <tr key={m.userId}>
@@ -140,6 +140,7 @@ export default async function DetalleOrganizacion({ params }: { params: Promise<
                 <td>{m.estado}</td>
                 <td>{fecha(m.perfil.ultimoAcceso)}</td>
                 <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{horas(uso.personas.get(m.userId) ?? 0).toLocaleString("es-PY")}</td>
+                <td style={{ fontSize: 12, color: "var(--text-secondary)" }}>{(uso.modulosPersona.get(m.userId) ?? []).slice(0, 3).map(x => `${x.etiqueta} ${horas(x.segundos).toLocaleString("es-PY")} h`).join(" · ") || "—"}</td>
               </tr>
             ))}
           </tbody>

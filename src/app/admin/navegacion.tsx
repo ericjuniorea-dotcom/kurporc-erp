@@ -3,7 +3,8 @@
 // En un celular de 360 px los 5 grupos entran en una fila (ícono y nombre corto).
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { IconBriefcase, IconHome, IconInbox, IconShieldCheck, IconShieldLock, IconUsers } from "@tabler/icons-react";
+import { IconBriefcase, IconHome, IconInbox, IconLogout, IconShieldCheck, IconShieldLock, IconUsers } from "@tabler/icons-react";
+import { signOut } from "@/lib/auth/sesion-cliente";
 
 type Seccion = { href: string; label: string; niveles?: string[]; exacta?: boolean };
 const GESTION = ["TOTAL", "SOPORTE"];
@@ -38,7 +39,7 @@ const GRUPOS: { clave: string; label: string; icono: typeof IconHome; secciones:
 
 const activa = (ruta: string, s: Seccion) => s.exacta ? ruta === s.href : ruta === s.href || ruta.startsWith(`${s.href}/`);
 
-export function NavegacionAdmin({ nombre, nivel, tieneOrganizacion }: { nombre: string; nivel: string; tieneOrganizacion: boolean }) {
+export function NavegacionAdmin({ nombre, nivel }: { nombre: string; nivel: string }) {
   const ruta = usePathname();
   const grupos = GRUPOS
     .map(g => ({ ...g, secciones: g.secciones.filter(s => (s.niveles ?? GESTION).includes(nivel)) }))
@@ -50,7 +51,7 @@ export function NavegacionAdmin({ nombre, nivel, tieneOrganizacion }: { nombre: 
   return (
     <header style={{ background: "var(--bg-surface)", borderBottom: "0.5px solid var(--border-default)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 20px", flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <Link href="/admin" title="Ir al Inicio del panel" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
           <span style={{ width: 30, height: 30, borderRadius: 8, background: "var(--danger-subtle)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
             <IconShieldLock size={17} style={{ color: "var(--danger)" }} aria-hidden />
           </span>
@@ -58,8 +59,11 @@ export function NavegacionAdmin({ nombre, nivel, tieneOrganizacion }: { nombre: 
             <div style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)" }}>Panel de plataforma</div>
             <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{nombre} · Super Administrador {nivel}</div>
           </div>
+        </Link>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Link href="/admin" className="btn btn-primary" style={{ height: 30, fontSize: 12, gap: 5 }}><IconHome size={14} aria-hidden /> Inicio</Link>
+          <button type="button" className="btn" style={{ height: 30, fontSize: 12, gap: 5 }} onClick={() => signOut({ callbackUrl: "/login" })}><IconLogout size={14} aria-hidden /> Cerrar sesión</button>
         </div>
-        {tieneOrganizacion && <Link href="/dashboard" className="btn" style={{ height: 30, fontSize: 12 }}>Volver a mi granja</Link>}
       </div>
       <nav aria-label="Grupos del panel" style={{ display: "flex", gap: 2, padding: "0 12px", borderBottom: "0.5px solid var(--border-default)" }}>
         {grupos.map(g => {

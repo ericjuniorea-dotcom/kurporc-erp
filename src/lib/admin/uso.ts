@@ -17,16 +17,25 @@ function mediana(xs: number[]) {
 /** Segundos por módulo y por persona de una organización en los últimos `dias` días. */
 export async function usoOrganizacion(organizacionId: string, dias = 7) {
   const where = { organizacionId, fecha: { gte: desde(dias) } };
-  const [porModulo, porPersona] = await Promise.all([
+  const [porModulo, porPersona, personaModulo] = await Promise.all([
     prisma.usoDiario.groupBy({ by: ["modulo"], where, _sum: { segundos: true } }),
     prisma.usoDiario.groupBy({ by: ["userId"], where, _sum: { segundos: true } }),
+    prisma.usoDiario.groupBy({ by: ["userId", "modulo"], where, _sum: { segundos: true } }),
   ]);
+  const modulosPersona = new Map<string, { etiqueta: string; segundos: number }[]>();
+  for (const f of personaModulo) {
+    const l = modulosPersona.get(f.userId) ?? [];
+    l.push({ etiqueta: etiquetaModulo(f.modulo), segundos: f._sum.segundos ?? 0 });
+    modulosPersona.set(f.userId, l);
+  }
+  for (const l of Array.from(modulosPersona.values())) l.sort((a, b) => b.segundos - a.segundos);
   const total = porModulo.reduce((s, m) => s + (m._sum.segundos ?? 0), 0);
   return {
     totalSegundos: total,
     modulos: porModulo.map(m => ({ modulo: m.modulo, etiqueta: etiquetaModulo(m.modulo), segundos: m._sum.segundos ?? 0, parte: total ? (m._sum.segundos ?? 0) / total : 0 }))
       .sort((a, b) => b.segundos - a.segundos),
     personas: new Map(porPersona.map(p => [p.userId, p._sum.segundos ?? 0])),
+    modulosPersona,
   };
 }
 

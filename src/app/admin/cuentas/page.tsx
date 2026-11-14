@@ -49,12 +49,12 @@ export default async function CuentasAdmin() {
                 <td>{si(c.segundoFactor)}</td>
                 <td>{c.contrato ? `v${c.contrato}` : si(false)}</td>
                 <td>{si(c.onboardingCompleto)}</td>
-                <td style={{ fontSize: 11.5 }}>{c.organizaciones.length ? c.organizaciones.map(o => `${o.nombre}${o.propietario ? " (dueño)" : ""}`).join(", ") : "—"}</td>
+                <td style={{ fontSize: 11.5 }}>{c.organizaciones.length ? c.organizaciones.map(o => `${o.nombre}${o.tipo === "VENDEDOR" ? " (tienda)" : ""}${o.propietario ? " (dueño)" : ""}`).join(", ") : "—"}</td>
                 <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{c.diasActivo30}</td>
                 <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{horas(tiempo.get(c.id) ?? 0).toLocaleString("es-PY")} h</td>
                 <td>{fecha(c.ultimoAcceso)}</td>
                 <td>{fecha(c.createdAt)}</td>
-                <td style={{ textAlign: "right" }}>{c.organizaciones.length > 0 && <VerERP chico opciones={[...c.organizaciones].sort((a, b) => Number(b.propietario) - Number(a.propietario)).map(o => ({ id: o.id, nombre: o.nombre }))} />}</td>
+                <td style={{ textAlign: "right" }}>{c.organizaciones.length > 0 && <VerERP chico opciones={[...c.organizaciones].sort((a, b) => Number(a.tipo === "VENDEDOR") - Number(b.tipo === "VENDEDOR") || Number(b.propietario) - Number(a.propietario)).map(o => ({ id: o.id, nombre: o.tipo === "VENDEDOR" ? `${o.nombre} (tienda)` : o.nombre }))} />}</td>
               </tr>
             ))}
           </tbody>
