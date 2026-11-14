@@ -6,6 +6,7 @@ import { contextoTienda } from "@/lib/mercado/vendedor";
 import { KurPorcLogo } from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { AyudaSoporte } from "@/components/layout/ayuda-soporte";
+import { LatidoUso } from "@/components/layout/latido-uso";
 import { Verificado } from "@/components/mercado/marco";
 import { NavVendedor, Salir } from "./nav";
 
@@ -53,6 +54,7 @@ export default async function LayoutVendedor({ children }: { children: React.Rea
         {children}
       </main>
       <AyudaSoporte />
+      <LatidoUso />
     </div>
   );
 }

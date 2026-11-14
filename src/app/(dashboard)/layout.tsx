@@ -8,6 +8,7 @@ import { SesionProvider } from "@/lib/auth/sesion-cliente";
 import { getPermisos } from "@/lib/permisos/servidor";
 import { Sidebar } from "@/components/layout/sidebar";
 import { AyudaSoporte } from "@/components/layout/ayuda-soporte";
+import { LatidoUso } from "@/components/layout/latido-uso";
 
 export const dynamic = "force-dynamic";
 
@@ -79,6 +80,7 @@ export default async function DashboardLayout({
         </main>
       </div>
       <AyudaSoporte oculto={!!plataforma} />
+      {!plataforma && <LatidoUso />}
     </SesionProvider>
   );
 }

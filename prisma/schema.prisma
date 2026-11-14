@@ -2503,13 +2503,29 @@ model AdminPlataforma {
 }
 
 model ActividadDiaria {
-  userId         String   @map("user_id")
-  fecha          DateTime @db.Date
-  organizacionId String?  @map("organizacion_id")
-  accesos        Int      @default(1)
+  userId         String    @map("user_id")
+  fecha          DateTime  @db.Date
+  organizacionId String?   @map("organizacion_id")
+  accesos        Int       @default(1)
+  segundos       Int       @default(0) // Fase 15.3: tiempo de uso estimado (latidos)
+  ultimoLatido   DateTime? @map("ultimo_latido") @db.Timestamptz(6)
 
   @@id([userId, fecha])
   @@map("actividad_diaria")
+}
+
+/// Fase 15.3 · Tiempo de uso por persona, día (Asunción) y módulo. Lo escribe registrar_latido().
+model UsoDiario {
+  userId         String   @map("user_id")
+  fecha          DateTime @db.Date
+  organizacionId String?  @map("organizacion_id")
+  modulo         String
+  segundos       Int      @default(0)
+  latidos        Int      @default(0)
+
+  @@id([userId, fecha, modulo])
+  @@index([organizacionId, fecha], map: "uso_diario_org_fecha_idx")
+  @@map("uso_diario")
 }
 
 model Notificacion {
