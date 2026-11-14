@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { IconPlus, IconLoader2, IconX, IconAlertTriangle } from "@tabler/icons-react";
 import { SowPicker } from "./sow-picker";
 
+import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 const DIAGNOSIS_TYPES = [
   { value: "DIARRHEA",  label: "Diarrea" },
   { value: "ARTHRITIS", label: "Artritis" },
@@ -24,7 +25,7 @@ const ESTADO_COLOR: Record<string, string> = {
 };
 
 interface Tratamiento {
-  id: string; caravana: string; medicamento: string;
+  id: string; sowId: string | null; caravana: string; medicamento: string;
   diagnosisType: string; motivoClinico: string | null;
   dosis: number; animalsAffected: number; estado: string;
   startDate: string; withdrawalDays: number;
@@ -162,7 +163,7 @@ export function PanelTratamientos() {
           <tbody>
             {tratamientos.map(t => (
               <tr key={t.id}>
-                <td style={{ fontWeight: 600 }}>{t.caravana}</td>
+                <td style={{ fontWeight: 600 }}>{t.sowId ? <CaravanaFicha sowId={t.sowId} caravana={t.caravana} /> : t.caravana}</td>
                 <td>{t.medicamento}</td>
                 <td style={{ fontSize: 11 }}>{t.motivoClinico ?? DIAGNOSIS_TYPES.find(d => d.value === t.diagnosisType)?.label}</td>
                 <td>{t.dosis}ml</td>

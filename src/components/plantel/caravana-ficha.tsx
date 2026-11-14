@@ -46,7 +46,8 @@ export function CaravanaFicha({ sowId, caravana }: { sowId: string; caravana: st
   const s = datos?.sow;
 
   return (
-    <span style={{ position: "relative", display: "inline-block" }} onMouseEnter={mostrar} onMouseLeave={ocultar}>
+    <span style={{ position: "relative", display: "inline-block" }} onMouseEnter={mostrar} onMouseLeave={ocultar}
+      onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
       <a ref={ancla} href={`/plantel?cerda=${sowId}`} onFocus={mostrar} onBlur={ocultar} aria-describedby={abierta ? `ficha-${sowId}` : undefined}
         style={{ fontWeight: 600, color: "var(--accent-text, var(--accent))", textDecoration: "underline dotted", textUnderlineOffset: 3 }}>
         {caravana}

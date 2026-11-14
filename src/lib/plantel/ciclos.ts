@@ -19,7 +19,7 @@ export type Entrada = {
 };
 
 export type Nodo = { tipo: "COMPRA" | "INGRESO" | "SERVICIO" | "PARTO" | "DESTETE" | "FIN" | "HOY" | "REPETICION" | "ABORTO" | "VACIA" | "DESCARTE"; fecha: Date; arriba: string; centro: string; abajo: string[]; previsto?: boolean };
-export type Tramo = { dias: number; etiqueta: string; abajo: string[]; perdida: boolean; previsto?: boolean };
+export type Tramo = { dias: number; total?: number; etiqueta: string; abajo: string[]; perdida: boolean; previsto?: boolean };
 export type Fila = { numero: number; nodos: Nodo[]; tramos: Tramo[] };
 
 const fmt = (d: Date) => `${String(d.getUTCDate()).padStart(2, "0")}/${String(d.getUTCMonth() + 1).padStart(2, "0")}/${d.getUTCFullYear()}`;
@@ -84,7 +84,7 @@ export function ciclosCerda(e: Entrada): Fila[] {
       } else {
         // En lactancia: destete previsto (punteado)
         const previsto = new Date(parto.inicio.getTime() + e.objetivo.lactancia * DIA);
-        tramos.push({ dias: dias(parto.inicio, previsto), etiqueta: "Lactancia", abajo: detalle, perdida: false, previsto: true });
+        tramos.push({ dias: dias(parto.inicio, e.hoy), total: e.objetivo.lactancia, etiqueta: "Lactancia", abajo: [`Destete en ${dias(e.hoy, previsto)} días`, ...detalle], perdida: false, previsto: true });
         nodos.push({ tipo: "DESTETE", fecha: previsto, arriba: `Destete previsto\n${fmt(previsto)}`, centro: String(Math.max(0, parto.vivos + recibidos - donados - parto.muertesLechones)), abajo: [], previsto: true });
       }
       filas.push({ numero: paridad, nodos, tramos });
@@ -114,7 +114,7 @@ export function ciclosCerda(e: Entrada): Fila[] {
     filas.push({
       numero: paridad + 1,
       nodos: [nServ, { tipo: "PARTO", fecha: previsto, arriba: `Parto previsto\n${fmt(previsto)}`, centro: "", abajo: [`faltan ${dias(e.hoy, previsto)} días`], previsto: true }],
-      tramos: [{ dias: dias(g.fecha, previsto), etiqueta: `Gestación (lleva ${dias(g.fecha, e.hoy)})`, abajo: [], perdida: false, previsto: true }],
+      tramos: [{ dias: dias(g.fecha, e.hoy), total: e.objetivo.gestacion, etiqueta: "Gestación", abajo: [], perdida: false, previsto: true }],
     });
   });
   return filas.reverse(); // el ciclo más nuevo arriba

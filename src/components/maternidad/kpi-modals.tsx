@@ -24,7 +24,7 @@ interface HembraDetail {
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("es-PY", {
-    day: "2-digit", month: "2-digit", year: "numeric",
+    day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC",
   });
 }
 
@@ -211,7 +211,7 @@ export function HembrasMaternidadModal({ onClose }: { onClose: () => void }) {
         {estados.length > 0 && (
           <FilterSelect value={estadoFilt} onChange={setEstadoFilt} options={estados} placeholder="Todos los estados" />
         )}
-        <SortButton label="Días en maternidad" active={sortKey === "dias"}    asc={sortAsc} onClick={() => toggleSort("dias")} />
+        <SortButton label="Días de lactancia" active={sortKey === "dias"}    asc={sortAsc} onClick={() => toggleSort("dias")} />
         <SortButton label="Fecha destete"      active={sortKey === "destete"} asc={sortAsc} onClick={() => toggleSort("destete")} />
       </SearchBar>
 
@@ -222,8 +222,9 @@ export function HembrasMaternidadModal({ onClose }: { onClose: () => void }) {
               <tr>
                 <th>Caravana</th>
                 <th>Ubicación</th>
-                <th>Fecha de ingreso</th>
-                <th>Días en maternidad</th>
+                <th>Fecha de parto</th>
+                <th>Días de lactancia</th>
+                <th>Lechones</th>
                 <th>Fecha prevista de destete</th>
                 <th>Estado</th>
               </tr>
@@ -234,7 +235,8 @@ export function HembrasMaternidadModal({ onClose }: { onClose: () => void }) {
                   <td style={{ fontWeight: 600 }}><CaravanaFicha sowId={row.sowId} caravana={row.caravana} /></td>
                   <td style={{ fontSize: 11, color: "var(--text-muted)" }}>{row.ubicacion}</td>
                   <td>{fmtDate(row.fechaIngreso)}</td>
-                  <td style={{ fontWeight: 500 }}>{row.diasEnMaternidad}d</td>
+                  <td style={{ fontWeight: 600 }}>{row.diasEnMaternidad} <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>de 21 días</span></td>
+                  <td style={{ fontVariantNumeric: "tabular-nums" }}>{row.lechonesVivos}</td>
                   <td>{fmtDate(row.fechaDestesteEst)}</td>
                   <td>
                     <span style={{ fontSize: 11, fontWeight: 500, color: estadoColor(row.estado) }}>

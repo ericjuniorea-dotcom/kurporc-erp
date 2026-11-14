@@ -38,7 +38,7 @@ const g = ciclosCerda(base({
   fallos: [{ servicioId: "s1", fecha: D("2026-05-22"), tipo: "REPETICION" }],
 }));
 check(g.length === 3 && g[1].nodos[1].tipo === "REPETICION" && g[1].tramos[0].perdida, "servicio que repitió: fila en rojo que termina en «Repitió celo»");
-check(g[0].nodos[1].previsto && g[0].nodos[1].tipo === "PARTO" && g[0].tramos[0].dias === 115, "último servicio sin parto todavía: parto previsto a los 115 días, punteado");
+check(g[0].nodos[1].previsto && g[0].nodos[1].tipo === "PARTO" && g[0].tramos[0].total === 115 && g[0].tramos[0].dias === 173, "último servicio sin parto todavía: lleva 173 días de 115 previstos, punteado");
 
 // Lactancia en curso: destete previsto
 const l = ciclosCerda(base({
@@ -46,6 +46,7 @@ const l = ciclosCerda(base({
   partos: [{ id: "p", servicioId: "x", inicio: D("2026-10-24"), duracionMin: null, vivos: 12, muertos: 1, momias: 1, pesoMedio: null, muertesLechones: 1, destete: null }],
 }));
 check(l[0].nodos[1].centro === "12/2" && l[0].nodos[2].previsto && l[0].nodos[2].centro === "11", "en lactancia: parto 12/2 y destete previsto con 11 al pie");
+check(l[0].tramos[1].total === 21 && l[0].tramos[1].dias === 18, "en lactancia: días reales desde el parto, de 21 previstos");
 
 // Nulípara que pasó su fecha objetivo sin servicio
 const nul = ciclosCerda(base({ ingreso: D("2026-01-14"), nacimiento: D("2025-06-01") }));

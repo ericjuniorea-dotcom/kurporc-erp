@@ -14,6 +14,7 @@ import { SemenTab }       from "@/components/plantel/semen-tab";
 import { FichaDrawer }    from "@/components/plantel/ficha-drawer";
 import { DescartadosTab } from "@/components/plantel/descartados-tab";
 
+import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 const TABS = ["Hembras", "Reproductores", "Semen Externo", "Descartados"] as const;
 type Tab = typeof TABS[number];
 
@@ -328,7 +329,7 @@ export default function PlantelPage() {
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                   <thead>
                     <tr style={{ borderBottom: "0.5px solid var(--border-default)" }}>
-                      {["Caravana", "Ubicación", "Fecha ingreso", "Días en mat.", "Destete estimado", "Estado"].map(h => (
+                      {["Caravana", "Ubicación", "Fecha de parto", "Días de lactancia", "Destete estimado", "Estado"].map(h => (
                         <th key={h} style={{
                           padding: "10px 16px", textAlign: "left", fontSize: 11,
                           color: "var(--text-muted)", fontWeight: 500,
@@ -342,10 +343,10 @@ export default function PlantelPage() {
                       <tr key={h.farrowingId} style={{
                         borderBottom: i < matData.length - 1 ? "0.5px solid var(--border-subtle)" : "none",
                       }}>
-                        <td style={{ padding: "10px 16px", fontWeight: 500, color: "var(--text-primary)" }}>{h.caravana}</td>
+                        <td style={{ padding: "10px 16px", fontWeight: 500, color: "var(--text-primary)" }}><CaravanaFicha sowId={h.sowId} caravana={h.caravana} /></td>
                         <td style={{ padding: "10px 16px", color: "var(--text-secondary)" }}>{h.ubicacion}</td>
                         <td style={{ padding: "10px 16px", color: "var(--text-secondary)" }}>{h.fechaIngreso}</td>
-                        <td style={{ padding: "10px 16px", color: "var(--text-primary)", fontWeight: 500 }}>{h.diasEnMaternidad}d</td>
+                        <td style={{ padding: "10px 16px", color: "var(--text-primary)", fontWeight: 500 }}>{h.diasEnMaternidad} <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>de 21 días</span></td>
                         <td style={{ padding: "10px 16px", color: "var(--text-secondary)" }}>{h.fechaDestesteEst}</td>
                         <td style={{ padding: "10px 16px" }}>
                           <span style={{

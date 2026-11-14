@@ -25,12 +25,13 @@ export async function GET(req: NextRequest) {
       medicine: { select: { name: true } },
       sow:      { select: { identCode: true, caravanaCode: true } },
       piglet:   { select: { identCode: true } },
-      farrowing: { select: { sow: { select: { identCode: true, caravanaCode: true } } } },
+      farrowing: { select: { sowId: true, sow: { select: { identCode: true, caravanaCode: true } } } },
     },
   });
 
   const result = tratamientos.map(t => ({
     id:                    t.id,
+    sowId: t.sowId ?? t.farrowing?.sowId ?? null,
     caravana: t.sow
       ? (t.sow.caravanaCode ?? t.sow.identCode)
       : t.piglet?.identCode

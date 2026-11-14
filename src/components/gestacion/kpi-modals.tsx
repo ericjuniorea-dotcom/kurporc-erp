@@ -7,6 +7,7 @@ import {
 } from "@tabler/icons-react";
 import { ModalAccionDisponible, type DisponibleSow } from "./modal-accion-disponible";
 
+import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 /* ─── Types ──────────────────────────────────────────────────────── */
 
 interface PrenadaDetail {
@@ -240,7 +241,7 @@ export function PrenadasModal({ onClose }: { onClose: () => void }) {
                 const isAlerta = row.diasGestacion >= 100;
                 return (
                   <tr key={row.sowId}>
-                    <td style={{ fontWeight: 600 }}>{row.caravana}</td>
+                    <td style={{ fontWeight: 600 }}><CaravanaFicha sowId={row.sowId} caravana={row.caravana} /></td>
                     <td style={{ fontSize: 11, color: "var(--text-muted)" }}>{row.ubicacion}</td>
                     <td>
                       <span style={{ fontWeight: 600, color: diasAlerta(row.diasGestacion) }}>
@@ -361,7 +362,7 @@ export function ServidasModal({ onClose }: { onClose: () => void }) {
                 const diag       = diagLabel(row.diagnostico);
                 return (
                   <tr key={row.sowId}>
-                    <td style={{ fontWeight: 600 }}>{row.caravana}</td>
+                    <td style={{ fontWeight: 600 }}><CaravanaFicha sowId={row.sowId} caravana={row.caravana} /></td>
                     <td style={{ fontSize: 11, color: "var(--text-muted)" }}>{row.ubicacion}</td>
                     <td style={{ fontSize: 11 }}>{fmtDate(row.serviceDate)}</td>
                     <td style={{ fontWeight: 500 }}>{row.diasDesdeServicio}d</td>
@@ -499,7 +500,7 @@ export function DisponiblesModal({ onClose }: { onClose: () => void }) {
                     style={{ background: rowColor }}
                   >
                     <td style={{ fontWeight: 600, color: row.esPostDestete ? "var(--warning-text)" : undefined }}>
-                      {row.caravana}
+                      <CaravanaFicha sowId={row.sowId} caravana={row.caravana} />
                       {isUrgent && (
                         <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, background: "var(--warning)", color: "white" }}>
                           URGENTE

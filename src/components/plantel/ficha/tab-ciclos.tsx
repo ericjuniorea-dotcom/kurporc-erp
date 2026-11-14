@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { IconLoader2, IconPigMoney, IconBuildingWarehouse } from "@tabler/icons-react";
 
 type Nodo = { tipo: string; fecha: string; arriba: string; centro: string; abajo: string[]; previsto?: boolean };
-type Tramo = { dias: number; etiqueta: string; abajo: string[]; perdida: boolean; previsto?: boolean };
+type Tramo = { dias: number; total?: number; etiqueta: string; abajo: string[]; perdida: boolean; previsto?: boolean };
 type Fila = { numero: number; nodos: Nodo[]; tramos: Tramo[] };
 
 const CIRCULO = 46;
@@ -47,7 +47,7 @@ function Punto({ n }: { n: Nodo }) {
 function Segmento({ t }: { t: Tramo }) {
   return (
     <div style={{ flex: "1 1 120px", minWidth: 110, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 30 }}>
-      <div style={{ fontSize: 12.5, fontWeight: 700, color: t.perdida ? "var(--danger-text)" : "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>{t.dias} días</div>
+      <div style={{ fontSize: 12.5, fontWeight: 700, color: t.perdida ? "var(--danger-text)" : "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>{t.total ? <>{t.dias} <span style={{ fontWeight: 500, color: "var(--text-muted)" }}>de {t.total}</span> días</> : `${t.dias} días`}</div>
       <div aria-hidden style={{ width: "100%", height: 0, borderTop: `3px ${t.previsto ? "dashed" : "solid"} ${t.previsto ? "var(--border-strong, var(--border-default))" : color(t.perdida)}`, margin: "5px 0" }} />
       <div style={{ fontSize: 11, color: t.perdida ? "var(--danger-text)" : "var(--text-secondary)" }}>{t.etiqueta}</div>
       {t.abajo.length > 0 && <div style={{ fontSize: 10.5, color: "var(--text-muted)", lineHeight: 1.35, marginTop: 2, textAlign: "center" }}>{t.abajo.map(x => <div key={x}>{x}</div>)}</div>}

@@ -4,6 +4,7 @@ import { useSession, usePermisos } from "@/lib/auth/sesion-cliente";
 import { IconPlus, IconLoader2, IconX, IconAlertTriangle, IconFlame } from "@tabler/icons-react";
 import { SowPicker } from "./sow-picker";
 
+import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 // Super Admin (1), Admin de granja (2) — únicos roles que pueden confirmar
 // manualmente que una baja corresponde a un brote.
 const CONFIRMA_BROTE_ROLES = [1, 2];
@@ -11,7 +12,7 @@ const CONFIRMA_BROTE_ROLES = [1, 2];
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
 interface NecropsiaRow {
-  id: string; caravana: string; causaSanitariaPresunta: string;
+  id: string; sowId: string | null; caravana: string; causaSanitariaPresunta: string;
   seRealizoNecropsia: boolean; hallazgos: string | null; galpon: string | null;
   bajaConfirmaBrote: boolean; fecha: string;
 }
@@ -97,7 +98,7 @@ export function PanelNecropsias() {
           <tbody>
             {necropsias.map(n => (
               <tr key={n.id}>
-                <td style={{ fontWeight: 600 }}>{n.caravana}</td>
+                <td style={{ fontWeight: 600 }}>{n.sowId ? <CaravanaFicha sowId={n.sowId} caravana={n.caravana} /> : n.caravana}</td>
                 <td>{n.causaSanitariaPresunta}</td>
                 <td>{n.galpon ?? "—"}</td>
                 <td style={{ fontSize: 11 }}>{n.seRealizoNecropsia ? "Sí" : "No"}</td>

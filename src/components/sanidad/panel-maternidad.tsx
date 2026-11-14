@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { IconPlus, IconLoader2, IconX, IconAlertTriangle } from "@tabler/icons-react";
 
+import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 const PROCEDIMIENTOS = [
   { value: "DESCOLMILLADO", label: "Descolmillado" },
   { value: "CORTE_COLA",    label: "Corte de cola" },
@@ -12,6 +13,7 @@ const PROCEDIMIENTOS = [
 
 interface Registro {
   id: string;
+  sowId: string;
   caravana: string;
   tamanoCamada: number;
   procedimientoLabel: string;
@@ -121,7 +123,7 @@ export function PanelMaternidadSanidad() {
           <tbody>
             {registros.map(r => (
               <tr key={r.id}>
-                <td style={{ fontWeight: 600 }}>{r.caravana}</td>
+                <td style={{ fontWeight: 600 }}><CaravanaFicha sowId={r.sowId} caravana={r.caravana} /></td>
                 <td>{r.procedimientoLabel}</td>
                 <td>{r.cantidadLechonesProcesados} / {r.tamanoCamada}</td>
                 <td>{r.edadDiasAlProcedimiento}d</td>

@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { IconSearch, IconLoader2, IconChevronDown, IconChevronUp, IconX } from "@tabler/icons-react";
 import { EstadoBadgeSow } from "./estado-badge";
 
+import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 interface SowDescartada {
   id: string;
   erpCode: string | null;
@@ -326,7 +327,7 @@ export function DescartadosTab() {
                     <td style={{ fontFamily: "monospace", fontSize: 11, color: "var(--accent)" }}>
                       {sow.erpCode ?? "—"}
                     </td>
-                    <td style={{ fontWeight: 500 }}>{sow.caravanaCode || sow.identCode}</td>
+                    <td style={{ fontWeight: 500 }}><CaravanaFicha sowId={sow.id} caravana={sow.caravanaCode || sow.identCode} /></td>
                     <td><EstadoBadgeSow state={sow.plantelState} /></td>
                     <td style={{ color: "var(--text-secondary)" }}>
                       {d?.categoria ?? <span style={{ color: "var(--text-muted)" }}>—</span>}

@@ -7,6 +7,7 @@ import { getPermisos, puede, puedeAlguno } from "@/lib/permisos/servidor";
 import { analizarLoteRecria } from "@/lib/recria/lote";
 import { CargarPesaje, EncabezadoFicha } from "./cliente";
 
+import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 export const dynamic = "force-dynamic";
 
 const tarjeta: React.CSSProperties = { background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-lg)" };
@@ -97,7 +98,7 @@ export default async function FichaLoteRecria({ params, searchParams }: { params
               <thead><tr><th>Fecha</th><th>Movimiento</th><th>Detalle</th><th style={{ textAlign: "right" }}>Animales</th><th style={{ textAlign: "right" }}>Peso medio</th></tr></thead>
               <tbody>
                 {[
-                  ...l.weanings.map(w => ({ fecha: w.weaningDate, tipo: "Entrada (destete)", detalle: <>Cerda <a href={`/plantel?cerda=${w.farrowing.sow.id}`}>{w.farrowing.sow.identCode}</a> · {w.lactationDays} días de lactancia</>, cant: w.pigletsWeaned, peso: Number(w.avgPigletWeightKg) })),
+                  ...l.weanings.map(w => ({ fecha: w.weaningDate, tipo: "Entrada (destete)", detalle: <>Cerda <CaravanaFicha sowId={w.farrowing.sow.id} caravana={w.farrowing.sow.identCode} /> · {w.lactationDays} días de lactancia</>, cant: w.pigletsWeaned, peso: Number(w.avgPigletWeightKg) })),
                   ...a.muertes.map(m => ({ fecha: m.fecha, tipo: "Muerte", detalle: <>{m.causa}</>, cant: -m.cantidad, peso: null as number | null })),
                   ...l.sales.map(v => ({ fecha: v.saleDate, tipo: "Venta", detalle: <>{v.buyerName ?? "—"}{v.transferGuide ? ` · guía ${v.transferGuide}` : ""}</>, cant: -v.animalCount, peso: v.animalCount ? Number(v.totalWeightKg) / v.animalCount : null })),
                   ...ind.transferencias.map(t => ({ fecha: t.fecha, tipo: "Pase a engorde", detalle: <>Lote <a href={`/engorde/lotes/${t.id}`}>{t.destino}</a></>, cant: -t.cantidad, peso: t.cantidad ? t.kg / t.cantidad : null })),

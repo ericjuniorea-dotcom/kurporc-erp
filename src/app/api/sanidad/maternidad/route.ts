@@ -22,12 +22,13 @@ export async function GET(req: NextRequest) {
     where:   { tenantId },
     orderBy: { fecha: "desc" },
     take:    100,
-    include: { farrowing: { select: { sow: { select: { identCode: true, caravanaCode: true } }, bornAlive: true } } },
+    include: { farrowing: { select: { sowId: true, sow: { select: { identCode: true, caravanaCode: true } }, bornAlive: true } } },
   });
 
   const result = registros.map(r => ({
     id:                         r.id,
     farrowingId:                r.farrowingId,
+    sowId:                      r.farrowing.sowId,
     caravana:                   r.farrowing.sow.caravanaCode ?? r.farrowing.sow.identCode,
     tamanoCamada:               r.farrowing.bornAlive,
     procedimiento:              r.procedimiento,

@@ -8,6 +8,7 @@ import {
 } from "@tabler/icons-react";
 import { FichaDrawer } from "@/components/plantel/ficha-drawer";
 
+import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 // Super Admin (1), Admin de granja (2), Jefe de Producción (5) — únicos
 // roles que pueden eliminar un lote reproductivo.
 const DELETE_LOTE_ROLES = [1, 2, 5];
@@ -157,7 +158,7 @@ function CerdaRow({ cerda, isFirst, onVerFicha }: { cerda: CerdaLote; isFirst: b
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
         <div style={{ minWidth: 140 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{cerda.caravana}</span>
+            <span style={{ fontSize: 13 }}><CaravanaFicha sowId={cerda.sowId} caravana={cerda.caravana} /></span>
             <span style={{ fontSize: 11, fontWeight: 500, color: ESTADO_COLOR[cerda.estadoGeneral] }}>
               ● {ESTADO_LABEL[cerda.estadoGeneral]}
             </span>

@@ -22,12 +22,13 @@ export async function GET(req: NextRequest) {
       sow:       { select: { identCode: true, caravanaCode: true } },
       boar:      { select: { identCode: true, caravanaCode: true } },
       piglet:    { select: { identCode: true } },
-      farrowing: { select: { sow: { select: { identCode: true, caravanaCode: true } } } },
+      farrowing: { select: { sowId: true, sow: { select: { identCode: true, caravanaCode: true } } } },
     },
   });
 
   const result = necropsias.map(n => ({
     id: n.id,
+    sowId: n.sowId ?? n.farrowing?.sowId ?? null,
     caravana: n.sow
       ? (n.sow.caravanaCode ?? n.sow.identCode)
       : n.boar

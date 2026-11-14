@@ -7,6 +7,7 @@ import {
 import { ModalAccionDisponible, type DisponibleSow } from "./modal-accion-disponible";
 import { ModalCrearLote } from "./modal-crear-lote";
 
+import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 type BadgeEstado = "ABORTO" | "REPITIO_CELO" | "SALE_MATERNIDAD" | "PRIMERIZA" | null;
 
 interface DisponibleDetail {
@@ -211,7 +212,7 @@ export function DisponiblesParaServicio() {
 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{row.caravana}</span>
+                      <span style={{ fontSize: 13 }}><CaravanaFicha sowId={row.sowId} caravana={row.caravana} /></span>
                       {row.badgeEstado && (
                         <span style={{
                           fontSize: 9, fontWeight: 600, padding: "1px 6px", borderRadius: 3,

@@ -10,10 +10,11 @@ import { ModalMuerteLechon } from "./modal-muerte-lechon";
 import { ModalAdopcion }     from "./modal-adopcion";
 import { ModalDestete }      from "./modal-destete";
 
+import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 // ─── shared types ─────────────────────────────────────────────────────────────
 interface FarrowingRow {
   id:                  string;
-  sow:                 { identCode: string };
+  sow:                 { id: string; identCode: string };
   startDatetime:       string;
   bornAlive:           number;
   currentStock:        number;
@@ -90,7 +91,7 @@ function PartosList({ canRegister }: { canRegister: boolean }) {
           <tbody>
             {filtered.slice(0, 50).map(f => (
               <tr key={f.id}>
-                <td style={{ fontWeight: 500 }}>{f.sow.identCode}</td>
+                <td style={{ fontWeight: 500 }}><CaravanaFicha sowId={f.sow.id} caravana={f.sow.identCode} /></td>
                 <td>{fmtDateTime(f.startDatetime)}</td>
                 <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{f.bornAlive}</td>
                 <td style={{ fontSize: 11, color: "var(--text-muted)" }}>
@@ -127,7 +128,7 @@ function MuerteList({ canRegister }: { canRegister: boolean }) {
   useEffect(() => { load(); }, [load]);
 
   const allDeaths = active.flatMap(f =>
-    (f.deaths ?? []).map(d => ({ ...d, sowCode: f.sow.identCode }))
+    (f.deaths ?? []).map(d => ({ ...d, sowId: f.sow.id, sowCode: f.sow.identCode }))
   );
   const filteredDeaths = query
     ? allDeaths.filter(d => d.sowCode.toLowerCase().includes(query.toLowerCase()))
@@ -204,7 +205,7 @@ function MuerteList({ canRegister }: { canRegister: boolean }) {
           <tbody>
             {filteredDeaths.slice(0, 50).map(d => (
               <tr key={d.id}>
-                <td style={{ fontWeight: 500 }}>{d.sowCode}</td>
+                <td style={{ fontWeight: 500 }}><CaravanaFicha sowId={d.sowId} caravana={d.sowCode} /></td>
                 <td>{fmtDateTime(d.deathDatetime)}</td>
                 <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{d.quantity}</td>
                 <td>{CAUSE_LABELS[d.cause] ?? d.cause}</td>
@@ -240,6 +241,7 @@ function MovimientoList({ canRegister }: { canRegister: boolean }) {
   const allMov = active.flatMap(f =>
     (f.movements ?? []).map(m => ({
       ...m,
+      sowId: f.sow.id,
       sowCode: f.sow.identCode,
       tipo: m.originId === f.id ? "Donó" : "Recibió",
     }))
@@ -319,7 +321,7 @@ function MovimientoList({ canRegister }: { canRegister: boolean }) {
           <tbody>
             {filteredMov.slice(0, 50).map(m => (
               <tr key={m.id}>
-                <td style={{ fontWeight: 500 }}>{m.sowCode}</td>
+                <td style={{ fontWeight: 500 }}><CaravanaFicha sowId={m.sowId} caravana={m.sowCode} /></td>
                 <td>{fmtDate(m.movementDate)}</td>
                 <td>
                   <span className={`badge ${m.tipo === "Donó" ? "badge-warn" : "badge-ok"}`}>{m.tipo}</span>
@@ -357,7 +359,7 @@ function DesteteList({ canRegister }: { canRegister: boolean }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const weaned = hist.filter(f => f.weaning).map(f => ({ ...f.weaning!, sowCode: f.sow.identCode }));
+  const weaned = hist.filter(f => f.weaning).map(f => ({ ...f.weaning!, sowId: f.sow.id, sowCode: f.sow.identCode }));
   const filteredW = query ? weaned.filter(w => w.sowCode.toLowerCase().includes(query.toLowerCase())) : weaned;
   const searchResults = search ? active.filter(f => f.sow.identCode.toLowerCase().includes(search.toLowerCase())) : active;
 
@@ -429,7 +431,7 @@ function DesteteList({ canRegister }: { canRegister: boolean }) {
           <tbody>
             {filteredW.slice(0, 50).map(w => (
               <tr key={w.id}>
-                <td style={{ fontWeight: 500 }}>{w.sowCode}</td>
+                <td style={{ fontWeight: 500 }}><CaravanaFicha sowId={w.sowId} caravana={w.sowCode} /></td>
                 <td>{fmtDate(w.weaningDate)}</td>
                 <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{w.pigletsWeaned}</td>
                 <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
