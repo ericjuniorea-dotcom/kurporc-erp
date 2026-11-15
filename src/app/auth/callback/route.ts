@@ -49,7 +49,9 @@ export async function GET(request: NextRequest) {
           },
         });
       }
-      return NextResponse.redirect(`${origin}${next}`);
+      const r = NextResponse.redirect(`${origin}${next}`);
+      r.cookies.set("kp_plataforma", "", { path: "/", maxAge: 0 }); // un ingreso nuevo no arrastra el modo «Ver ERP»
+      return r;
     }
     const motivo = [error?.name, error?.status, error?.code, error?.message].filter(Boolean).join(" | ").slice(0, 300);
     console.error("[auth/callback]", motivo);

@@ -12,7 +12,8 @@ import { ipDe } from "@/lib/seguridad/auditoria";
 export const COOKIE_PLATAFORMA = "kp_plataforma";
 export const DURACION_MS = 2 * 60 * 60 * 1000;
 
-export type ModoPlataforma = { org: string; motivo: string; detalle: string; hasta: number; admin: string };
+// sub = id de Supabase Auth del administrador: el middleware lo compara con la sesión para no bloquear a otra persona
+export type ModoPlataforma = { org: string; motivo: string; detalle: string; hasta: number; admin: string; sub?: string };
 
 function clave() {
   const k = process.env.CAMPOS_HMAC_KEY;

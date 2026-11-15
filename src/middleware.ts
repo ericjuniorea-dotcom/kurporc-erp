@@ -51,6 +51,15 @@ const CABECERA_CSP = process.env.CSP_MODO === "enforce"
   ? "Content-Security-Policy"
   : "Content-Security-Policy-Report-Only";
 
+/** Dueño (sub de Supabase) de la marca «Ver ERP»; null si no se puede leer. */
+function duenioDeMarca(valor: string): string | null {
+  try {
+    const cuerpo = valor.split(".")[0].replace(/-/g, "+").replace(/_/g, "/");
+    const json = JSON.parse(atob(cuerpo + "===".slice((cuerpo.length + 3) % 4)));
+    return typeof json.sub === "string" ? json.sub : null;
+  } catch { return null; }
+}
+
 export async function middleware(req: NextRequest) {
   const nonce = btoa(crypto.randomUUID());
   const csp = politica(nonce);
@@ -107,6 +116,13 @@ export async function middleware(req: NextRequest) {
   // Modo plataforma (Fase 11, "Ver todo"): solo lectura. Toda escritura fuera del panel y de la
   // salida se rechaza acá, antes de llegar a cualquier API o acción de servidor.
   // Ingresar, registrarse y recuperar la clave siempre se permiten: la cookie puede quedar de una sesión anterior.
+  // La marca solo vale para el administrador que la creó: si la sesión es de otra persona (o es una marca vieja
+  // sin dueño), se ignora y se borra. La validación completa (firma, nivel) la hace el servidor.
+  const marca = req.cookies.get("kp_plataforma")?.value;
+  if (marca && duenioDeMarca(marca) !== data?.claims?.sub) {
+    req.cookies.delete("kp_plataforma");
+    res.cookies.set("kp_plataforma", "", { path: "/", maxAge: 0 });
+  }
   if (req.cookies.has("kp_plataforma") && !["GET", "HEAD", "OPTIONS"].includes(req.method)
     && !pathname.startsWith("/admin") && !pathname.startsWith("/auth/")
     && !["/login", "/registro", "/recuperar"].some(p => pathname === p || pathname.startsWith(`${p}/`))) {

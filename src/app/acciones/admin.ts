@@ -88,7 +88,7 @@ export async function abrirERPEnLectura(organizacionId: string, motivo?: string,
       await guardarMotivo(organizacionId, elegido, (detalle ?? "").trim());
       m = { motivo: elegido, detalle: (detalle ?? "").trim().slice(0, 200), hasta: Date.now() + DURACION_MS };
     }
-    await abrirConMotivo(a.usuario.id, organizacionId, m);
+    await abrirConMotivo(a.usuario.id, a.usuario.authUserId, organizacionId, m);
     return { ok: true };
   } catch (e) { return manejar(e); }
 }
@@ -99,11 +99,11 @@ async function adminLectura() {
   return a;
 }
 
-async function abrirConMotivo(adminId: string, organizacionId: string, m: { motivo: string; detalle: string; hasta: number }) {
+async function abrirConMotivo(adminId: string, sub: string, organizacionId: string, m: { motivo: string; detalle: string; hasta: number }) {
   const org = await prisma.tenant.findUnique({ where: { id: organizacionId }, select: { tipo: true } });
   if (!org) throw new Error("•Esa organización no existe.");
   const hasta = Math.min(m.hasta, Date.now() + DURACION_MS);
-  (await cookies()).set(COOKIE_PLATAFORMA, codificar({ org: organizacionId, motivo: m.motivo, detalle: m.detalle, hasta, admin: adminId }), {
+  (await cookies()).set(COOKIE_PLATAFORMA, codificar({ org: organizacionId, motivo: m.motivo, detalle: m.detalle, hasta, admin: adminId, sub }), {
     httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: Math.floor((hasta - Date.now()) / 1000),
   });
   const h = await headers();
