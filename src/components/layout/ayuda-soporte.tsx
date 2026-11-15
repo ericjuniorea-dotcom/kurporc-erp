@@ -14,6 +14,8 @@ const TIPOS = { PROBLEMA: "Algo no funciona", CONSULTA: "Tengo una duda", SUGERE
 const ESTADO: Record<string, string> = { NUEVA: "Recibida", EN_REVISION: "La estamos viendo", EN_DESARROLLO: "La estamos haciendo", HECHA: "Hecha", DESCARTADA: "No la vamos a hacer por ahora" };
 type Mia = Awaited<ReturnType<typeof misSugerencias>>[number];
 
+// Si KurPorc se actualizó con la página abierta, la acción vieja ya no existe: avisar en vez de romper la pantalla
+const ERROR_RED = "No se pudo enviar. Puede que KurPorc se haya actualizado: recargá la página (F5) y probá de nuevo. Lo que escribiste no se pierde si lo copiás antes.";
 const CLAVE = "kp-ayuda";
 const ALTO_PESTANA = 48;
 const leer = (): { plegada?: boolean; alto?: number } => { try { return JSON.parse(localStorage.getItem(CLAVE) ?? "{}") ?? {}; } catch { return {}; } };
@@ -126,7 +128,8 @@ export function AyudaSoporte({ oculto = false }: { oculto?: boolean }) {
             const falta = faltaParaEnviar(tipo, { mensaje, titulo, problema, comoFuncionaria });
             if (falta) { setMsg({ tipo: "error", texto: falta }); return; }
             iniciar(async () => {
-            const r = await enviarSugerencia(tipo === "FUNCION_NUEVA" ? { tipo, titulo, problema, comoFuncionaria, modulo, pagina: ruta } : { tipo, mensaje, modulo, pagina: ruta });
+            const r = await enviarSugerencia(tipo === "FUNCION_NUEVA" ? { tipo, titulo, problema, comoFuncionaria, modulo, pagina: ruta } : { tipo, mensaje, modulo, pagina: ruta })
+              .catch(() => ({ ok: false as const, error: ERROR_RED }));
             if (r.ok) { setMensaje(""); setTitulo(""); setProblema(""); setComoFuncionaria(""); setMias(null); setMsg({ tipo: "ok", texto: "¡Gracias! Lo recibimos. Te respondemos acá mismo." }); }
             else setMsg({ tipo: "error", texto: r.error });
           }); }} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -226,7 +229,7 @@ function Conversacion({ m, onRespondido }: { m: Mia; onRespondido: () => void })
         </button>
       ) : (
         <form onSubmit={e => { e.preventDefault(); setError(null); iniciar(async () => {
-          const r = await responderComoCliente(m.id, texto);
+          const r = await responderComoCliente(m.id, texto).catch(() => ({ ok: false as const, error: ERROR_RED }));
           if (r.ok) { setTexto(""); setAbierta(false); onRespondido(); } else setError(r.error);
         }); }} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <textarea className="kp-input" value={texto} onChange={e => setTexto(e.target.value)} rows={2} maxLength={4000} aria-label="Tu respuesta"

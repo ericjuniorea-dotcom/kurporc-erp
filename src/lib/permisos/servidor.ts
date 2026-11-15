@@ -4,7 +4,7 @@
 import { cache } from "react";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db/prisma";
-import { getSession, miembroActivo, SELECT_PERMISOS, type AppSession } from "@/lib/auth/config";
+import { getSession, miembroActivo, miembroPlataforma, SELECT_PERMISOS, type AppSession } from "@/lib/auth/config";
 import { CATALOGO_PERMISOS, type PermisoClave } from "./catalogo";
 
 export interface Permisos {
@@ -37,7 +37,8 @@ export const getPermisos = cache(async (): Promise<Permisos | null> => {
   const session = await getSession();
   if (!session) return null;
   // getSession ya trajo la membresía activa con todo lo necesario: no hace falta otra consulta
-  const m = miembroActivo().valor as MiembroParaPermisos | null;
+  // En modo plataforma, siempre la membresía de solo lectura (el administrador no es miembro de la granja)
+  const m = session.modoPlataforma ? miembroPlataforma() : (miembroActivo().valor as MiembroParaPermisos | null);
   const p = m ? calcularPermisos(m, session.user.tenantId) : await permisosDeMiembro(session.user.id, session.user.tenantId);
   // El segundo factor es opcional: los permisos sensibles ya no quedan en pausa sin él
   return p;

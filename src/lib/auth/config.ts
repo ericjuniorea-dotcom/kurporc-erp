@@ -83,6 +83,19 @@ export interface AppSession {
 // En modo plataforma: solo permisos de ver, sin datos personales de funcionarios
 const PERMISOS_PLATAFORMA = CATALOGO_PERMISOS.filter(p => p.accion.startsWith("ver") && p.clave !== "rrhh.datos_personales.ver").map(p => ({ permisoClave: p.clave }));
 
+/**
+ * Membresía de solo lectura del Super Administrador en modo plataforma («Ver ERP»).
+ * getPermisos la usa directo: en los route handlers el cache de React no comparte miembroActivo,
+ * y buscar al administrador como miembro de la granja daba «sin permiso» (módulos vacíos).
+ */
+export function miembroPlataforma() {
+  return {
+    id: "plataforma", esPropietario: false, estado: "ACTIVO", alcanceGranjas: "TODAS", alcanceUnidades: "TODAS", limiteCompraGs: null,
+    rol: { codigo: "PLATAFORMA", nombre: "Plataforma (solo lectura)", permisos: PERMISOS_PLATAFORMA },
+    permisosAjuste: [] as { permisoClave: string; efecto: string }[], granjas: [] as { granjaId: string }[], unidades: [] as { unidadId: string }[],
+  };
+}
+
 async function sesionPlataforma(usuario: UsuarioSesion & { aal: string | null }): Promise<AppSession | null> {
   if (!usuario.esSuperadmin) return null;
   const modo = await leerModoPlataforma(usuario.id);
@@ -92,11 +105,7 @@ async function sesionPlataforma(usuario: UsuarioSesion & { aal: string | null })
     prisma.tenant.findUnique({ where: { id: modo.org }, select: { id: true, farmName: true, slug: true, tipo: true, plan: true } }),
   ]);
   if (!admin || (admin.nivel !== "TOTAL" && admin.nivel !== "SOPORTE") || !org) return null;
-  miembroActivo().valor = {
-    id: "plataforma", esPropietario: false, estado: "ACTIVO", alcanceGranjas: "TODAS", alcanceUnidades: "TODAS", limiteCompraGs: null,
-    rol: { codigo: "PLATAFORMA", nombre: "Plataforma (solo lectura)", permisos: PERMISOS_PLATAFORMA },
-    permisosAjuste: [], granjas: [], unidades: [],
-  };
+  miembroActivo().valor = miembroPlataforma();
   await registrarVistaPlataforma(modo);
   return {
     user: {
