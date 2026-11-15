@@ -183,7 +183,7 @@ export function FormRecepcion({ pedidoId, items, productos, unidades, cuentas, p
           })}</tbody>
         </table>
       </div>
-      {productos.length === 0 && <div style={{ fontSize: 12, color: "var(--warning-text)" }}>Todavía no tenés productos en stock. Crealos en Logística → Inventario y volvé a esta pantalla.</div>}
+      {productos.length === 0 && <div style={{ fontSize: 12, color: "var(--warning-text)" }}>Todavía no tenés productos en stock. Crealos en Inventario → Nuevo producto y volvé a esta pantalla.</div>}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
         <label style={etiqueta}>Fecha de recepción<input className="kp-input" type="date" value={fecha} onChange={e => setFecha(e.target.value)} required /></label>
         <label style={etiqueta}>Unidad de negocio

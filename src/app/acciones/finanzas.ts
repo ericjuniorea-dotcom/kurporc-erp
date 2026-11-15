@@ -55,6 +55,9 @@ const movimientoSchema = z.object({
   observacion: z.string().trim().max(500).optional().default(""),
   productoSanitarioId: z.string().max(40).optional().default(""),
   mlPorUnidad: z.string().trim().regex(/^(\d{1,6}([.,]\d{1,2})?)?$/, "ml por unidad inválido").optional().default(""),
+  // Compra que entra al inventario: se crea una recepción pendiente para que Inventario la acepte
+  inventarioProductoId: z.string().max(40).optional().default(""),
+  inventarioCantidad: z.string().trim().regex(/^(\d{1,9}([.,]\d{1,3})?)?$/, "Cantidad para el inventario inválida").optional().default(""),
 }).strict();
 
 const dec = (v: string) => (v ? v.replace(",", ".") : null);
@@ -125,6 +128,16 @@ export async function crearMovimiento(datos: z.input<typeof movimientoSchema>): 
     }
 
     const esSanidad = cat.nombre === "Sanidad" && /vacuna|medicamento/i.test(d.subcategoria);
+    // Producto del inventario (cualquier gasto puede traer uno: balanceado, vacunas, insumos…)
+    let alInventario: { productoId: string; cantidad: number } | null = null;
+    if (d.inventarioProductoId) {
+      if (d.tipo !== "GASTO" && d.tipo !== "INVERSION") throw new Error("•Solo una compra puede entrar al inventario.");
+      const prod = await prisma.productoInventario.findFirst({ where: { id: d.inventarioProductoId, tenantId: org, isActive: true }, select: { id: true } });
+      if (!prod) throw new Error("•Ese producto no está en tu inventario.");
+      const cant = Number((d.inventarioCantidad || "").replace(",", "."));
+      if (!(cant > 0)) throw new Error("•Escribí cuánto entra al inventario (en la unidad del producto).");
+      alInventario = { productoId: prod.id, cantidad: cant };
+    }
     const id = await conActor(session.user.id, async tx => {
       const m = await tx.movimiento.create({
         data: {
@@ -140,6 +153,14 @@ export async function crearMovimiento(datos: z.input<typeof movimientoSchema>): 
         },
         select: { id: true },
       });
+      if (alInventario) {
+        await tx.recepcionInventario.create({
+          data: {
+            tenantId: org, movimientoId: m.id, productoId: alInventario.productoId, cantidad: alInventario.cantidad,
+            costoUnitario: Number(monto) / alInventario.cantidad, proveedor: d.contraparte || null, compradoPor: session.user.id,
+          },
+        });
+      }
       if (d.pagado) {
         await tx.pagoMovimiento.create({
           data: { movimientoId: m.id, fechaPago: fechaISO(d.fechaPago || d.fecha), montoGs: monto, cuentaFondosId: d.cuentaFondosId, medioPago: d.medioPago, creadoPor: session.user.id },
@@ -161,9 +182,14 @@ export async function anularMovimiento(id: string, motivo: string): Promise<R> {
     if (!m) throw new Error("•Ese movimiento no existe.");
     if (m.estado === "ANULADO") throw new Error("•Ya estaba anulado.");
     if (m.origen !== "MANUAL" && m.origen !== "IMPORTACION") throw new Error("•Este movimiento se generó solo (venta, cuota…): anulalo desde su origen.");
-    await conActor(session.user.id, tx => tx.movimiento.update({
-      where: { id }, data: { estado: "ANULADO", motivoAnulacion: texto, anuladoPor: session.user.id, anuladoEn: new Date() },
-    }));
+    const aceptada = await prisma.recepcionInventario.findFirst({ where: { movimientoId: id, estado: "ACEPTADA" }, select: { id: true } });
+    if (aceptada) throw new Error("•Esa compra ya entró al inventario: primero anulá la recepción en Inventario.");
+    await conActor(session.user.id, async tx => {
+      await tx.movimiento.update({
+        where: { id }, data: { estado: "ANULADO", motivoAnulacion: texto, anuladoPor: session.user.id, anuladoEn: new Date() },
+      });
+      await tx.recepcionInventario.updateMany({ where: { movimientoId: id, estado: "PENDIENTE" }, data: { estado: "ANULADA", resueltaPor: session.user.id, resueltaEn: new Date(), nota: `Compra anulada en Finanzas: ${texto}` } });
+    });
     await registrarAuditoria("MOVIMIENTO_ANULADO", "movimiento", id, { motivo: texto, concepto: m.concepto, montoGs: m.montoGs.toString(), mes: m.mes }, await ctx(session.user.id, permisos.organizacionId));
     revalidatePath("/finanzas", "layout");
     return { ok: true };

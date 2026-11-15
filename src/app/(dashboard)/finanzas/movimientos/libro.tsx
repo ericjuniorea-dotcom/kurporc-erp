@@ -1,6 +1,6 @@
 "use client";
 // Libro de movimientos (8.3): el único lugar de carga manual de Finanzas.
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { IconLoader2, IconLock, IconPlus, IconX } from "@tabler/icons-react";
 import { Aviso } from "@/components/auth/marco-auth";
@@ -20,7 +20,7 @@ type Props = {
   puedo: { crear: boolean; anular: boolean; pagar: boolean; cobrar: boolean };
   movimientos: Mov[]; categorias: Categoria[]; cuentas: Cuenta[];
   unidades: { id: string; codigo: string; nombre: string; tipo: string }[];
-  productos: { id: string; nombre: string; categoria: string }[];
+  productos: { id: string; nombre: string; categoria: string; unidadMedida: string }[];
   contrapartes: { nombre: string; tipo: string }[];
 };
 
@@ -45,7 +45,9 @@ const fechaCorta = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 
 export function LibroMovimientos(p: Props) {
   const router = useRouter();
+  // ?nuevo=1 (desde Inventario → Comprar) abre el formulario directo
   const [cargando, setCargando] = useState(false);
+  useEffect(() => { if (new URLSearchParams(window.location.search).get("nuevo") === "1") setCargando(true); }, []);
   const [tipo, setTipo] = useState("");
   const [estado, setEstado] = useState("");
   const [texto, setTexto] = useState("");
@@ -191,7 +193,9 @@ function FormularioMovimiento(p: Props & { onCerrar: () => void; onListo: (t: st
     fecha: p.hoy, tipo: "GASTO", concepto: "", categoriaId: "", subcategoria: "", cantidad: "", unidadMedida: "",
     contraparte: "", medioPago: "", cuentaFondosId: "", montoGs: "", pagado: true, fechaPago: p.hoy, fechaVencimiento: "",
     unidadId: "", facturaNumero: "", observacion: "", productoSanitarioId: "", mlPorUnidad: "",
+    inventarioProductoId: "", inventarioCantidad: "",
   });
+  const [alInventario, setAlInventario] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
   const set = (k: keyof typeof f, v: string | boolean) => setF(x => ({ ...x, [k]: v }));
@@ -199,6 +203,18 @@ function FormularioMovimiento(p: Props & { onCerrar: () => void; onListo: (t: st
   const cat = p.categorias.find(c => c.id === f.categoriaId);
   const esCobro = (cat?.signo ?? (f.tipo === "INGRESO" ? 1 : -1)) > 0;
   const esSanidad = cat?.nombre === "Sanidad" && /vacuna|medicamento/i.test(f.subcategoria);
+  const esCompra = f.tipo === "GASTO" || f.tipo === "INVERSION";
+  const prodInv = p.productos.find(x => x.id === f.inventarioProductoId);
+  const UNIDAD: Record<string, string> = { DOSIS: "dosis", ML: "ml", KG: "kg", UNIDAD: "unidades", SACO: "sacos" };
+  const CAT: Record<string, string> = { VACUNA: "Vacunas", MEDICAMENTO: "Medicamentos", SUPLEMENTO: "Suplementos", BALANCEADO: "Balanceado", EQUIPAMIENTO: "Equipamiento" };
+  // Al elegir una categoría de balanceado o de Sanidad, la compra va al inventario y se sugiere el producto del mismo nombre
+  function elegirCategoria(id: string) {
+    const c = p.categorias.find(x => x.id === id);
+    const sugerido = c ? p.productos.find(x => x.nombre.toLowerCase() === c.nombre.toLowerCase()) : undefined;
+    const va = !!c && (!!sugerido || c.nombre === "Sanidad" || /balanceado|vilo|inicial/i.test(c.nombre));
+    setAlInventario(va);
+    setF(x => ({ ...x, categoriaId: id, subcategoria: "", inventarioProductoId: sugerido?.id ?? (va ? x.inventarioProductoId : ""), inventarioCantidad: va ? x.inventarioCantidad || x.cantidad : "" }));
+  }
   const precio = f.cantidad && f.montoGs && Number(f.cantidad.replace(",", ".")) > 0 ? Math.round(Number(f.montoGs) / Number(f.cantidad.replace(",", "."))) : null;
 
   function guardar(e: React.FormEvent) {
@@ -206,7 +222,8 @@ function FormularioMovimiento(p: Props & { onCerrar: () => void; onListo: (t: st
     setError(null);
     iniciar(async () => {
       const r = await crearMovimiento({
-        ...f, tipo: f.tipo as "GASTO", medioPago: (f.medioPago || null) as never, cuentaFondosId: f.cuentaFondosId || null, unidadId: f.unidadId || null,
+        ...f, inventarioProductoId: alInventario && esCompra ? f.inventarioProductoId : "", inventarioCantidad: alInventario && esCompra ? f.inventarioCantidad : "",
+        tipo: f.tipo as "GASTO", medioPago: (f.medioPago || null) as never, cuentaFondosId: f.cuentaFondosId || null, unidadId: f.unidadId || null,
         montoGs: f.montoGs.replace(/\D/g, ""), fechaPago: f.pagado ? f.fechaPago : undefined,
       });
       if (r.ok) p.onListo(r.aviso ? `Movimiento guardado. ${r.aviso}` : "Movimiento guardado.");
@@ -231,7 +248,7 @@ function FormularioMovimiento(p: Props & { onCerrar: () => void; onListo: (t: st
       </div>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <Campo label="Categoría" ancho={220}>
-          <select className="kp-input" value={f.categoriaId} onChange={e => setF(x => ({ ...x, categoriaId: e.target.value, subcategoria: "" }))} required>
+          <select className="kp-input" value={f.categoriaId} onChange={e => elegirCategoria(e.target.value)} required>
             <option value="">Elegí…</option>
             {cats.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
           </select>
@@ -251,10 +268,39 @@ function FormularioMovimiento(p: Props & { onCerrar: () => void; onListo: (t: st
           <Campo label="Producto (del catálogo de Sanidad)" ancho={240}>
             <select className="kp-input" value={f.productoSanitarioId} onChange={e => set("productoSanitarioId", e.target.value)}>
               <option value="">Elegí…</option>
-              {p.productos.map(x => <option key={x.id} value={x.id}>{x.nombre}</option>)}
+              {p.productos.filter(x => x.categoria === "VACUNA" || x.categoria === "MEDICAMENTO").map(x => <option key={x.id} value={x.id}>{x.nombre}</option>)}
             </select>
           </Campo>
           <Campo label="ml por unidad (frasco)" ancho={140}><input className="kp-input" inputMode="decimal" value={f.mlPorUnidad} onChange={e => set("mlPorUnidad", e.target.value)} /></Campo>
+        </div>
+      )}
+      {esCompra && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 10, borderRadius: "var(--radius-md)", background: "var(--bg-base)", border: "0.5px solid var(--border-default)" }}>
+          <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12.5, color: "var(--text-primary)" }}>
+            <input type="checkbox" checked={alInventario} onChange={e => setAlInventario(e.target.checked)} />
+            Entra al inventario <span style={{ color: "var(--text-muted)" }}>· Inventario la recibe y la acepta; el precio queda en el stock</span>
+          </label>
+          {alInventario && (
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Campo label="Producto del inventario" ancho={260}>
+                <select className="kp-input" value={f.inventarioProductoId} onChange={e => set("inventarioProductoId", e.target.value)} required>
+                  <option value="">Elegí…</option>
+                  {Object.keys(CAT).map(c => p.productos.some(x => x.categoria === c) && (
+                    <optgroup key={c} label={CAT[c]}>{p.productos.filter(x => x.categoria === c).map(x => <option key={x.id} value={x.id}>{x.nombre}</option>)}</optgroup>
+                  ))}
+                </select>
+              </Campo>
+              <Campo label={`Cantidad que entra${prodInv ? ` (${UNIDAD[prodInv.unidadMedida] ?? prodInv.unidadMedida})` : ""}`} ancho={160}>
+                <input className="kp-input" inputMode="decimal" value={f.inventarioCantidad} onChange={e => set("inventarioCantidad", e.target.value)} required placeholder={prodInv ? `en ${UNIDAD[prodInv.unidadMedida] ?? "unidades"}` : ""} />
+              </Campo>
+              {prodInv && f.montoGs && Number(f.inventarioCantidad.replace(",", ".")) > 0 && (
+                <div style={{ alignSelf: "flex-end", fontSize: 11.5, color: "var(--text-muted)", paddingBottom: 9 }}>
+                  {gs(Math.round(Number(f.montoGs) / Number(f.inventarioCantidad.replace(",", "."))))} por {UNIDAD[prodInv.unidadMedida] ?? "unidad"}
+                </div>
+              )}
+            </div>
+          )}
+          {alInventario && p.productos.length === 0 && <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Todavía no hay productos: crealos una vez en Inventario → Nuevo producto.</div>}
         </div>
       )}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>

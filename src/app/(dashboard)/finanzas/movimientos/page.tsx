@@ -31,7 +31,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
     categoriasDe(org),
     prisma.cuentaFondos.findMany({ where: { organizacionId: org, activa: true }, orderBy: { nombre: "asc" }, select: { id: true, nombre: true, tipo: true } }),
     unidadesDe(org),
-    prisma.productoInventario.findMany({ where: { tenantId: org, categoria: { in: ["VACUNA", "MEDICAMENTO"] } }, orderBy: { nombre: "asc" }, select: { id: true, nombre: true, categoria: true } }),
+    prisma.productoInventario.findMany({ where: { tenantId: org, isActive: true }, orderBy: [{ categoria: "asc" }, { nombre: "asc" }], select: { id: true, nombre: true, categoria: true, unidadMedida: true } }),
     prisma.contraparte.findMany({ where: { organizacionId: org, activa: true }, orderBy: { nombre: "asc" }, select: { nombre: true, tipo: true } }),
   ]);
 

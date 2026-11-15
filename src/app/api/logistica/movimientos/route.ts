@@ -22,6 +22,8 @@ export async function GET(req: NextRequest) {
     take: 200,
   });
 
+  const ids = Array.from(new Set(movimientos.map(m => m.usuarioId).filter((x): x is string => !!x)));
+  const nombres = new Map((await prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } })).map(u => [u.id, u.name]));
   return NextResponse.json(movimientos.map(m => ({
     id: m.id,
     fecha: m.fecha,
@@ -30,5 +32,7 @@ export async function GET(req: NextRequest) {
     cantidad: Number(m.cantidad),
     producto: m.producto,
     numeroLote: m.lote?.numeroLote ?? null,
+    usuario: m.usuarioId ? nombres.get(m.usuarioId) ?? "—" : null,
+    nota: m.nota,
   })));
 }

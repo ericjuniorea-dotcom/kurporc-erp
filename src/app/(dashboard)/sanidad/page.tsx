@@ -606,7 +606,7 @@ export default function SanidadPage() {
                     </div>
                     <div>
                       <label className="kp-label">Costo unitario (₲ por {UNIDAD_LABEL[productoSeleccionado?.unidadMedida ?? "DOSIS"]})</label>
-                      <input type="number" min="0" step="1" className="kp-input" placeholder="Opcional — para ver cuánto sale este producto en Logística" value={loteForm.costoUnitario} onChange={e => setLoteForm(f => ({ ...f, costoUnitario: e.target.value }))} />
+                      <input type="number" min="0" step="1" className="kp-input" placeholder="Opcional — para ver cuánto sale este producto en Inventario" value={loteForm.costoUnitario} onChange={e => setLoteForm(f => ({ ...f, costoUnitario: e.target.value }))} />
                     </div>
                     <div>
                       <label className="kp-label">Observaciones</label>

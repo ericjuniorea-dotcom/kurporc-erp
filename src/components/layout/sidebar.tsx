@@ -42,7 +42,7 @@ const NAV_GROUPS = [
     label: "Operaciones",
     items: [
       { label: "Alimentación", href: "/alimentacion", icon: IconWheat,      permiso: "alimentacion.consumos.ver" },
-      { label: "Logística",    href: "/logistica",    icon: IconTruck,      permiso: "stock.items.ver" },
+      { label: "Inventario",   href: "/inventario",   icon: IconTruck,      permiso: "stock.items.ver" },
     ],
   },
   {

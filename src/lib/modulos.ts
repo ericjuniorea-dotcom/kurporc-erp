@@ -11,7 +11,7 @@ export const MODULOS = {
   SANIDAD:       { etiqueta: "Sanidad",              prefijos: ["/sanidad"] },
   TAREAS:        { etiqueta: "Tareas",               prefijos: ["/tareas"] },
   ALIMENTACION:  { etiqueta: "Alimentación",         prefijos: ["/alimentacion"] },
-  LOGISTICA:     { etiqueta: "Logística",            prefijos: ["/logistica"] },
+  LOGISTICA:     { etiqueta: "Inventario",           prefijos: ["/inventario", "/logistica"] },
   RRHH:          { etiqueta: "RRHH",                 prefijos: ["/rrhh"] },
   FINANZAS:      { etiqueta: "Finanzas",             prefijos: ["/finanzas", "/financiero"] },
   WHATSAPP:      { etiqueta: "WhatsApp",             prefijos: ["/whatsapp"] },

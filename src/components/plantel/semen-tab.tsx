@@ -246,7 +246,7 @@ export function SemenTab() {
 
               <div className="kp-alert kp-alert-info" style={{ fontSize: 11 }}>
                 <IconAlertCircle size={12} />
-                Al registrar el lote se creará automáticamente el stock en Logística. Los descuentos se realizan al registrar IA en Gestación.
+                Al registrar el lote se creará automáticamente el stock en Inventario. Los descuentos se realizan al registrar IA en Gestación.
               </div>
             </div>
             <div style={{ padding: "12px 20px", borderTop: "0.5px solid var(--border-default)", display: "flex", justifyContent: "flex-end", gap: 8 }}>

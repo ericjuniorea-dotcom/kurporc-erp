@@ -2101,6 +2101,7 @@ model ProductoInventario {
   aplicaciones          AplicacionVacuna[]
   feedTypesBalanceado   FeedType[]
   movimientos           MovimientoInventario[]
+  recepciones           RecepcionInventario[]
 
   @@index([tenantId])
   @@index([tenantId, categoria])
@@ -2127,6 +2128,7 @@ model LoteInventario {
   vacuna           ProductoInventario     @relation(fields: [vacunaId], references: [id])
   aplicaciones     AplicacionVacuna[]
   movimientos      MovimientoInventario[]
+  recepciones      RecepcionInventario[]
 
   @@index([tenantId, vacunaId])
   @@map("lotes_vacunas")
@@ -2159,12 +2161,42 @@ model MovimientoInventario {
   origen       OrigenMovimiento
   referenciaId String?
   fecha        DateTime         @default(now())
+  usuarioId    String?          @map("usuario_id") // quién lo hizo
+  nota         String?
 
   producto ProductoInventario @relation(fields: [productoId], references: [id])
   lote     LoteInventario?    @relation(fields: [loteId], references: [id])
 
   @@index([tenantId, productoId, fecha])
   @@map("movimientos_inventario")
+}
+
+/// Compra registrada en Finanzas que espera ser aceptada en Inventario. Al aceptarla se crea el lote.
+model RecepcionInventario {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String             @map("tenant_id")
+  movimientoId     String?            @map("movimiento_id") @db.Uuid
+  productoId       String             @map("producto_id")
+  cantidad         Decimal            @db.Decimal(12, 3)
+  costoUnitario    Decimal?           @map("costo_unitario") @db.Decimal(14, 4)
+  proveedor        String?
+  numeroLote       String?            @map("numero_lote")
+  fechaVencimiento DateTime?          @map("fecha_vencimiento") @db.Date
+  compradoPor      String             @map("comprado_por")
+  estado           String             @default("PENDIENTE") // PENDIENTE | ACEPTADA | RECHAZADA | ANULADA
+  cantidadRecibida Decimal?           @map("cantidad_recibida") @db.Decimal(12, 3)
+  loteId           String?            @map("lote_id")
+  resueltaPor      String?            @map("resuelta_por")
+  resueltaEn       DateTime?          @map("resuelta_en")
+  nota             String?
+  createdAt        DateTime           @default(now()) @map("created_at")
+  movimiento       Movimiento?        @relation(fields: [movimientoId], references: [id], onDelete: SetNull)
+  producto         ProductoInventario @relation(fields: [productoId], references: [id], onDelete: Restrict)
+  lote             LoteInventario?    @relation(fields: [loteId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, estado])
+  @@index([movimientoId])
+  @@map("recepcion_inventario")
 }
 
 model ProtocoloSanitario {
@@ -2859,10 +2891,11 @@ model Movimiento {
   createdAt           DateTime            @default(now()) @map("created_at")
   updatedAt           DateTime            @updatedAt @map("updated_at")
 
-  organizacion Tenant              @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
-  categoria    CategoriaFinanciera @relation(fields: [categoriaId], references: [id])
-  contraparte  Contraparte?        @relation(fields: [contraparteId], references: [id])
+  organizacion Tenant                @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  categoria    CategoriaFinanciera   @relation(fields: [categoriaId], references: [id])
+  contraparte  Contraparte?          @relation(fields: [contraparteId], references: [id])
   pagos        PagoMovimiento[]
+  recepciones  RecepcionInventario[]
 
   @@index([organizacionId, mes])
   @@index([organizacionId, categoriaId, mes])

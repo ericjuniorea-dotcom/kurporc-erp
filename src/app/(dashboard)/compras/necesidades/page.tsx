@@ -39,7 +39,7 @@ export default async function Necesidades() {
       </div>
       {filas.length === 0 ? (
         <div style={{ ...tarjeta, padding: 24, fontSize: 13.5, color: "var(--text-secondary)", textAlign: "center" }}>
-          Todavía no tenés productos en stock. Cargalos en <Link href="/logistica">Logística</Link> o recibí tu primer pedido del Mercado y aparecen acá.
+          Todavía no tenés productos en stock. Cargalos en <Link href="/inventario">Inventario</Link> o recibí tu primer pedido del Mercado y aparecen acá.
         </div>
       ) : (
         <TablaNecesidades filas={filas.map(f => ({ ...f, fechaQuiebre: f.fechaQuiebre?.toISOString().slice(0, 10) ?? null }))}
