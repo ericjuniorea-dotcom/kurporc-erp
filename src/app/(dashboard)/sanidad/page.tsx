@@ -404,7 +404,7 @@ export default function SanidadPage() {
   if (categoria === null) {
     return (
       <>
-        <Topbar title="Sanidad" icon={IconShield} iconColor="var(--info)" />
+        <Topbar title="Sanidad y Nutrición" icon={IconShield} iconColor="var(--info)" />
         <div style={{ padding: "20px 24px" }}>
           <div style={{ marginBottom: 18 }}>
             <h1 style={{ fontSize: 18, fontWeight: 500, color: "var(--text-primary)", margin: 0 }}>Sanidad</h1>
@@ -442,7 +442,7 @@ export default function SanidadPage() {
     return (
       <>
         <Topbar
-          title="Sanidad"
+          title="Sanidad y Nutrición"
           icon={IconShield}
           iconColor="var(--info)"
           actions={
@@ -468,7 +468,7 @@ export default function SanidadPage() {
   return (
     <>
       <Topbar
-        title="Sanidad"
+        title="Sanidad y Nutrición"
         icon={IconShield}
         iconColor="var(--info)"
         tabs={isIngreso ? [] : TABS}
@@ -476,6 +476,7 @@ export default function SanidadPage() {
         onTabChange={setTab}
         actions={
           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <a href="/alimentacion" className="btn" style={{ fontSize: 11.5, height: 30, textDecoration: "none" }} title="Carga diaria de balanceado y plan de alimentación">Nutrición →</a>
             <button className="btn" onClick={() => setCategoria(null)} style={{ fontSize: 11, height: 30 }}>
               <IconArrowLeft size={12} /> Categorías
             </button>

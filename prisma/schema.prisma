@@ -1286,12 +1286,16 @@ model FeedType {
   isActive  Boolean @default(true)
 
   productoBalanceadoId String? // FK a ProductoInventario (categoria=BALANCEADO) — fuente única de stock de esta etapa
+  // Sanidad y Nutrición: módulo donde se consume y consumo teórico (null = a gusto, sin meta)
+  modulo               String // GESTACION | MATERNIDAD_HEMBRAS | MATERNIDAD_LECHONES | INICIACION | ENGORDE
+  kgPorAnimalDia       Decimal? @map("kg_por_animal_dia") @db.Decimal(8, 3)
+  por                  String   @default("TOTAL") // HEMBRA | LECHON | TOTAL
 
   feedRecords        FeedRecord[]
   productoBalanceado ProductoInventario? @relation(fields: [productoBalanceadoId], references: [id])
 
-  @@unique([tenantId, phase])
   @@index([tenantId])
+  @@index([tenantId, modulo])
   @@map("feed_types")
 }
 

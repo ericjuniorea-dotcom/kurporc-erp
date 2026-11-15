@@ -33,7 +33,8 @@ const NAV_GROUPS = [
       { label: "Maternidad",  href: "/maternidad",  icon: IconHeartPlus,          permiso: "maternidad.partos.ver" },
       { label: "Iniciación",   href: "/recria",      icon: IconBuildingWarehouse,  permiso: "destete.lotes.ver" },
       { label: "Engorde",     href: "/engorde",     icon: IconChartLine,          permiso: "engorde.lotes.ver" },
-      { label: "Sanidad",     href: "/sanidad",     icon: IconShield,             permiso: "sanidad.aplicaciones.ver" },
+      { label: "Sanidad y Nutrición", href: "/sanidad", icon: IconShield,         permiso: "sanidad.aplicaciones.ver" },
+      { label: "Nutrición",   href: "/alimentacion", icon: IconWheat,             permiso: "alimentacion.consumos.ver" },
       { label: "Tareas",      href: "/tareas",      icon: IconClipboardCheck,     permiso: "tareas.tareas.ver" },
     ],
   },
@@ -41,7 +42,6 @@ const NAV_GROUPS = [
     key:   "operaciones",
     label: "Operaciones",
     items: [
-      { label: "Alimentación", href: "/alimentacion", icon: IconWheat,      permiso: "alimentacion.consumos.ver" },
       { label: "Inventario",   href: "/inventario",   icon: IconTruck,      permiso: "stock.items.ver" },
     ],
   },

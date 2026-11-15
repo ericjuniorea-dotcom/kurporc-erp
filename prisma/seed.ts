@@ -154,11 +154,9 @@ async function main() {
   ];
 
   for (const ft of feedPhases) {
-    await prisma.feedType.upsert({
-      where:  { tenantId_phase: { tenantId: tenant.id, phase: ft.phase } },
-      update: {},
-      create: { tenantId: tenant.id, ...ft },
-    });
+    const modulo = ft.phase === "GESTATION" ? "GESTACION" : ft.phase === "LACTATION" ? "MATERNIDAD_HEMBRAS" : ft.phase === "PRE_STARTER" ? "MATERNIDAD_LECHONES" : ft.phase === "GROWING" ? "ENGORDE" : "INICIACION";
+    if (!(await prisma.feedType.findFirst({ where: { tenantId: tenant.id, phase: ft.phase } })))
+      await prisma.feedType.create({ data: { tenantId: tenant.id, ...ft, modulo } });
   }
   console.log("✓ 6 tipos de alimento creados");
 

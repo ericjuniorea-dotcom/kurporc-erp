@@ -6,6 +6,7 @@ import { randomBytes } from "crypto";
 import type { Prisma } from "@prisma/client";
 import prisma from "@/lib/db/prisma";
 import { ROLES_PLANTILLA } from "@/lib/permisos/roles-plantilla";
+import { asegurarPlanSugerido } from "@/lib/nutricion/plan";
 
 export type TipoAlta = "INDIVIDUAL" | "EMPRESA" | "VENDEDOR";
 
@@ -35,14 +36,6 @@ const ROLES_ERP = ["ADMIN_GENERAL", "JEFE_PRODUCCION", "VETERINARIO", "ENCARGADO
   "CONTADOR_EXTERNO", "OPERARIO", "SOLO_LECTURA"];
 const ROLES_TIENDA = ["VENDEDOR_ADMIN", "VENDEDOR_ATENCION"];
 
-const ETAPAS_ALIMENTACION = [
-  { phase: "GESTATION", name: "Alimento gestación", sortOrder: 1 },
-  { phase: "LACTATION", name: "Lactancia hembra", sortOrder: 2 },
-  { phase: "PRE_STARTER", name: "Pre-starter lechones", sortOrder: 3 },
-  { phase: "PHASE_1", name: "Recría Fase 1", sortOrder: 4 },
-  { phase: "PHASE_2", name: "Recría Fase 2", sortOrder: 5 },
-  { phase: "GROWING", name: "Engorde", sortOrder: 6 },
-];
 
 const CONFIG_INICIAL = {
   weaningMaxDays: 28, transferWeightKg: 25, gestationDaysMin: 110, gestationDaysMax: 118,
@@ -144,7 +137,8 @@ export async function crearOrganizacion(userId: string, d: DatosAlta): Promise<{
           ironInjectionEnabled: true, ironDayOfLife: 3, ironDoseMl: 1.0,
         },
       });
-      await tx.feedType.createMany({ data: ETAPAS_ALIMENTACION.map(e => ({ tenantId: org.id, ...e })) });
+      // Plan de alimentación sugerido: balanceados en el inventario y consumo teórico por módulo
+      await asegurarPlanSugerido(tx, org.id);
       // Roles legados que todavía usa el menú (hasta la Fase 7): Admin de granja
       await tx.userRole.createMany({ data: [{ userId, roleId: 2 }], skipDuplicates: true });
     }
