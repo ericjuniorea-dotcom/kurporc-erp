@@ -24,6 +24,9 @@ interface VacunaGrupo {
   totalAnimales: number;
   retrasadas: number;
   animales: AnimalPendiente[];
+  disponible: number;
+  unidad: string;
+  necesario: number;
 }
 
 interface Modulo {
@@ -54,6 +57,7 @@ interface LoteOption {
 }
 
 const STORAGE_KEY = "sanidad-vision-general-expandido";
+const UNIDAD_VG: Record<string, string> = { ML: "ml", DOSIS: "dosis", KG: "kg", UNIDAD: "u.", SACO: "sacos" };
 
 function semaforoCumplimiento(pct: number) {
   if (pct >= 90) return "var(--success-text)";
@@ -145,6 +149,12 @@ function VacunaGrupoRow({
         >
           <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>{grupo.nombre}</span>
           <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{grupo.totalAnimales} cerdas</span>
+          <span title={grupo.necesario > 0 ? `Para todas las pendientes hacen falta ${Math.round(grupo.necesario).toLocaleString("es-PY")} ${UNIDAD_VG[grupo.unidad] ?? ""}` : undefined}
+            style={{ fontSize: 10.5, fontWeight: 500, padding: "1px 7px", borderRadius: 99, border: "0.5px solid var(--border-default)",
+              color: grupo.disponible <= 0 ? "var(--danger-text)" : grupo.disponible < grupo.necesario ? "var(--warning-text)" : "var(--success-text)",
+              background: grupo.disponible <= 0 ? "var(--danger-subtle)" : grupo.disponible < grupo.necesario ? "var(--warning-subtle)" : "var(--success-subtle)" }}>
+            {Math.round(grupo.disponible).toLocaleString("es-PY")} {UNIDAD_VG[grupo.unidad] ?? ""} disponibles
+          </span>
           {grupo.retrasadas > 0 && (
             <span style={{ fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 3, background: "var(--danger-subtle)", color: "var(--danger-text)" }}>
               {grupo.retrasadas} retrasada{grupo.retrasadas > 1 ? "s" : ""}
@@ -379,7 +389,7 @@ function RegistrarAplicacionModal({
               <option value="">Seleccionar…</option>
               {lotes.map(l => (
                 <option key={l.id} value={l.id}>
-                  {l.numeroLote} — {l.cantidadActual} dosis · vence en {l.diasParaVencer}d
+                  {l.numeroLote} — {l.cantidadActual.toLocaleString("es-PY")} {UNIDAD_VG[grupo.unidad] ?? "dosis"} · vence en {l.diasParaVencer}d
                 </option>
               ))}
             </select>

@@ -18,7 +18,7 @@ export async function GET() {
   const [eventos, aplicacionesVentana, stockAlertas] = await Promise.all([
     prisma.eventoVacunacion.findMany({
       where:  { tenantId, estado: { not: "omitido" } },
-      include: { vacuna: { select: { nombre: true } } },
+      include: { vacuna: { select: { nombre: true, unidadMedida: true, dosisMl: true } } },
       orderBy: { fecha: "asc" },
     }),
     prisma.aplicacionVacuna.findMany({
@@ -27,6 +27,10 @@ export async function GET() {
     }),
     computeStockAlertas(tenantId, "VACUNA"),
   ]);
+  // Disponible de cada producto (lotes sin vencer): se muestra al lado de cada vacuna
+  const disponibles = new Map((await prisma.loteInventario.groupBy({
+    by: ["vacunaId"], where: { tenantId, cantidadActual: { gt: 0 }, fechaVencimiento: { gte: new Date() } }, _sum: { cantidadActual: true },
+  })).map(g => [g.vacunaId, Number(g._sum.cantidadActual ?? 0)]));
 
   const primeraAplicacionPorEvento = new Map<string, Date>();
   for (const a of aplicacionesVentana) {
@@ -95,6 +99,10 @@ export async function GET() {
       vacunaId,
       nombre: evs[0].vacuna.nombre,
       totalAnimales: evs.length,
+      disponible: disponibles.get(vacunaId) ?? 0,
+      unidad: evs[0].vacuna.unidadMedida,
+      // Lo que hace falta para las pendientes: dosis por animal × animales de cada evento
+      necesario: evs.reduce((s, e) => s + Number(evs[0].vacuna.dosisMl ?? 0) * (e.dosisNecesarias || 1), 0),
       retrasadas: evs.filter(e => e.estado === "retrasado").length,
       animales: evs.map(e => ({
         eventoId:        e.id,
