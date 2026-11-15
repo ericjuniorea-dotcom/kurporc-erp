@@ -19,7 +19,7 @@ Verificado contra el código del repositorio `kurporc-erp` (commit `a63da3c`, 14
 - **Agrupar (4.4):** siempre se agrupa en la raíz (un solo nivel); los mensajes y votos del agrupado pasan al principal. Un agrupado no se puede publicar.
 - **«Pedida por» y votos:** cuentan organizaciones distintas entre los autores del grupo y quienes votaron (`demanda()` en `src/lib/buzon/datos.ts`).
 - **Verde (6.3):** además de usar y cargar en 7 días, exige los primeros pasos completos (así lo dice la fila «Amarillo»).
-- **Baja de cuenta (5.4):** hoy la supresión se ejecuta a mano; quedó anotado en `docs/legal/CAMBIOS_PENDIENTES.md` borrar `actividad_diaria` y `uso_diario`.
+- **Baja de cuenta (5.4):** hoy la supresión se ejecuta a mano; quedó anotado en `docs/LEGAL_CAMBIOS_PENDIENTES.md` borrar `actividad_diaria` y `uso_diario`.
 - **«Otro» en Ver ERP:** pide el detalle con un cuadro del navegador.
 - **Segundo factor opcional (15/11/2026, pedido del dueño):** el panel de plataforma, el modo plataforma, los permisos de plata y sueldos y la transferencia de la organización ya no lo exigen. Quien lo activa en Cuenta → Seguridad lo usa al entrar y lo puede desactivar ahí. Reemplaza la exigencia de las Fases 7.6 y 11.
 - **Cuentas de plataforma:** solo los Super Administradores con correo @kurporc.com quedan limitados al panel; un cliente nunca queda encerrado en él.
@@ -168,7 +168,7 @@ Ver `prisma/migrations/20261114000100_fase15_buzon/migration.sql`: amplía los `
 
 ### 5.4 Privacidad
 
-- No se editan los textos legales versionados. El texto propuesto está en `docs/legal/CAMBIOS_PENDIENTES.md` para el asesor legal (Política 5(e) y Registro, actividad 12).
+- No se editan los textos legales versionados. El texto propuesto está en `docs/LEGAL_CAMBIOS_PENDIENTES.md` para el asesor legal (Política 5(e) y Registro, actividad 12).
 - La baja de cuenta tiene que incluir `uso_diario` junto con `actividad_diaria`.
 
 ---

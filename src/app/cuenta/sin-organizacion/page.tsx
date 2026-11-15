@@ -44,7 +44,6 @@ export default async function SinOrganizacionPage({ searchParams }: { searchPara
           <Link href="/onboarding" className="btn" style={{ height: 34, justifyContent: "center" }}>Tengo un código de empresa</Link>
         </div>
         <div style={{ display: "flex", gap: 14, justifyContent: "center", fontSize: 12, marginTop: 4 }}>
-          <Link href="/cuenta/privacidad">Privacidad</Link>
           <Link href="/cuenta/seguridad">Seguridad</Link>
         </div>
         <BotonSalir />

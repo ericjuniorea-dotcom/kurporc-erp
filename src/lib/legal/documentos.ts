@@ -12,8 +12,8 @@ export const TEXTO_CASILLA =
   "Soy mayor de 18 años y acepto los Términos y Condiciones y la Política de Privacidad de KurPorc.";
 
 export const RUTA_DOCUMENTO: Record<string, string> = {
-  TERMINOS: "/terminos",
-  PRIVACIDAD: "/privacidad",
+  TERMINOS: "/condiciones?doc=terminos",
+  PRIVACIDAD: "/condiciones?doc=privacidad",
 };
 
 export function hashTexto(texto: string): string {
@@ -80,7 +80,8 @@ export async function pendientesPersona(userId: string): Promise<DocumentoVisibl
     const delCodigo = aceptaciones.filter(a => a.codigo === codigo);
     const aceptoEsta = delCodigo.some(a => a.documentoId === vigente.id);
     const aceptoAlguna = delCodigo.length > 0;
-    if (!aceptoEsta && (vigente.requiereReaceptacion || !aceptoAlguna)) pendientes.push(vigente);
+    // Se acepta una sola vez, al crear la cuenta: las versiones nuevas no se vuelven a pedir
+    if (!aceptoEsta && !aceptoAlguna) pendientes.push(vigente);
   }
   return pendientes;
 }
@@ -123,7 +124,7 @@ async function calcularPendientes(userId: string, vigentes: Vigente[]): Promise<
   });
   return Array.from(ultimo.values()).some(v => {
     const delCodigo = aceptaciones.filter(a => a.codigo === v.codigo);
-    return !delCodigo.some(a => a.documentoId === v.id) && (v.requiereReaceptacion || delCodigo.length === 0);
+    return delCodigo.length === 0; // aceptó alguna vez = aceptado (no se vuelve a pedir)
   });
 }
 

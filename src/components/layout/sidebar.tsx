@@ -12,7 +12,7 @@ import {
   IconWheat, IconTruck, IconUsers, IconCalculator,
   IconLayoutDashboard, IconBrandWhatsapp, IconShield,
   IconChartLine, IconLogout, IconDna, IconSettings, IconBuildingStore, IconShoppingCart,
-  IconClipboardCheck, IconMenu2, IconX, IconShieldLock, IconLock, IconUsersGroup,
+  IconClipboardCheck, IconMenu2, IconX, IconShieldLock, IconUsersGroup,
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 
@@ -207,10 +207,6 @@ export function Sidebar({ farmName, permisos, organizacionActiva, membresias, es
           <Link href="/cuenta/seguridad" className={cn("nav-item", pathname === "/cuenta/seguridad" && "active")}>
             <IconShieldLock size={15} style={{ color: "var(--text-muted)", flexShrink: 0 }} aria-hidden />
             <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Seguridad de la cuenta</span>
-          </Link>
-          <Link href="/cuenta/privacidad" className={cn("nav-item", pathname === "/cuenta/privacidad" && "active")}>
-            <IconLock size={15} style={{ color: "var(--text-muted)", flexShrink: 0 }} aria-hidden />
-            <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Privacidad</span>
           </Link>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}

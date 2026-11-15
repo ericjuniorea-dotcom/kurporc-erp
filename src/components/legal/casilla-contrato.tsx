@@ -10,7 +10,7 @@ export function CasillaContrato({ marcada, onChange }: { marcada: boolean; onCha
         Soy mayor de 18 años y acepto los{" "}
         <a href="/terminos" target="_blank" rel="noopener" style={{ color: "var(--text-primary)", textDecoration: "underline" }}>Términos y Condiciones</a>{" "}
         y la{" "}
-        <a href="/privacidad" target="_blank" rel="noopener" style={{ color: "var(--text-primary)", textDecoration: "underline" }}>Política de Privacidad</a>{" "}
+        <a href="/condiciones?doc=privacidad" target="_blank" rel="noopener" style={{ color: "var(--text-primary)", textDecoration: "underline" }}>Política de Privacidad</a>{" "}
         de KurPorc.
       </span>
     </label>

@@ -43,7 +43,7 @@ export function AceptarTerminos({ alAceptar }: { alAceptar: () => void }) {
       <div style={{ fontSize: 13.5, fontWeight: 600 }}>Antes de tu primera compra en el Mercado</div>
       <label style={{ display: "flex", gap: 8, fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 }}>
         <input type="checkbox" checked={ok} onChange={e => setOk(e.target.checked)} style={{ marginTop: 3 }} />
-        <span>Acepto los <a href="/legal/terminos-mercado" target="_blank" rel="noopener noreferrer">Términos del Mercado KurPorc</a>: cada tienda es responsable de lo que vende y KurPorc no cobra ni interviene en el pago.</span>
+        <span>Acepto los <a href="/condiciones?doc=terminos-mercado" target="_blank" rel="noopener noreferrer">Términos del Mercado KurPorc</a>: cada tienda es responsable de lo que vende y KurPorc no cobra ni interviene en el pago.</span>
       </label>
       {error && <div style={{ fontSize: 12.5, color: "var(--danger-text)" }}>{error}</div>}
       <button className="btn btn-primary" style={{ height: 34, alignSelf: "flex-start" }} disabled={!ok || pendiente}

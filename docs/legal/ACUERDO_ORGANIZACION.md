@@ -1,8 +1,8 @@
 ---
 codigo: ACUERDO_ORGANIZACION
-version: "1.1"
+version: "1.2"
 requiere_reaceptacion: false
-resumen_cambios: "Datos de contacto del operador: KurPorc e info@kurporc.com"
+resumen_cambios: "Textos más simples; las condiciones se publican en Condiciones y políticas de KurPorc; los pedidos se hacen por correo"
 titulo: Acuerdo de Uso y Tratamiento de Datos de la Organización
 resumen: |
   - Tu organización es responsable de los datos de funcionarios, clientes y proveedores que carga.
@@ -12,10 +12,6 @@ resumen: |
 ---
 
 # Acuerdo de Uso y Tratamiento de Datos de la Organización
-
-**Versión 1.0**
-
-> Borrador en revisión legal.
 
 Lo acepta, en nombre de la organización, la persona que la registra en KurPorc y declara tener facultades para obligarla.
 

@@ -1,8 +1,8 @@
 ---
 codigo: TERMINOS
-version: "1.1"
+version: "1.2"
 requiere_reaceptacion: false
-resumen_cambios: "Datos de contacto del operador: KurPorc e info@kurporc.com"
+resumen_cambios: "Textos más simples; las condiciones se publican en Condiciones y políticas de KurPorc; los pedidos se hacen por correo"
 titulo: Términos y Condiciones de Uso
 resumen: |
   - KurPorc es un sistema para gestionar granjas porcinas y un mercado donde productores y proveedores se contactan.
@@ -11,14 +11,10 @@ resumen: |
   - Sos responsable de tu contraseña y de lo que se haga con tu cuenta.
   - Los cálculos (costos, proyecciones, compras sugeridas) son una ayuda: no reemplazan a tu veterinario ni a tu contador.
   - En el Mercado, la compraventa es entre comprador y vendedor; KurPorc no cobra ni retiene pagos.
-  - Si estos términos cambian de forma importante, te los vamos a pedir aceptar de nuevo.
+  - Si algo cambia, lo publicamos en «Condiciones y políticas de KurPorc».
 ---
 
 # Términos y Condiciones de Uso de KurPorc
-
-**Versión 1.0** · Vigente desde la fecha de publicación indicada en esta página.
-
-> Estos términos son un borrador en revisión legal. Cualquier cambio importante se te va a pedir aceptar de nuevo.
 
 ## 1. Quiénes somos
 
@@ -90,8 +86,8 @@ KurPorc tiene un plan gratuito. Si en el futuro hay planes pagos, sus precios y 
 
 ## 12. Suspensión y baja
 
-1. Podés darte de baja cuando quieras desde "Mi cuenta → Privacidad".
-2. Podemos suspender o dar de baja cuentas u organizaciones que incumplan estos términos o la ley, avisando el motivo salvo que la ley lo impida.
+1. Podés dejar de usar KurPorc cuando quieras. Si querés cerrar tu cuenta, escribinos a {{correo_privacidad}} y lo hacemos por vos.
+2. Si una cuenta u organización usa KurPorc de una forma que daña a otros o va contra la ley, podemos pausarla o cerrarla, y te contamos el motivo.
 
 ## 13. Responsabilidad
 

@@ -1,8 +1,4 @@
-import { PaginaDocumento } from "@/components/legal/pagina-documento";
+// Las condiciones viven en una sola página pública: /condiciones
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Términos y Condiciones · KurPorc", description: "Términos y Condiciones de Uso de KurPorc" };
-
-export default function TerminosPage() {
-  return <PaginaDocumento codigo="TERMINOS" />;
-}
+export default function Terminos() { redirect("/condiciones?doc=terminos"); }

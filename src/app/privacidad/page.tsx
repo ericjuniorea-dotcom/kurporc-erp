@@ -1,8 +1,4 @@
-import { PaginaDocumento } from "@/components/legal/pagina-documento";
+// Las políticas viven en una sola página pública: /condiciones
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Política de Privacidad · KurPorc", description: "Cómo KurPorc trata tus datos personales" };
-
-export default function PrivacidadPage() {
-  return <PaginaDocumento codigo="PRIVACIDAD" />;
-}
+export default function Privacidad() { redirect("/condiciones?doc=privacidad"); }

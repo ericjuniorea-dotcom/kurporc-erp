@@ -262,7 +262,7 @@ export function Asistente({ tipoInicial, perfil, acuerdos }: {
                 style={{ marginTop: 2, width: 16, height: 16, accentColor: "var(--accent)", flexShrink: 0 }} />
               <span>
                 Puedo representar a esta {tipo === "VENDEDOR" ? "tienda" : "organización"} y acepto, en su nombre, las{" "}
-                <a href={tipo === "VENDEDOR" ? "/legal/terminos-vendedor" : "/legal/acuerdo-organizacion"} target="_blank" rel="noopener"
+                <a href={tipo === "VENDEDOR" ? "/condiciones?doc=terminos-vendedor" : "/condiciones?doc=acuerdo-organizacion"} target="_blank" rel="noopener"
                   style={{ color: "var(--text-primary)", textDecoration: "underline" }}>{acuerdo.titulo}</a>.
               </span>
             </label>

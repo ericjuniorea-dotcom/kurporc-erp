@@ -47,7 +47,7 @@ export async function MarcoMercado({ children, q }: { children: React.ReactNode;
       <footer style={{ borderTop: "0.5px solid var(--border-default)", padding: "18px 16px", fontSize: 12, color: "var(--text-muted)", textAlign: "center", lineHeight: 1.7 }}>
         <div>
           <Link href="/vendedor" style={{ color: "inherit" }}><IconBuildingStore size={13} aria-hidden style={{ verticalAlign: -2 }} /> Vendé en KurPorc</Link>
-          {" · "}<Link href="/terminos" style={{ color: "inherit" }}>Términos</Link>{" · "}<Link href="/privacidad" style={{ color: "inherit" }}>Privacidad</Link>
+          {" · "}<Link href="/condiciones" style={{ color: "inherit" }}>Condiciones y políticas</Link>
         </div>
         <div>Comprar y vender es gratis. Cada tienda es responsable de lo que publica. Todas las tiendas aparecen en el mismo orden, sin destacados pagos ni propios.</div>
         <div>Ayuda y sugerencias: <a href={`mailto:${CORREO_SOPORTE}`} style={{ color: "inherit" }}>{CORREO_SOPORTE}</a> · Información: <a href={`mailto:${CORREO_INFO}`} style={{ color: "inherit" }}>{CORREO_INFO}</a></div>

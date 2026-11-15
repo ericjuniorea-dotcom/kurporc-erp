@@ -1,23 +1,19 @@
 ---
 codigo: PRIVACIDAD
-version: "1.1"
+version: "1.2"
 requiere_reaceptacion: false
-resumen_cambios: "Datos de contacto del operador: KurPorc e info@kurporc.com"
+resumen_cambios: "Textos más simples; las condiciones se publican en Condiciones y políticas de KurPorc; los pedidos se hacen por correo"
 titulo: Política de Privacidad y Tratamiento de Datos
 resumen: |
   - Guardamos los datos de tu cuenta (nombre, correo, foto de Google) y lo que tu organización carga en KurPorc.
   - Los usamos para prestarte el servicio, mantenerlo seguro, darte soporte y mejorarlo.
   - El equipo de KurPorc puede acceder a la información cargada solo para esas finalidades, y cada acceso queda registrado y lo podés ver.
   - No vendemos tus datos.
-  - Podés ver, descargar, corregir o borrar tus datos desde "Mi cuenta → Privacidad". Respondemos en 30 días, gratis.
+  - Si querés ver, corregir o borrar tus datos, escribinos a {{correo_privacidad}} y te ayudamos, sin costo.
   - Si hubiera un incidente que afecte tus datos, te avisamos a vos y a la autoridad dentro de las 72 horas.
 ---
 
 # Política de Privacidad y Tratamiento de Datos de KurPorc
-
-**Versión 1.0** · Vigente desde la fecha de publicación indicada en esta página.
-
-> Esta política es un borrador en revisión legal, redactada conforme a la Ley N° 7593/2025 de Protección de Datos Personales. Cualquier cambio importante se te va a pedir aceptar de nuevo.
 
 ## 1. Responsable del tratamiento
 
@@ -77,7 +73,7 @@ Algunos proveedores procesan datos fuera de Paraguay (por ejemplo, la base de da
 
 ## 7. Cuánto tiempo los guardamos
 
-Mientras tengas cuenta. Si te das de baja, borramos o anonimizamos tus datos, salvo los que la ley nos obliga a conservar (por ejemplo, registros contables y la constancia de aceptación de estos documentos), que se guardan el tiempo que la ley indique.
+Mientras tengas cuenta. Si nos pedís cerrarla, borramos o anonimizamos tus datos, salvo los que la ley nos obliga a conservar (por ejemplo, registros contables y la constancia de aceptación de estos documentos), que se guardan el tiempo que la ley indique.
 
 ## 8. Tus derechos
 
@@ -85,13 +81,13 @@ Tenés derecho a:
 
 - **Acceder** a tus datos y saber cómo los tratamos.
 - **Rectificarlos** si están mal.
-- **Suprimirlos** (darte de baja).
+- **Borrarlos** (cerrar tu cuenta).
 - **Oponerte** a un tratamiento.
 - **Portabilidad:** descargarlos en un formato reutilizable.
 - **Revocar** un consentimiento que hayas dado.
 - **Impugnar** decisiones automatizadas.
 
-Los ejercés desde **"Mi cuenta → Privacidad"** o escribiendo a **{{correo_privacidad}}**. Respondemos **dentro de los 30 días corridos**, sin costo.
+Para cualquiera de estos pedidos, escribinos a **{{correo_privacidad}}**. Te respondemos lo antes posible y sin costo.
 
 También podés presentar una denuncia ante la Agencia Nacional de Protección de Datos Personales.
 

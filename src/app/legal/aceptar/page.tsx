@@ -15,13 +15,10 @@ export default async function AceptarPage({ searchParams }: { searchParams: Prom
   const pendientes = await pendientesPersona(usuario.id);
   if (pendientes.length === 0) redirect(destino);
 
-  const actualizacion = pendientes.some(p => p.version !== "1.0");
   return (
     <MarcoAuth
-      titulo={actualizacion ? "Actualizamos nuestros términos" : "Antes de empezar"}
-      subtitulo={actualizacion
-        ? "Para seguir usando KurPorc, aceptá la versión nueva."
-        : "Para usar KurPorc necesitamos que aceptes nuestros términos."}
+      titulo="Antes de empezar"
+      subtitulo="Un único paso: aceptar nuestras condiciones. No te lo vamos a volver a pedir."
     >
       <FormularioAceptacion destino={destino} documentos={pendientes.map(p => ({ id: p.id, hash: p.hashMostrado, codigo: p.codigo, titulo: p.titulo, version: p.version }))} />
     </MarcoAuth>

@@ -1,6 +1,8 @@
 ---
 codigo: TERMINOS_MERCADO
-version: "1.0"
+version: "1.1"
+requiere_reaceptacion: false
+resumen_cambios: "Textos más simples; las condiciones se publican en Condiciones y políticas de KurPorc; los pedidos se hacen por correo"
 titulo: Condiciones de Compra en el Mercado
 resumen: |
   - El Mercado conecta compradores y vendedores; la compraventa y el pago son entre ellos.
@@ -9,10 +11,6 @@ resumen: |
 ---
 
 # Condiciones de Compra en el Mercado KurPorc
-
-**Versión 1.0**
-
-> Borrador en revisión legal.
 
 1. **Intermediación.** KurPorc acerca a compradores y vendedores. El contrato de compraventa, la entrega y el pago se acuerdan entre comprador y vendedor. En esta versión KurPorc no cobra ni retiene pagos.
 2. **Antes de confirmar.** El comprador revisa la publicación, la cotización, el plazo y el costo de envío antes de confirmar un pedido.

@@ -1,6 +1,8 @@
 ---
 codigo: TERMINOS_VENDEDOR
-version: "1.0"
+version: "1.1"
+requiere_reaceptacion: false
+resumen_cambios: "Textos más simples; las condiciones se publican en Condiciones y políticas de KurPorc; los pedidos se hacen por correo"
 titulo: Condiciones para Vendedores del Mercado
 resumen: |
   - Tu tienda se verifica con RUC y documentos antes de publicar.
@@ -9,10 +11,6 @@ resumen: |
 ---
 
 # Condiciones para Vendedores del Mercado KurPorc
-
-**Versión 1.0**
-
-> Borrador en revisión legal.
 
 1. **Verificación.** La tienda se verifica con RUC y la documentación que se pida antes de poder publicar.
 2. **Veracidad.** El vendedor es responsable de que descripciones, precios, stock, plazos y zonas de entrega sean correctos.
