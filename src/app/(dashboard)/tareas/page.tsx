@@ -1,5 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { FiltrosTareas, agruparTareas, filtrarTareas, type OrdenTareas } from "@/components/tareas/filtros-tareas";
+import type { CategoriaTarea } from "@/lib/tareas/categorias";
 import { useSession, usePermisos } from "@/lib/auth/sesion-cliente";
 import { useRouter }        from "next/navigation";
 import { IconClipboardCheck, IconCheck, IconLoader2, IconRefresh, IconPlus, IconX, IconUserSearch } from "@tabler/icons-react";
@@ -308,7 +310,9 @@ export default function TareasPage() {
 
   const [periodo,    setPeriodo]    = useState("semana");
   const [sector,     setSector]     = useState("");
-  const [responsable, setResponsable] = useState("");
+  const [categoria, setCategoria] = useState<CategoriaTarea | "">("");
+  const [operador, setOperador] = useState("");
+  const [orden, setOrden] = useState<OrdenTareas>("categoria");
   const [tasks,      setTasks]      = useState<Task[]>([]);
   const [kpis,       setKpis]       = useState<Kpis>({ urgente: 0, hoy: 0, programada: 0, completada: 0, sinResp: 0, manana: 0 });
   const [loading,    setLoading]    = useState(true);
@@ -339,7 +343,6 @@ export default function TareasPage() {
     setLoading(true);
     const p = new URLSearchParams({ periodo });
     if (sector)      p.set("sector",      sector);
-    if (responsable) p.set("responsable", responsable);
     fetch(`/api/tareas?${p}`)
       .then(r => r.ok ? r.json() : { tasks: [], kpis: {} })
       .then(d => {
@@ -348,7 +351,7 @@ export default function TareasPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [periodo, sector, responsable]);
+  }, [periodo, sector]);
 
   useEffect(() => { if (status === "authenticated") load(); }, [load, status]);
 
@@ -384,10 +387,8 @@ export default function TareasPage() {
 
   const pending    = tasks.filter(t => !t.fechaCompletada);
   const done       = tasks.filter(t =>  t.fechaCompletada);
-  const urgentes   = pending.filter(t => t.prioridad === "urgente");
-  const hoys       = pending.filter(t => t.prioridad === "hoy");
-  const programadas = pending.filter(t => t.prioridad === "programada");
-  const displayed  = tab === "pendiente" ? pending : done;
+  const displayed  = filtrarTareas(tab === "pendiente" ? pending : done, { categoria, operador });
+  const grupos     = agruparTareas(displayed, orden);
 
   return (
     <>
@@ -454,11 +455,10 @@ export default function TareasPage() {
             {SECTOR_OPTS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
           </select>
 
-          {/* Responsable */}
-          <select value={responsable} onChange={e => setResponsable(e.target.value)} className="kp-input" style={{ fontSize: 11, height: 30 }}>
-            {RESPONSABLE_OPTS.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
-          </select>
         </div>
+
+        <FiltrosTareas tareas={tab === "pendiente" ? pending : done} categoria={categoria} setCategoria={setCategoria}
+          operador={operador} setOperador={setOperador} orden={orden} setOrden={setOrden} />
 
         {/* KPI strip */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 8 }}>
@@ -507,29 +507,13 @@ export default function TareasPage() {
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            {tab === "pendiente" && urgentes.length > 0 && (
-              <GroupHeader label="Vencidas / Urgentes" color="var(--accent)" count={urgentes.length} />
-            )}
-            {tab === "pendiente" && urgentes.map(t => (
-              <TaskCard key={t.id} task={t} completing={completing} onToggle={toggleComplete} onReasignar={setReasignTask} canAdmin={canAdmin} />
-            ))}
-
-            {tab === "pendiente" && hoys.length > 0 && (
-              <GroupHeader label="Para hoy" color="var(--warning)" count={hoys.length} />
-            )}
-            {tab === "pendiente" && hoys.map(t => (
-              <TaskCard key={t.id} task={t} completing={completing} onToggle={toggleComplete} onReasignar={setReasignTask} canAdmin={canAdmin} />
-            ))}
-
-            {tab === "pendiente" && programadas.length > 0 && (
-              <GroupHeader label="Próximas" color="var(--info)" count={programadas.length} />
-            )}
-            {tab === "pendiente" && programadas.map(t => (
-              <TaskCard key={t.id} task={t} completing={completing} onToggle={toggleComplete} onReasignar={setReasignTask} canAdmin={canAdmin} />
-            ))}
-
-            {tab === "completada" && done.map(t => (
-              <TaskCard key={t.id} task={t} completing={completing} onToggle={toggleComplete} onReasignar={setReasignTask} canAdmin={canAdmin} />
+            {grupos.map(g => (
+              <div key={g.clave} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {g.etiqueta && <GroupHeader label={g.etiqueta} color={g.color} count={g.tareas.length} />}
+                {g.tareas.map(t => (
+                  <TaskCard key={t.id} task={t} completing={completing} onToggle={toggleComplete} onReasignar={setReasignTask} canAdmin={canAdmin} />
+                ))}
+              </div>
             ))}
           </div>
         )}

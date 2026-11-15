@@ -33,6 +33,7 @@
     "prueba:bajas": "ts-node --transpile-only -r tsconfig-paths/register -P scripts/tsconfig.json scripts/pruebas/bajas.ts",
     "prueba:modulos": "ts-node --transpile-only -r tsconfig-paths/register -P scripts/tsconfig.json scripts/pruebas/modulos.ts",
     "prueba:proximas-vacunas": "ts-node --transpile-only -r tsconfig-paths/register -P scripts/tsconfig.json scripts/pruebas/proximas_vacunas.ts",
+    "prueba:categorias-tareas": "ts-node --transpile-only -r tsconfig-paths/register -P scripts/tsconfig.json scripts/pruebas/categorias_tareas.ts",
     "prueba:salud": "ts-node --transpile-only -r tsconfig-paths/register -P scripts/tsconfig.json scripts/pruebas/salud.ts",
     "auditoria:granja": "ts-node --transpile-only -r tsconfig-paths/register -P scripts/tsconfig.json scripts/auditoria_granja.ts",
     "db:importar-paquete": "ts-node --transpile-only -r tsconfig-paths/register -P scripts/tsconfig.json scripts/importar_granja_paquete.ts",

@@ -90,6 +90,8 @@ jobs:
         run: npm run prueba:modulos
       - name: Semáforo de salud del cliente (Fase 15)
         run: npm run prueba:salud
+      - name: Categorías de las órdenes de trabajo
+        run: npm run prueba:categorias-tareas
       - name: Próximas vacunas de una cerda según el protocolo
         run: npm run prueba:proximas-vacunas
       - name: Cerdas dadas de baja fuera de Maternidad y de la agenda

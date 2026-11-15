@@ -2,6 +2,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { IconCheck, IconLoader2, IconListCheck, IconChevronRight, IconPlus, IconX } from "@tabler/icons-react";
 import Link from "next/link";
+import { FiltrosTareas, agruparTareas, filtrarTareas } from "@/components/tareas/filtros-tareas";
+import type { CategoriaTarea } from "@/lib/tareas/categorias";
 
 interface Task {
   id:                string;
@@ -74,6 +76,8 @@ export function TareasModuloPanel({ sector, accentColor = "var(--text-primary)" 
     const d = new Date(); return d.toISOString().slice(0, 10);
   });
   const [saving,         setSaving]         = useState(false);
+  const [categoria,      setCategoria]      = useState<CategoriaTarea | "">("");
+  const [operador,       setOperador]       = useState("");
 
   const load = useCallback(() => {
     setLoading(true);
@@ -118,10 +122,8 @@ export function TareasModuloPanel({ sector, accentColor = "var(--text-primary)" 
 
   const pending    = tasks.filter(t => !t.fechaCompletada);
   const done       = tasks.filter(t =>  t.fechaCompletada);
-  const urgente    = pending.filter(t => t.prioridad === "urgente");
-  const hoy        = pending.filter(t => t.prioridad === "hoy");
-  const programada = pending.filter(t => t.prioridad === "programada");
-  const totalPending = urgente.length + hoy.length;
+  const totalPending = pending.filter(t => t.prioridad === "urgente" || t.prioridad === "hoy").length;
+  const grupos     = agruparTareas(filtrarTareas(pending, { categoria, operador }), "categoria");
 
   return (
     <div style={{
@@ -208,21 +210,23 @@ export function TareasModuloPanel({ sector, accentColor = "var(--text-primary)" 
             </div>
           ) : (
             <>
-              {urgente.map(t => (
-                <TaskRow key={t.id} task={t} completing={completing} onToggle={toggleComplete} />
-              ))}
-              {hoy.map(t => (
-                <TaskRow key={t.id} task={t} completing={completing} onToggle={toggleComplete} />
-              ))}
-              {programada.length > 0 && (
-                <>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)", marginTop: 6, marginBottom: 1, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                    Próximos 7 días
+              {pending.length > 0 && (
+                <div style={{ marginBottom: 4 }}>
+                  <FiltrosTareas compacto tareas={pending} categoria={categoria} setCategoria={setCategoria} operador={operador} setOperador={setOperador} />
+                </div>
+              )}
+              {grupos.map(g => (
+                <div key={g.clave} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 9.5, fontWeight: 700, color: "var(--text-muted)", marginTop: 6, textTransform: "uppercase", letterSpacing: "0.07em" }}>
+                    <span aria-hidden style={{ width: 7, height: 7, borderRadius: 99, background: g.color }} />{g.etiqueta} ({g.tareas.length})
                   </div>
-                  {programada.map(t => (
+                  {g.tareas.map(t => (
                     <TaskRow key={t.id} task={t} completing={completing} onToggle={toggleComplete} />
                   ))}
-                </>
+                </div>
+              ))}
+              {pending.length > 0 && grupos.length === 0 && (
+                <div style={{ padding: "10px 0", textAlign: "center", fontSize: 11, color: "var(--text-muted)" }}>No hay tareas con estos filtros.</div>
               )}
               {done.length > 0 && (
                 <>
