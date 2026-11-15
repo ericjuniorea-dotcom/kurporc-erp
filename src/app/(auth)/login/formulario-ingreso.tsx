@@ -52,9 +52,11 @@ export function FormularioIngreso() {
     setError(null);
     iniciar(async () => {
       const clave = String(form.get("clave") ?? "");
-      const r = modo === "correo"
-        ? await ingresarConCorreo({ email: String(form.get("email") ?? ""), clave, next, captcha: captcha ?? undefined })
-        : await ingresarConUsuario({ usuario: String(form.get("usuario") ?? ""), codigo: String(form.get("codigo") ?? ""), clave, next, captcha: captcha ?? undefined });
+      // Si KurPorc se publicó de nuevo con esta página abierta, la acción vieja ya no existe: avisar en vez de romper
+      const r = await (modo === "correo"
+        ? ingresarConCorreo({ email: String(form.get("email") ?? ""), clave, next, captcha: captcha ?? undefined })
+        : ingresarConUsuario({ usuario: String(form.get("usuario") ?? ""), codigo: String(form.get("codigo") ?? ""), clave, next, captcha: captcha ?? undefined })
+      ).catch(() => ({ ok: false as const, error: "KurPorc se actualizó mientras tenías esta página abierta. Recargá la página (F5) y volvé a ingresar.", destino: undefined }));
       if (r.ok) window.location.href = r.destino ?? "/dashboard";
       else { setError(r.error); setIntento(i => i + 1); } // cada token sirve una sola vez
     });
