@@ -46,6 +46,7 @@ interface Movimiento {
   numeroLote: string | null;
   usuario: string | null;
   nota: string | null;
+  valorGs: number | null;
 }
 
 const CATEGORIA_LABEL: Record<string, string> = {
@@ -323,7 +324,7 @@ export default function InventarioPage() {
                 <thead>
                   <tr>
                     <th>Fecha</th><th>Producto</th><th>Tipo</th><th>Origen</th>
-                    <th style={{ textAlign: "right" }}>Cantidad</th><th>Lote</th><th>Quién</th>
+                    <th style={{ textAlign: "right" }}>Cantidad</th><th style={{ textAlign: "right" }}>Valor</th><th>Lote</th><th>Quién</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -336,6 +337,7 @@ export default function InventarioPage() {
                       <td style={{ textAlign: "right", fontSize: 11, fontVariantNumeric: "tabular-nums" }}>
                         {m.tipo === "SALIDA" ? "-" : "+"}{m.cantidad} {UNIDAD_LABEL[m.producto.unidadMedida] ?? ""}
                       </td>
+                      <td style={{ textAlign: "right", fontSize: 11, fontVariantNumeric: "tabular-nums" }}>{fmtGs(m.valorGs)}</td>
                       <td style={{ fontSize: 11, color: "var(--text-muted)" }}>{m.numeroLote ?? "—"}</td>
                       <td style={{ fontSize: 11 }} title={m.nota ?? undefined}>{m.usuario ?? "—"}{m.nota ? <span style={{ color: "var(--text-muted)" }}> · {m.nota}</span> : null}</td>
                     </tr>

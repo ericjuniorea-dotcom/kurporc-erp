@@ -43,7 +43,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
       data: { cantidadActual: { decrement: dosisAplicadas }, abierto: true },
     });
     await prisma.movimientoInventario.create({
-      data: { tenantId, productoId: evento.vacunaId, loteId: loteVacunaId, tipo: "SALIDA", cantidad: dosisAplicadas, origen: "VACUNACION", referenciaId: evento.id },
+      data: { tenantId, productoId: evento.vacunaId, loteId: loteVacunaId, tipo: "SALIDA", cantidad: dosisAplicadas, origen: "VACUNACION", referenciaId: evento.id, usuarioId: session.user.id, nota: responsable ? `Aplicó: ${responsable}` : null },
     });
   }
 

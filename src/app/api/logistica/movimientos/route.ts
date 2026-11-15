@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     where: { tenantId, ...(productoId ? { productoId } : {}) },
     include: {
       producto: { select: { nombre: true, codigo: true, categoria: true, unidadMedida: true } },
-      lote:     { select: { numeroLote: true } },
+      lote:     { select: { numeroLote: true, costoUnitario: true } },
     },
     orderBy: { fecha: "desc" },
     take: 200,
@@ -33,6 +33,7 @@ export async function GET(req: NextRequest) {
     producto: m.producto,
     numeroLote: m.lote?.numeroLote ?? null,
     usuario: m.usuarioId ? nombres.get(m.usuarioId) ?? "—" : null,
+    valorGs: m.lote?.costoUnitario ? Math.round(Math.abs(Number(m.cantidad)) * Number(m.lote.costoUnitario)) : null,
     nota: m.nota,
   })));
 }

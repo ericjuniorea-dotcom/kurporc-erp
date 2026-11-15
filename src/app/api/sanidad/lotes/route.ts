@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     include: { vacuna: { select: { nombre: true } } },
   });
   await prisma.movimientoInventario.create({
-    data: { tenantId, productoId: vacunaId, loteId: lote.id, tipo: "ENTRADA", cantidad, origen: "COMPRA", referenciaId: lote.id },
+    data: { tenantId, productoId: vacunaId, loteId: lote.id, tipo: "ENTRADA", cantidad, origen: "COMPRA", referenciaId: lote.id, usuarioId: session.user.id },
   });
   invalidateInventario(tenantId);
 

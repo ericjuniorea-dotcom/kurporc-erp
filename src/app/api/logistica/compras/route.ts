@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       });
 
   await prisma.movimientoInventario.create({
-    data: { tenantId, productoId, loteId: lote.id, tipo: "ENTRADA", cantidad, origen: "COMPRA", referenciaId: lote.id },
+    data: { tenantId, productoId, loteId: lote.id, tipo: "ENTRADA", cantidad, origen: "COMPRA", referenciaId: lote.id, usuarioId: session.user.id },
   });
   invalidateInventario(tenantId);
 

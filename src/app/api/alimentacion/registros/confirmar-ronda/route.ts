@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
       await tx.movimientoInventario.createMany({
         data: movimientos.map(m => ({
           tenantId, productoId: m.productoId, loteId: m.loteId,
-          tipo: "SALIDA" as const, cantidad: m.cantidad, origen: "ALIMENTACION" as const, referenciaId: rondaId,
+          tipo: "SALIDA" as const, cantidad: m.cantidad, origen: "ALIMENTACION" as const, referenciaId: rondaId, usuarioId: session.user.id,
         })),
       });
     }

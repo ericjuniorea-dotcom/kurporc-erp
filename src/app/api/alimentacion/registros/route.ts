@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
         data: { cantidadActual: { decrement: descuento } },
       });
       await prisma.movimientoInventario.create({
-        data: { tenantId, productoId: feedType.productoBalanceadoId, loteId: lote.id, tipo: "SALIDA", cantidad: descuento, origen: "ALIMENTACION", referenciaId: record.id },
+        data: { tenantId, productoId: feedType.productoBalanceadoId, loteId: lote.id, tipo: "SALIDA", cantidad: descuento, origen: "ALIMENTACION", referenciaId: record.id, usuarioId: session.user.id },
       });
       restante -= descuento;
     }

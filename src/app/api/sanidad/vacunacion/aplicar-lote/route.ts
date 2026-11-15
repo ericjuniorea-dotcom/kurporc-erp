@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
       },
     });
     await tx.movimientoInventario.create({
-      data: { tenantId, productoId: vacuna.id, loteId: lote.id, tipo: "SALIDA", cantidad: dosisTotales, origen: "VACUNACION", referenciaId: grupoAplicacionId },
+      data: { tenantId, productoId: vacuna.id, loteId: lote.id, tipo: "SALIDA", cantidad: dosisTotales, origen: "VACUNACION", referenciaId: grupoAplicacionId, usuarioId: userId },
     });
 
     await tx.aplicacionVacuna.createMany({

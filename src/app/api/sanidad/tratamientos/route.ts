@@ -4,6 +4,9 @@ import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { addDays } from "@/lib/utils";
 import { getPermisos, puede } from "@/lib/permisos/servidor";
+import { conActor } from "@/lib/db/actor";
+import { descontarStock } from "@/lib/inventario/descontar";
+import { invalidateInventario } from "@/lib/cache";
 
 const DIAGNOSIS_TYPES = ["DIARRHEA", "ARTHRITIS", "PNEUMONIA", "OTHER"];
 const ESTADOS = ["ACTIVO", "EN_SEGUIMIENTO", "FINALIZADO", "ABANDONADO"];
@@ -121,7 +124,19 @@ export async function POST(req: NextRequest) {
     }).catch(() => {});
   }
 
-  return NextResponse.json(treatment, { status: 201 });
+  // Descuento del inventario: dosis × animales × días, del producto con el mismo nombre (primero el lote que vence antes)
+  let aviso: string | null = null;
+  const med = await prisma.medicine.findFirst({ where: { id: medicineId, tenantId }, select: { name: true } });
+  const prod = med ? await prisma.productoInventario.findFirst({ where: { tenantId, isActive: true, nombre: { equals: med.name, mode: "insensitive" } }, select: { id: true, unidadMedida: true } }) : null;
+  const total = Number(doseMl) * Number(animalsAffected) * Number(treatmentDays ?? 1);
+  if (prod && total > 0) {
+    const r = await conActor(userId, tx => descontarStock(tx, { tenantId, productoId: prod.id, cantidad: total, origen: "TRATAMIENTO", referenciaId: treatment.id, usuarioId: userId,
+      nota: `Tratamiento${sowCaravana ? ` cerda ${sowCaravana}` : ""}: ${doseMl} ml × ${animalsAffected} × ${treatmentDays ?? 1} día(s)` }));
+    invalidateInventario(tenantId);
+    if (r.faltante > 0) aviso = `En el inventario faltaron ${r.faltante.toLocaleString("es-PY")} ml de ${med!.name}: se descontó lo que había.`;
+  }
+
+  return NextResponse.json({ ...treatment, aviso }, { status: 201 });
 }
 
 export async function PATCH(req: NextRequest) {

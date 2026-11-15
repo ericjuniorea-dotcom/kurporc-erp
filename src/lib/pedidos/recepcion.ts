@@ -78,7 +78,7 @@ export async function ejecutarRecepcion(org: string, userId: string, d: DatosRec
       const lote = existente
         ? await tx.loteInventario.update({ where: { id: existente.id }, data: { cantidadActual: { increment: l.r.cantidadStock }, cantidadInicial: { increment: l.r.cantidadStock }, costoUnitario } })
         : await tx.loteInventario.create({ data: { tenantId: org, vacunaId: l.prod.id, numeroLote, fechaVencimiento: venc, fechaIngreso: fecha, cantidadInicial: l.r.cantidadStock, cantidadActual: l.r.cantidadStock, costoUnitario, proveedor, observaciones: `Pedido ${p.numero}` } });
-      await tx.movimientoInventario.create({ data: { tenantId: org, productoId: l.prod.id, loteId: lote.id, tipo: "ENTRADA", cantidad: l.r.cantidadStock, origen: "COMPRA", referenciaId: p.id, fecha } });
+      await tx.movimientoInventario.create({ data: { tenantId: org, productoId: l.prod.id, loteId: lote.id, tipo: "ENTRADA", cantidad: l.r.cantidadStock, origen: "COMPRA", referenciaId: p.id, fecha, usuarioId: userId } });
       if (l.it.productoCatalogoId) {
         await tx.stockItemCatalogo.upsert({ where: { organizacionId_stockItemId: { organizacionId: org, stockItemId: l.prod.id } }, create: { organizacionId: org, stockItemId: l.prod.id, productoCatalogoId: l.it.productoCatalogoId }, update: { productoCatalogoId: l.it.productoCatalogoId } });
       }

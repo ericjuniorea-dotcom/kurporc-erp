@@ -105,6 +105,8 @@ export function PanelTratamientos() {
         setError(d.error ?? "Error al guardar");
         return;
       }
+      const guardado = await res.json().catch(() => ({}));
+      if (guardado?.aviso) window.alert(`Tratamiento guardado. ${guardado.aviso}`);
       setShowForm(false);
       setSow(null); setMedicineId(""); setMotivoClinico(""); setDoseMl("");
       setAnimalsAffected("1"); setWithdrawalDays("0"); setStartDate(todayIso());

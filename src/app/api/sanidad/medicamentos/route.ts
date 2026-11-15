@@ -11,6 +11,15 @@ export async function GET() {
   if (!puedeAlguno(await getPermisos(), ["sanidad.botiquin.ver", "stock.items.ver", "sanidad.aplicaciones.ver", "sanidad.tratamientos.ver"])) return NextResponse.json({ error: "No tenés permiso para ver esto" }, { status: 403 });
   const { tenantId } = session.user;
 
+  // Un solo catálogo: cada Medicamento o Suplemento del Inventario tiene su par para tratamientos (se crea solo)
+  const [productos, existentes] = await Promise.all([
+    prisma.productoInventario.findMany({ where: { tenantId, isActive: true, categoria: { in: ["MEDICAMENTO", "SUPLEMENTO"] } }, select: { nombre: true, enfermedad: true } }),
+    prisma.medicine.findMany({ where: { tenantId }, select: { name: true } }),
+  ]);
+  const ya = new Set(existentes.map(m => m.name.trim().toLowerCase()));
+  const faltan = productos.filter(p => !ya.has(p.nombre.trim().toLowerCase()));
+  if (faltan.length) await prisma.medicine.createMany({ data: faltan.map(p => ({ tenantId, name: p.nombre, activeIngredient: p.enfermedad || null })) });
+
   const medicamentos = await prisma.medicine.findMany({
     where:   { tenantId, isActive: true },
     orderBy: { name: "asc" },
