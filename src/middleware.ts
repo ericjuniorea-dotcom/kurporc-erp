@@ -106,8 +106,10 @@ export async function middleware(req: NextRequest) {
 
   // Modo plataforma (Fase 11, "Ver todo"): solo lectura. Toda escritura fuera del panel y de la
   // salida se rechaza acá, antes de llegar a cualquier API o acción de servidor.
+  // Ingresar, registrarse y recuperar la clave siempre se permiten: la cookie puede quedar de una sesión anterior.
   if (req.cookies.has("kp_plataforma") && !["GET", "HEAD", "OPTIONS"].includes(req.method)
-    && !pathname.startsWith("/admin") && !pathname.startsWith("/auth/")) {
+    && !pathname.startsWith("/admin") && !pathname.startsWith("/auth/")
+    && !["/login", "/registro", "/recuperar"].some(p => pathname === p || pathname.startsWith(`${p}/`))) {
     return NextResponse.json({ error: "Modo plataforma: solo lectura. Salí del modo para hacer cambios." }, { status: 403 });
   }
 

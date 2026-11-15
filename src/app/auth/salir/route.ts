@@ -17,5 +17,6 @@ export async function POST(request: NextRequest) {
   }
   const res = new NextResponse(null, { status: 204 });
   res.cookies.delete("kp_org");
+  res.cookies.set("kp_plataforma", "", { path: "/", maxAge: 0 }); // el modo «Ver ERP» termina con la sesión
   return res;
 }

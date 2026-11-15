@@ -3,7 +3,7 @@
 // aplicar el límite de intentos (Fase 2.3) y dejar auditoría. Google entra por
 // /auth/callback.
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { z } from "zod";
 import prisma from "@/lib/db/prisma";
 import { createClient } from "@/lib/supabase/server";
@@ -66,6 +66,8 @@ async function ingresar(email: string, clave: string, next: string | null, metod
   }
 
   await limpiarIntentos("ingresoFallido", claveLimite);
+  // Un ingreso nuevo nunca arrastra el modo «Ver ERP» de una sesión anterior
+  (await cookies()).set("kp_plataforma", "", { path: "/", maxAge: 0 });
   const u = await prisma.user.findUnique({ where: { authUserId: data.user.id }, select: { id: true, tenantId: true, isActive: true } });
   if (u && !u.isActive) {
     await supabase.auth.signOut();
