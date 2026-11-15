@@ -84,7 +84,7 @@ export interface AppSession {
 const PERMISOS_PLATAFORMA = CATALOGO_PERMISOS.filter(p => p.accion.startsWith("ver") && p.clave !== "rrhh.datos_personales.ver").map(p => ({ permisoClave: p.clave }));
 
 async function sesionPlataforma(usuario: UsuarioSesion & { aal: string | null }): Promise<AppSession | null> {
-  if (!usuario.esSuperadmin || usuario.aal !== "aal2") return null;
+  if (!usuario.esSuperadmin) return null;
   const modo = await leerModoPlataforma(usuario.id);
   if (!modo) return null;
   const [admin, org] = await Promise.all([

@@ -26,7 +26,8 @@ export const getAdmin = cache(async () => {
   if (!usuario?.esSuperadmin) return null;
   const a = await prisma.adminPlataforma.findUnique({ where: { userId: usuario.id }, select: { nivel: true } });
   if (!a) return null;
-  return { usuario, nivel: a.nivel as NivelAdmin, verificado: usuario.aal === "aal2" };
+  // El segundo factor es opcional: el panel ya no lo exige (verificado = sesión válida)
+  return { usuario, nivel: a.nivel as NivelAdmin, verificado: true };
 });
 
 /** Para páginas de /admin: un usuario común recibe 404 (no se revela que el panel existe). */

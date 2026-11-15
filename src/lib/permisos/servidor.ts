@@ -39,11 +39,8 @@ export const getPermisos = cache(async (): Promise<Permisos | null> => {
   // getSession ya trajo la membresía activa con todo lo necesario: no hace falta otra consulta
   const m = miembroActivo().valor as MiembroParaPermisos | null;
   const p = m ? calcularPermisos(m, session.user.tenantId) : await permisosDeMiembro(session.user.id, session.user.tenantId);
-  if (!p || session.aal === "aal2") return p;
-  const sensibles = Array.from(p.claves).filter(requiereSegundoFactor);
-  if (p.esPropietario) return { ...p, bloqueadosPorSegundoFactor: sensibles }; // solo aviso: nunca dejar afuera al dueño
-  for (const c of sensibles) p.claves.delete(c);
-  return { ...p, bloqueadosPorSegundoFactor: sensibles };
+  // El segundo factor es opcional: los permisos sensibles ya no quedan en pausa sin él
+  return p;
 });
 
 type MiembroParaPermisos = {

@@ -103,7 +103,6 @@ export async function transferirPropiedad(miembroId: string, confirmacion: strin
     const session = await getSession();
     if (!session) throw new ErrorPermiso("equipo.propiedad.transferir");
     if (!permisos.esPropietario) throw new ErrorPermiso("equipo.propiedad.transferir");
-    if (session.aal !== "aal2") throw new Error("•Para transferir la organización necesitás tener activado el segundo factor y haberlo verificado en esta sesión (Cuenta → Seguridad).");
     const o = permisos.organizacionId;
     const org = await prisma.tenant.findUnique({ where: { id: o }, select: { farmName: true } });
     if (!org || confirmacion.trim().toLowerCase() !== org.farmName.trim().toLowerCase()) throw new Error("•Escribí el nombre exacto de la organización para confirmar.");
