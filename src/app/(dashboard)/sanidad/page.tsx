@@ -6,8 +6,10 @@ import {
   IconLoader2, IconRefresh, IconMedicalCross, IconPackage,
   IconPlus, IconDatabase, IconChevronUp,
   IconArrowLeft, IconVaccine, IconScissors,
-  IconStethoscope, IconMicroscope, IconFlame,
+  IconStethoscope, IconMicroscope, IconFlame, IconWheat,
 } from "@tabler/icons-react";
+import { usePermisos } from "@/lib/auth/sesion-cliente";
+import { PanelNutricion } from "@/components/nutricion/panel-nutricion";
 import { VisionGeneralSanidad } from "@/components/sanidad/vision-general-sanidad";
 import { PanelMaternidadSanidad } from "@/components/sanidad/panel-maternidad";
 import { PanelTratamientos } from "@/components/sanidad/panel-tratamientos";
@@ -281,6 +283,12 @@ export default function SanidadPage() {
   const [categoria, setCategoria] = useState<string | null>(null);
   const [tab,       setTab]       = useState<string>("vision");
   const [ingresoTab, setIngresoTab] = useState<string>("vacunacion");
+  const { alguno } = usePermisos();
+  // ?categoria=nutricion (la dirección vieja /alimentacion llega acá)
+  useEffect(() => {
+    const c = new URLSearchParams(window.location.search).get("categoria");
+    if (c) setCategoria(c);
+  }, []);
 
   const [vacunas,   setVacunas]   = useState<VacunaItem[]>([]);
   const [lotes,     setLotes]     = useState<LoteItem[]>([]);
@@ -392,8 +400,11 @@ export default function SanidadPage() {
     [eventos],
   );
 
+  const verSanidad = alguno(["sanidad.aplicaciones.ver"]);
+  const verNutricion = alguno(["alimentacion.consumos.ver"]);
   const CATEGORIAS = [
     { key: "vacunacion",   label: "Vacunación",             icon: IconVaccine,     color: "var(--info)",    sub: "Protocolo, lotes y aplicación",                                    contador: pendientesVacunacion },
+    { key: "nutricion",    label: "Nutrición",              icon: IconWheat,       color: "var(--warning)", sub: "Balanceado del día por módulo y por hembra lactante, plan de alimentación" },
     { key: "maternidad",   label: "Sanidad de maternidad",  icon: IconScissors,    color: "#e0785c",         sub: "Descolmillado, corte de cola, corte de ombligo, hierro, castración" },
     { key: "tratamientos", label: "Tratamientos clínicos",  icon: IconStethoscope, color: "#8b5cf6",         sub: "Diagnóstico, medicamento y período de retiro" },
     { key: "necropsias",   label: "Necropsias / bajas",     icon: IconMicroscope, color: "var(--text-muted)", sub: "Registro de mortalidad con causa sanitaria" },
@@ -407,11 +418,11 @@ export default function SanidadPage() {
         <Topbar title="Sanidad y Nutrición" icon={IconShield} iconColor="var(--info)" />
         <div style={{ padding: "20px 24px" }}>
           <div style={{ marginBottom: 18 }}>
-            <h1 style={{ fontSize: 18, fontWeight: 500, color: "var(--text-primary)", margin: 0 }}>Sanidad</h1>
+            <h1 style={{ fontSize: 18, fontWeight: 500, color: "var(--text-primary)", margin: 0 }}>Sanidad y Nutrición</h1>
             <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "4px 0 0" }}>Elegí una categoría para ver el detalle.</p>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 14 }}>
-            {CATEGORIAS.map(c => (
+            {CATEGORIAS.filter(c => c.key === "nutricion" ? verNutricion : verSanidad).map(c => (
               <button
                 key={c.key}
                 onClick={() => setCategoria(c.key)}
@@ -456,6 +467,7 @@ export default function SanidadPage() {
             <cat.icon size={18} style={{ color: cat.color }} />
             <span style={{ fontSize: 15, fontWeight: 600, color: "var(--text-primary)" }}>{cat.label}</span>
           </div>
+          {categoria === "nutricion"    && <PanelNutricion />}
           {categoria === "maternidad"   && <PanelMaternidadSanidad />}
           {categoria === "tratamientos" && <PanelTratamientos />}
           {categoria === "necropsias"   && <PanelNecropsias />}
@@ -476,7 +488,6 @@ export default function SanidadPage() {
         onTabChange={setTab}
         actions={
           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            <a href="/alimentacion" className="btn" style={{ fontSize: 11.5, height: 30, textDecoration: "none" }} title="Carga diaria de balanceado y plan de alimentación">Nutrición →</a>
             <button className="btn" onClick={() => setCategoria(null)} style={{ fontSize: 11, height: 30 }}>
               <IconArrowLeft size={12} /> Categorías
             </button>

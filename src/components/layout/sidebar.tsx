@@ -9,7 +9,7 @@ import type { Membresia } from "@/lib/auth/config";
 import { SelectorOrganizacion } from "./selector-organizacion";
 import {
   IconHeart, IconHeartPlus, IconBuildingWarehouse,
-  IconWheat, IconTruck, IconUsers, IconCalculator,
+  IconTruck, IconUsers, IconCalculator,
   IconLayoutDashboard, IconBrandWhatsapp, IconShield,
   IconChartLine, IconLogout, IconDna, IconSettings, IconBuildingStore, IconShoppingCart,
   IconClipboardCheck, IconMenu2, IconX, IconShieldLock, IconUsersGroup,
@@ -33,8 +33,7 @@ const NAV_GROUPS = [
       { label: "Maternidad",  href: "/maternidad",  icon: IconHeartPlus,          permiso: "maternidad.partos.ver" },
       { label: "Iniciación",   href: "/recria",      icon: IconBuildingWarehouse,  permiso: "destete.lotes.ver" },
       { label: "Engorde",     href: "/engorde",     icon: IconChartLine,          permiso: "engorde.lotes.ver" },
-      { label: "Sanidad y Nutrición", href: "/sanidad", icon: IconShield,         permiso: "sanidad.aplicaciones.ver" },
-      { label: "Nutrición",   href: "/alimentacion", icon: IconWheat,             permiso: "alimentacion.consumos.ver" },
+      { label: "Sanidad y Nutrición", href: "/sanidad", icon: IconShield,         permiso: "sanidad.aplicaciones.ver|alimentacion.consumos.ver" },
       { label: "Tareas",      href: "/tareas",      icon: IconClipboardCheck,     permiso: "tareas.tareas.ver" },
     ],
   },
@@ -71,7 +70,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ farmName, permisos, organizacionActiva, membresias, esSuperadmin }: SidebarProps) {
-  const tiene = (p: string) => p === "*" || permisos.includes(p);
+  const tiene = (p: string) => p === "*" || p.split("|").some(x => permisos.includes(x));
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
