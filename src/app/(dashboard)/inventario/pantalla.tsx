@@ -8,10 +8,14 @@ import {
   IconExternalLink, IconHistory, IconPackage, IconSearch, IconX,
   IconAlertCircle, IconCoin,
 } from "@tabler/icons-react";
-import { CentralAnalisisLogistica } from "@/components/logistica/central-analisis";
 import { RecepcionesInventario } from "@/components/inventario/recepciones";
 import { NuevoProducto } from "@/components/inventario/nuevo-producto";
 import { eliminarProducto } from "@/app/acciones/inventario";
+import dynamic from "next/dynamic";
+
+// Se bajan recién cuando se abren (la pantalla inicial queda más liviana)
+function Cargando() { return <div className="kp-esqueleto" style={{ height: 220, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" />; }
+const CentralAnalisisLogistica = dynamic(() => import("@/components/logistica/central-analisis").then(m => m.CentralAnalisisLogistica), { loading: () => <Cargando /> });
 
 const ALLOWED = [1, 2, 3, 7];
 

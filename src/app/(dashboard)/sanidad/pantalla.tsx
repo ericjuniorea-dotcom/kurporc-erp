@@ -9,13 +9,17 @@ import {
   IconStethoscope, IconMicroscope, IconFlame, IconWheat,
 } from "@tabler/icons-react";
 import { usePermisos } from "@/lib/auth/sesion-cliente";
-import { PanelNutricion } from "@/components/nutricion/panel-nutricion";
 import { VisionGeneralSanidad } from "@/components/sanidad/vision-general-sanidad";
-import { PanelMaternidadSanidad } from "@/components/sanidad/panel-maternidad";
-import { PanelTratamientos } from "@/components/sanidad/panel-tratamientos";
-import { PanelNecropsias } from "@/components/sanidad/panel-necropsias";
-import { PanelBrotes } from "@/components/sanidad/panel-brotes";
-import { CentralAnalisisSanidad } from "@/components/sanidad/central-analisis";
+import dynamic from "next/dynamic";
+
+// Se bajan recién cuando se abren (la pantalla inicial queda más liviana)
+function Cargando() { return <div className="kp-esqueleto" style={{ height: 220, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" />; }
+const PanelNutricion = dynamic(() => import("@/components/nutricion/panel-nutricion").then(m => m.PanelNutricion), { loading: () => <Cargando /> });
+const PanelMaternidadSanidad = dynamic(() => import("@/components/sanidad/panel-maternidad").then(m => m.PanelMaternidadSanidad), { loading: () => <Cargando /> });
+const PanelTratamientos = dynamic(() => import("@/components/sanidad/panel-tratamientos").then(m => m.PanelTratamientos), { loading: () => <Cargando /> });
+const PanelNecropsias = dynamic(() => import("@/components/sanidad/panel-necropsias").then(m => m.PanelNecropsias), { loading: () => <Cargando /> });
+const PanelBrotes = dynamic(() => import("@/components/sanidad/panel-brotes").then(m => m.PanelBrotes), { loading: () => <Cargando /> });
+const CentralAnalisisSanidad = dynamic(() => import("@/components/sanidad/central-analisis").then(m => m.CentralAnalisisSanidad), { loading: () => <Cargando /> });
 
 /* ─── Tipos ──────────────────────────────────────────────────────── */
 

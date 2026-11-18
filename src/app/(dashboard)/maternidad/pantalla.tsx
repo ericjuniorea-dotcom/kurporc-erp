@@ -5,11 +5,15 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ListaMaternidad }           from "@/components/maternidad/lista-maternidad";
 import { VisionGeneralMaternidad }   from "@/components/maternidad/vision-general";
-import { CentralAnalisisMaternidad } from "@/components/maternidad/central-analisis";
 import { IngresosDatos }             from "@/components/maternidad/ingreso-datos";
 import { TareasModuloPanel }         from "@/components/shared/tareas-modulo-panel";
 import { Topbar }                    from "@/components/layout/topbar";
 import { IconHeartPlus }             from "@tabler/icons-react";
+import dynamic from "next/dynamic";
+
+// Se bajan recién cuando se abren (la pantalla inicial queda más liviana)
+function Cargando() { return <div className="kp-esqueleto" style={{ height: 220, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" />; }
+const CentralAnalisisMaternidad = dynamic(() => import("@/components/maternidad/central-analisis").then(m => m.CentralAnalisisMaternidad), { loading: () => <Cargando /> });
 
 const ALLOWED      = [1, 2, 3, 4, 5, 10];
 const CAN_REGISTER = [1, 2, 3, 4, 5, 10, 13];

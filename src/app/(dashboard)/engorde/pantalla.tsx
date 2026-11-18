@@ -16,10 +16,14 @@ import { TabLotes }          from "@/components/engorde/datos/TabLotes";
 import { TabMuertes }        from "@/components/engorde/datos/TabMuertes";
 import { TabPesajes }        from "@/components/engorde/datos/TabPesajes";
 import { TabVentas }         from "@/components/engorde/datos/TabVentas";
-import { TabTransferencias } from "@/components/engorde/datos/TabTransferencias";
 import { TabOtrasSalidas }   from "@/components/engorde/datos/TabOtrasSalidas";
-import { CentralAnalisisEngorde } from "@/components/engorde/analisis/CentralAnalisis";
 import { TareasModuloPanel }      from "@/components/shared/tareas-modulo-panel";
+import dynamic from "next/dynamic";
+
+// Se bajan recién cuando se abren (la pantalla inicial queda más liviana)
+function Cargando() { return <div className="kp-esqueleto" style={{ height: 220, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" />; }
+const TabTransferencias = dynamic(() => import("@/components/engorde/datos/TabTransferencias").then(m => m.TabTransferencias), { loading: () => <Cargando /> });
+const CentralAnalisisEngorde = dynamic(() => import("@/components/engorde/analisis/CentralAnalisis").then(m => m.CentralAnalisisEngorde), { loading: () => <Cargando /> });
 
 const ALLOWED = [1, 2, 3, 4, 5];
 

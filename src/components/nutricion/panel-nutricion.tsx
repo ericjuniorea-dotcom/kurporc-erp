@@ -4,10 +4,14 @@
 import { useState } from "react";
 import { usePermisos } from "@/lib/auth/sesion-cliente";
 import { CargaDiaNutricion } from "@/components/nutricion/carga-dia";
-import { PlanAlimentacion } from "@/components/nutricion/plan-alimentacion";
-import { ConsumoPeriodo } from "@/components/nutricion/consumo-periodo";
-import { CentralAnalisisAlimentacion } from "@/components/alimentacion/central-analisis";
 import { TareasModuloPanel } from "@/components/shared/tareas-modulo-panel";
+import dynamic from "next/dynamic";
+
+// Se bajan recién cuando se abren (la pantalla inicial queda más liviana)
+function Cargando() { return <div className="kp-esqueleto" style={{ height: 220, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" />; }
+const CentralAnalisisAlimentacion = dynamic(() => import("@/components/alimentacion/central-analisis").then(m => m.CentralAnalisisAlimentacion), { loading: () => <Cargando /> });
+const PlanAlimentacion = dynamic(() => import("@/components/nutricion/plan-alimentacion").then(m => m.PlanAlimentacion), { loading: () => <Cargando /> });
+const ConsumoPeriodo = dynamic(() => import("@/components/nutricion/consumo-periodo").then(m => m.ConsumoPeriodo), { loading: () => <Cargando /> });
 
 type Tab = "dia" | "consumo" | "plan" | "analisis";
 const TABS: { key: Tab; label: string }[] = [

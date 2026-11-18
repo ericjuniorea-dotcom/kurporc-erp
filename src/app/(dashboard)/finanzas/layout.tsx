@@ -42,8 +42,7 @@ export default async function FinanzasLayout({ children }: { children: React.Rea
   if (!session || !permisos) redirect("/login");
   const visibles = SECCIONES.filter(s => puede(permisos, s.permiso));
   if (visibles.length === 0) redirect("/dashboard");
-  await asegurarFinanzas(session.user.tenantId);
-  await materializarCuotas(session.user.tenantId, session.user.id);
+  await Promise.all([asegurarFinanzas(session.user.tenantId), materializarCuotas(session.user.tenantId, session.user.id)]);
   return (
     <>
       <NavegacionFinanzas secciones={visibles.map(({ grupo, href, label }) => ({ grupo, href, label }))} />

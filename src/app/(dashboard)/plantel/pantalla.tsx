@@ -11,10 +11,14 @@ import { HembrasTab }     from "@/components/plantel/hembras-tab";
 import { VerracosTab }    from "@/components/plantel/verracos-tab";
 import { SemenTab }       from "@/components/plantel/semen-tab";
 import { FichaDrawer }    from "@/components/plantel/ficha-drawer";
-import { DescartadosTab } from "@/components/plantel/descartados-tab";
 import { ModalGrupoPlantel, type GrupoPlantel } from "@/components/plantel/modal-grupo";
 
 import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
+import dynamic from "next/dynamic";
+
+// Se bajan recién cuando se abren (la pantalla inicial queda más liviana)
+function Cargando() { return <div className="kp-esqueleto" style={{ height: 220, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" />; }
+const DescartadosTab = dynamic(() => import("@/components/plantel/descartados-tab").then(m => m.DescartadosTab), { loading: () => <Cargando /> });
 const TABS = ["Hembras", "Reproductores", "Semen Externo", "Descartados"] as const;
 type Tab = typeof TABS[number];
 

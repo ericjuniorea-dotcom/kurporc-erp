@@ -14,13 +14,17 @@ import { Topbar }               from "@/components/layout/topbar";
 import {
   PrenadasModal, ServidasModal, DisponiblesModal,
 } from "@/components/gestacion/kpi-modals";
-import { FormAborto } from "@/components/gestacion/form-aborto";
 import {
   IconHeart, IconHeartbeat, IconUser, IconLayoutGrid,
   IconAlertTriangle, IconAlertCircle, IconLoader2,
 } from "@tabler/icons-react";
 
 import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
+import dynamic from "next/dynamic";
+
+// Se bajan recién cuando se abren (la pantalla inicial queda más liviana)
+function Cargando() { return <div className="kp-esqueleto" style={{ height: 220, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" />; }
+const FormAborto = dynamic(() => import("@/components/gestacion/form-aborto").then(m => m.FormAborto), { loading: () => <Cargando /> });
 const ALLOWED      = [1, 2, 3, 4, 5, 11];
 const CAN_REGISTER = [1, 2, 3, 4, 5, 11, 13];
 
