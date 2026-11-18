@@ -2,13 +2,6 @@
 import { useState, useEffect } from "react";
 import { useSession, usePermisos } from "@/lib/auth/sesion-cliente";
 import { useRouter } from "next/navigation";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from "recharts";
-import { DisponiblesParaServicio } from "@/components/gestacion/disponibles-list";
-import { LotesView }            from "@/components/gestacion/lotes-view";
-import { CentralAnalisis }      from "@/components/gestacion/analisis";
-import { ConfirmacionPrenez }   from "@/components/gestacion/confirmacion-prenez";
 import { TareasModuloPanel }    from "@/components/shared/tareas-modulo-panel";
 import { Topbar }               from "@/components/layout/topbar";
 import {
@@ -25,6 +18,11 @@ import dynamic from "next/dynamic";
 // Se bajan recién cuando se abren (la pantalla inicial queda más liviana)
 function Cargando() { return <div className="kp-esqueleto" style={{ height: 220, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" />; }
 const FormAborto = dynamic(() => import("@/components/gestacion/form-aborto").then(m => m.FormAborto), { loading: () => <Cargando /> });
+const GraficoDistribucion = dynamic(() => import("@/components/gestacion/grafico-distribucion").then(m => m.GraficoDistribucion), { ssr: false, loading: () => <div className="kp-esqueleto" style={{ height: 260, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando gráfico" /> });
+const LotesView = dynamic(() => import("@/components/gestacion/lotes-view").then(m => m.LotesView), { loading: () => <Cargando /> });
+const CentralAnalisis = dynamic(() => import("@/components/gestacion/analisis").then(m => m.CentralAnalisis), { loading: () => <Cargando /> });
+const DisponiblesParaServicio = dynamic(() => import("@/components/gestacion/disponibles-list").then(m => m.DisponiblesParaServicio), { loading: () => <Cargando /> });
+const ConfirmacionPrenez = dynamic(() => import("@/components/gestacion/confirmacion-prenez").then(m => m.ConfirmacionPrenez), { loading: () => <Cargando /> });
 const ALLOWED      = [1, 2, 3, 4, 5, 11];
 const CAN_REGISTER = [1, 2, 3, 4, 5, 11, 13];
 
@@ -199,33 +197,7 @@ function VisionGeneralGestacion({ onOpenLotes }: { onOpenLotes: () => void }) {
             Cargando…
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={distribucion} margin={{ top: 4, right: 12, left: -10, bottom: 4 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-default)" vertical={false} />
-              <XAxis
-                dataKey="rango"
-                tick={{ fontSize: 12, fill: "var(--text-muted)" }}
-                axisLine={false} tickLine={false}
-              />
-              <YAxis
-                tick={{ fontSize: 11, fill: "var(--text-muted)" }}
-                axisLine={false} tickLine={false} width={28}
-                allowDecimals={false}
-              />
-              <Tooltip
-                contentStyle={{
-                  background: "var(--bg-elevated)",
-                  border: "0.5px solid var(--border-default)",
-                  borderRadius: 8, fontSize: 11,
-                }}
-                labelStyle={{ color: "var(--text-primary)", fontWeight: 600 }}
-                itemStyle={{ color: "var(--text-secondary)" }}
-                formatter={(v: number) => [v, "Cerdas"]}
-                cursor={{ fill: "var(--bg-overlay)" }}
-              />
-              <Bar dataKey="cantidad" fill="#7C3AED" radius={[4, 4, 0, 0]} maxBarSize={100} />
-            </BarChart>
-          </ResponsiveContainer>
+          <GraficoDistribucion distribucion={distribucion} />
         )}
         <div style={{ textAlign: "center", fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
           Día de gestación

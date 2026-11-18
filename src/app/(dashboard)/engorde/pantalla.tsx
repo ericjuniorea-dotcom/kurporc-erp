@@ -12,17 +12,17 @@ import { AlertasPanel }  from "@/components/engorde/AlertasPanel";
 import { GdpBarChart }   from "@/components/engorde/GdpBarChart";
 import type { LoteCardData } from "@/components/engorde/LoteCard";
 
-import { TabLotes }          from "@/components/engorde/datos/TabLotes";
-import { TabMuertes }        from "@/components/engorde/datos/TabMuertes";
-import { TabPesajes }        from "@/components/engorde/datos/TabPesajes";
-import { TabVentas }         from "@/components/engorde/datos/TabVentas";
-import { TabOtrasSalidas }   from "@/components/engorde/datos/TabOtrasSalidas";
 import { TareasModuloPanel }      from "@/components/shared/tareas-modulo-panel";
 import dynamic from "next/dynamic";
 
 // Se bajan recién cuando se abren (la pantalla inicial queda más liviana)
 function Cargando() { return <div className="kp-esqueleto" style={{ height: 220, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" />; }
 const TabTransferencias = dynamic(() => import("@/components/engorde/datos/TabTransferencias").then(m => m.TabTransferencias), { loading: () => <Cargando /> });
+const TabLotes = dynamic(() => import("@/components/engorde/datos/TabLotes").then(m => m.TabLotes), { loading: () => <div className="kp-esqueleto" style={{ height: 220, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" /> });
+const TabMuertes = dynamic(() => import("@/components/engorde/datos/TabMuertes").then(m => m.TabMuertes), { loading: () => <div className="kp-esqueleto" style={{ height: 220, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" /> });
+const TabPesajes = dynamic(() => import("@/components/engorde/datos/TabPesajes").then(m => m.TabPesajes), { loading: () => <div className="kp-esqueleto" style={{ height: 220, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" /> });
+const TabVentas = dynamic(() => import("@/components/engorde/datos/TabVentas").then(m => m.TabVentas), { loading: () => <div className="kp-esqueleto" style={{ height: 220, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" /> });
+const TabOtrasSalidas = dynamic(() => import("@/components/engorde/datos/TabOtrasSalidas").then(m => m.TabOtrasSalidas), { loading: () => <div className="kp-esqueleto" style={{ height: 220, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" /> });
 const CentralAnalisisEngorde = dynamic(() => import("@/components/engorde/analisis/CentralAnalisis").then(m => m.CentralAnalisisEngorde), { loading: () => <Cargando /> });
 
 const ALLOWED = [1, 2, 3, 4, 5];

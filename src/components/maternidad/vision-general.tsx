@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
-} from "recharts";
+import dynamic from "next/dynamic";
+
+// El gráfico se baja aparte: los números aparecen primero
+const GraficoEdades = dynamic(() => import("@/components/maternidad/grafico-edades").then(m => m.GraficoEdades), { ssr: false, loading: () => <div className="kp-esqueleto" style={{ height: 180, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" /> });
 import {
   IconHeartPlus, IconAlertTriangle, IconLoader2, IconRefresh, IconBabyCarriage,
 } from "@tabler/icons-react";
@@ -136,31 +137,7 @@ export function VisionGeneralMaternidad() {
               Sin lechones activos
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={data.ageDistribution} margin={{ top: 0, right: 0, bottom: 0, left: -10 }}>
-                <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  contentStyle={{
-                    background:   "var(--bg-surface)",
-                    border:       "0.5px solid var(--border-default)",
-                    borderRadius: 8,
-                    fontSize:     12,
-                    color:        "var(--text-primary)",
-                  }}
-                  cursor={{ fill: "var(--bg-overlay)" }}
-                />
-                <Bar dataKey="count" name="Lechones" radius={[4, 4, 0, 0]}>
-                  {data.ageDistribution.map((entry, i) => (
-                    <Cell
-                      key={i}
-                      fill={entry.label === "22+ días" ? "var(--danger)" : "var(--info)"}
-                      opacity={entry.label === "22+ días" ? 1 : 0.75 + i * 0.05}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <GraficoEdades datos={data.ageDistribution} />
           )}
         </div>
 

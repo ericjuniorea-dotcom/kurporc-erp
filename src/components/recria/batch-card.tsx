@@ -12,7 +12,8 @@ import {
   IconLoader2, IconAlertTriangle, IconCircleCheck, IconChevronDown, IconChevronRight, IconX,
   IconSkull,
 } from "@tabler/icons-react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import dynamic from "next/dynamic";
+const GraficoPesoLote = dynamic(() => import("@/components/recria/grafico-peso-lote").then(m => m.GraficoPesoLote), { ssr: false, loading: () => <div className="kp-esqueleto" style={{ height: 140, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" /> });
 
 interface WeightRecord {
   id:          string;
@@ -267,22 +268,7 @@ export function BatchCard({ batch, canEdit, onRefresh }: Props) {
             ) : chartData && chartData.length > 0 ? (
               <>
                 <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 10 }}>Evolución de peso promedio (kg)</div>
-                <ResponsiveContainer width="100%" height={140}>
-                  <LineChart data={chartData}>
-                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} domain={["auto", "auto"]} />
-                    <Tooltip
-                      contentStyle={{
-                        background: "var(--bg-surface)",
-                        border: "0.5px solid var(--border-strong)",
-                        borderRadius: "var(--radius-md)",
-                        fontSize: 11,
-                      }}
-                      formatter={(v: number) => [`${v.toFixed(2)} kg`, "Peso medio"]}
-                    />
-                    <Line type="monotone" dataKey="avgWeightKg" stroke="var(--accent)" strokeWidth={1.5} dot={{ r: 2, fill: "var(--accent)" }} />
-                  </LineChart>
-                </ResponsiveContainer>
+                <GraficoPesoLote datos={chartData} />
 
                 <table className="kp-table" style={{ marginTop: 10 }}>
                   <thead>
