@@ -4,10 +4,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import prisma from "@/lib/db/prisma";
 import { conActor } from "@/lib/db/actor";
-import { requirePermiso, ErrorPermiso } from "@/lib/permisos/servidor";
+import { requirePermiso, ErrorPermiso, puede } from "@/lib/permisos/servidor";
 import { invalidateInventario } from "@/lib/cache";
 import { descontarStock } from "@/lib/inventario/descontar";
 import { datosNutricionDia, fechaDia } from "@/lib/nutricion/dia";
+import { consumoPorPeriodo } from "@/lib/nutricion/periodo";
 import { asegurarPlanSugerido, MODULOS_NUTRICION, esModuloNutricion } from "@/lib/nutricion/plan";
 
 type R = { ok: true; aviso?: string } | { ok: false; error: string };
@@ -24,22 +25,28 @@ function manejar(e: unknown): { ok: false; error: string } {
 }
 
 export async function nutricionDia(fecha: string) {
-  const { permisos } = await requirePermiso("alimentacion.consumos.ver");
-  return datosNutricionDia(permisos.organizacionId, FECHA.parse(fecha));
+  const { session, permisos } = await requirePermiso("alimentacion.consumos.ver");
+  const d = await datosNutricionDia(permisos.organizacionId, FECHA.parse(fecha));
+  // Cada carga la puede anular quien la hizo (ese mismo día) o quien puede editar consumos
+  const editaTodo = permisos.esPropietario || puede(permisos, "alimentacion.consumos.editar");
+  const hoy = hoyPY();
+  return { ...d, registros: d.registros.map(r => ({ ...r, puedeAnular: editaTodo || (r.usuarioId === session.user.id && d.fecha === hoy) })) };
 }
+
+const hoyPY = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Asuncion" }).format(new Date());
 
 const consumo = z.object({
   fecha: FECHA,
   feedTypeId: z.string().min(1).max(40),
   farrowingId: z.string().max(40).nullable().optional(),
-  kg: z.number().min(0, "Los kg no pueden ser negativos.").max(100_000),
+  kg: z.number().gt(0, "Cargá cuántos kg se entregaron.").max(100_000),
 });
 
 /**
- * Guarda lo consumido en el día (por módulo, o por hembra en Maternidad). Si ya había un registro se corrige:
- * la diferencia se descuenta del stock (o vuelve al lote de donde salió). Queda quién lo cargó.
+ * Registra una entrega de balanceado (por módulo, o por hembra en Maternidad). Cada entrega es un registro nuevo:
+ * en un día puede haber varias del mismo balanceado. Descuenta del inventario y queda quién la cargó y a qué hora.
  */
-export async function guardarConsumo(datos: z.input<typeof consumo>): Promise<R> {
+export async function registrarConsumo(datos: z.input<typeof consumo>): Promise<R> {
   try {
     const { session, permisos } = await requirePermiso("alimentacion.consumos.crear");
     const d = consumo.parse(datos);
@@ -48,32 +55,44 @@ export async function guardarConsumo(datos: z.input<typeof consumo>): Promise<R>
     const tipo = await prisma.feedType.findFirst({ where: { id: d.feedTypeId, tenantId: org }, select: { id: true, name: true, productoBalanceadoId: true } });
     if (!tipo) throw new Error("•Ese balanceado no existe.");
     if (d.farrowingId && !(await prisma.farrowingEvent.findFirst({ where: { id: d.farrowingId, tenantId: org }, select: { id: true } }))) throw new Error("•Esa camada no existe.");
-    const desde = fechaDia(d.fecha), hasta = new Date(desde.getTime() + DIA);
     let aviso: string | undefined;
     await conActor(session.user.id, async tx => {
-      const previo = await tx.feedRecord.findFirst({ where: { tenantId: org, feedTypeId: tipo.id, farrowingId: d.farrowingId ?? null, nurseryBatchId: null, growingBatchId: null, recordDate: { gte: desde, lt: hasta } } });
-      const antes = previo ? Number(previo.quantityKg) : 0;
-      if (d.kg === 0 && previo) await tx.feedRecord.delete({ where: { id: previo.id } });
-      const reg = d.kg === 0 ? previo : previo
-        ? await tx.feedRecord.update({ where: { id: previo.id }, data: { quantityKg: d.kg, employeeId: session.user.id } })
-        : await tx.feedRecord.create({ data: { tenantId: org, feedTypeId: tipo.id, farrowingId: d.farrowingId ?? null, recordDate: desde, quantityKg: d.kg, employeeId: session.user.id } });
-      const diferencia = d.kg - antes;
-      if (!tipo.productoBalanceadoId || !reg || Math.abs(diferencia) < 0.0005) return;
-      if (diferencia > 0) {
-        const r = await descontarStock(tx, { tenantId: org, productoId: tipo.productoBalanceadoId, cantidad: diferencia, origen: "ALIMENTACION", referenciaId: reg.id, usuarioId: session.user.id, nota: `Consumo del ${d.fecha.split("-").reverse().join("/")}` });
-        if (r.faltante > 0) aviso = `En el inventario faltaron ${r.faltante.toLocaleString("es-PY")} kg de ${tipo.name}: se descontó lo que había.`;
-      } else {
-        // Corrección a la baja: vuelve al último lote del que salió para este registro
-        const ultimo = await tx.movimientoInventario.findFirst({ where: { tenantId: org, referenciaId: reg.id, tipo: "SALIDA" }, orderBy: { fecha: "desc" }, select: { loteId: true } });
-        if (ultimo?.loteId) {
-          await tx.loteInventario.update({ where: { id: ultimo.loteId }, data: { cantidadActual: { increment: -diferencia } } });
-          await tx.movimientoInventario.create({ data: { tenantId: org, productoId: tipo.productoBalanceadoId, loteId: ultimo.loteId, tipo: "ENTRADA", cantidad: -diferencia, origen: "ALIMENTACION", referenciaId: reg.id, usuarioId: session.user.id, nota: "Corrección del consumo cargado" } });
-        }
-      }
+      const reg = await tx.feedRecord.create({ data: { tenantId: org, feedTypeId: tipo.id, farrowingId: d.farrowingId ?? null, recordDate: fechaDia(d.fecha), quantityKg: d.kg, employeeId: session.user.id } });
+      if (!tipo.productoBalanceadoId) return;
+      const r = await descontarStock(tx, { tenantId: org, productoId: tipo.productoBalanceadoId, cantidad: d.kg, origen: "ALIMENTACION", referenciaId: reg.id, usuarioId: session.user.id, nota: `Consumo del ${d.fecha.split("-").reverse().join("/")}` });
+      if (r.faltante > 0) aviso = `Guardado. En el inventario faltaron ${r.faltante.toLocaleString("es-PY")} kg de ${tipo.name}: se descontó lo que había.`;
     });
     invalidateInventario(org);
-    revalidatePath("/alimentacion");
     return { ok: true, aviso };
+  } catch (e) { return manejar(e); }
+}
+
+/** Anula una carga: el balanceado vuelve a los lotes de donde salió (queda el movimiento de devolución). */
+export async function anularConsumo(id: string): Promise<R> {
+  try {
+    const { session, permisos } = await requirePermiso("alimentacion.consumos.ver");
+    const org = permisos.organizacionId;
+    const reg = await prisma.feedRecord.findFirst({ where: { id: String(id).slice(0, 40), tenantId: org }, select: { id: true, employeeId: true, recordDate: true, feedType: { select: { productoBalanceadoId: true } } } });
+    if (!reg) throw new Error("•Esa carga no existe.");
+    const editaTodo = permisos.esPropietario || puede(permisos, "alimentacion.consumos.editar");
+    const propiaDeHoy = reg.employeeId === session.user.id && reg.recordDate.toISOString().slice(0, 10) === hoyPY() && puede(permisos, "alimentacion.consumos.crear");
+    if (!editaTodo && !propiaDeHoy) throw new Error("•Solo podés anular tus cargas de hoy. Para otras, pedíselo al administrador.");
+    await conActor(session.user.id, async tx => {
+      const salidas = await tx.movimientoInventario.findMany({ where: { tenantId: org, referenciaId: reg.id, origen: "ALIMENTACION", tipo: "SALIDA" }, select: { loteId: true, productoId: true, cantidad: true } });
+      const entradas = await tx.movimientoInventario.findMany({ where: { tenantId: org, referenciaId: reg.id, origen: "ALIMENTACION", tipo: "ENTRADA" }, select: { loteId: true, cantidad: true } });
+      // Neto por lote (descuenta devoluciones anteriores) y vuelve al stock
+      const neto = new Map<string, { productoId: string; cant: number }>();
+      for (const m of salidas) if (m.loteId) neto.set(m.loteId, { productoId: m.productoId, cant: (neto.get(m.loteId)?.cant ?? 0) + Number(m.cantidad) });
+      for (const m of entradas) if (m.loteId && neto.has(m.loteId)) neto.get(m.loteId)!.cant -= Number(m.cantidad);
+      for (const [loteId, { productoId, cant }] of neto) {
+        if (cant <= 0.0005) continue;
+        await tx.loteInventario.update({ where: { id: loteId }, data: { cantidadActual: { increment: cant } } });
+        await tx.movimientoInventario.create({ data: { tenantId: org, productoId, loteId, tipo: "ENTRADA", cantidad: cant, origen: "ALIMENTACION", referenciaId: reg.id, usuarioId: session.user.id, nota: "Carga de consumo anulada" } });
+      }
+      await tx.feedRecord.delete({ where: { id: reg.id } });
+    });
+    invalidateInventario(org);
+    return { ok: true };
   } catch (e) { return manejar(e); }
 }
 
@@ -144,4 +163,17 @@ export async function planAlimentacion() {
     tipos: tipos.filter(t => esModuloNutricion(t.modulo)).map(t => ({ id: t.id, nombre: t.name, modulo: t.modulo, kgPorAnimal: t.kgPorAnimalDia ? Number(t.kgPorAnimalDia) : null, productoId: t.productoBalanceadoId })),
     productos,
   };
+}
+
+/* ─── Consumo por período ───────────────────────────────────────────── */
+
+const periodoSchema = z.object({ desde: FECHA, hasta: FECHA, agrupar: z.enum(["dia", "semana", "mes", "anio"]) });
+
+/** Consumo de balanceado por día, semana, mes o año (como mucho 3 años de una vez). */
+export async function consumoPeriodo(datos: z.input<typeof periodoSchema>) {
+  const { permisos } = await requirePermiso("alimentacion.consumos.ver");
+  const d = periodoSchema.parse(datos);
+  if (d.desde > d.hasta) throw new Error("La fecha desde es posterior a la fecha hasta.");
+  if (fechaDia(d.hasta).getTime() - fechaDia(d.desde).getTime() > 3 * 366 * DIA) throw new Error("Elegí un rango de hasta 3 años.");
+  return consumoPorPeriodo(permisos.organizacionId, d.desde, d.hasta, d.agrupar);
 }

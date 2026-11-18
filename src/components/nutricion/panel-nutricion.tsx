@@ -5,15 +5,15 @@ import { useState } from "react";
 import { usePermisos } from "@/lib/auth/sesion-cliente";
 import { CargaDiaNutricion } from "@/components/nutricion/carga-dia";
 import { PlanAlimentacion } from "@/components/nutricion/plan-alimentacion";
-import { Historial } from "@/components/alimentacion/historial";
+import { ConsumoPeriodo } from "@/components/nutricion/consumo-periodo";
 import { CentralAnalisisAlimentacion } from "@/components/alimentacion/central-analisis";
 import { TareasModuloPanel } from "@/components/shared/tareas-modulo-panel";
 
-type Tab = "dia" | "plan" | "historial" | "analisis";
+type Tab = "dia" | "consumo" | "plan" | "analisis";
 const TABS: { key: Tab; label: string }[] = [
   { key: "dia", label: "Carga del día" },
+  { key: "consumo", label: "Consumo por período" },
   { key: "plan", label: "Plan de alimentación" },
-  { key: "historial", label: "Historial" },
   { key: "analisis", label: "Central de análisis" },
 ];
 
@@ -34,7 +34,7 @@ export function PanelNutricion() {
       </div>
       {tab === "dia" && <CargaDiaNutricion />}
       {tab === "plan" && <PlanAlimentacion puedeConfigurar={alguno(["alimentacion.etapas.configurar"])} />}
-      {tab === "historial" && <Historial />}
+      {tab === "consumo" && <ConsumoPeriodo />}
       {tab === "analisis" && <CentralAnalisisAlimentacion />}
       {tab === "dia" && <TareasModuloPanel sector="granja" accentColor="var(--warning)" />}
     </div>

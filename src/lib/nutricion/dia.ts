@@ -10,7 +10,7 @@ const DIA = 86_400_000;
 export const fechaDia = (s: string) => new Date(`${s}T00:00:00Z`);
 
 export type TipoBalanceado = { id: string; nombre: string; modulo: ModuloNutricion; kgPorAnimal: number | null; productoId: string | null; stockKg: number; costoKg: number | null };
-export type Registro = { id: string; feedTypeId: string; farrowingId: string | null; kg: number; costoGs: number; quien: string | null };
+export type Registro = { id: string; feedTypeId: string; farrowingId: string | null; kg: number; costoGs: number; quien: string | null; usuarioId: string | null; hora: string };
 
 export async function datosNutricionDia(tenantId: string, fecha: string) {
   const desde = fechaDia(fecha), hasta = new Date(desde.getTime() + DIA);
@@ -23,7 +23,7 @@ export async function datosNutricionDia(tenantId: string, fecha: string) {
     prisma.sow.count({ where: { tenantId, isActive: true } }),
     prisma.nurseryBatch.aggregate({ where: { tenantId, isActive: true }, _sum: { currentCount: true }, _count: { _all: true } }),
     prisma.growingBatch.aggregate({ where: { tenantId, status: "ACTIVE" }, _sum: { currentCount: true }, _count: { _all: true } }),
-    prisma.feedRecord.findMany({ where: { tenantId, recordDate: { gte: desde, lt: hasta } }, select: { id: true, feedTypeId: true, farrowingId: true, quantityKg: true, employeeId: true } }),
+    prisma.feedRecord.findMany({ where: { tenantId, recordDate: { gte: desde, lt: hasta } }, orderBy: { createdAt: "asc" }, select: { id: true, feedTypeId: true, farrowingId: true, quantityKg: true, employeeId: true, createdAt: true } }),
   ]);
 
   // Stock y costo promedio de cada balanceado (lotes sin vencer)
@@ -61,6 +61,7 @@ export async function datosNutricionDia(tenantId: string, fecha: string) {
   const listaRegistros: Registro[] = registros.map(r => ({
     id: r.id, feedTypeId: r.feedTypeId, farrowingId: r.farrowingId, kg: Number(r.quantityKg),
     costoGs: Math.round(costo.get(r.id) ?? 0), quien: r.employeeId ? nombre.get(r.employeeId) ?? null : null,
+    usuarioId: r.employeeId, hora: r.createdAt.toISOString(),
   }));
 
   return {
