@@ -8,6 +8,7 @@
 //     servidor con la base de datos: layout del ERP y cada API (getSession).
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { COOKIE_ACTIVIDAD, LIMITE_INACTIVIDAD_MS } from "@/lib/sesion/inactividad";
 
 const RUTAS_PUBLICAS = [
   "/login", "/registro", "/recuperar", "/auth/", "/invitacion/",
@@ -88,16 +89,41 @@ export async function middleware(req: NextRequest) {
 
   // getClaims valida el JWT y, si venció, lo renueva (no confiar en getSession acá)
   const { data } = await supabase.auth.getClaims();
-  const conSesion = !!data?.claims?.sub;
+  let conSesion = !!data?.claims?.sub;
   const { pathname, search } = req.nextUrl;
+
+  // Cierre por inactividad: si pasaron más de 30 min desde el último uso real, la sesión se cierra
+  // (se borran las cookies de Supabase). Las precargas automáticas no cuentan como uso.
+  let porInactividad = false;
+  if (conSesion) {
+    const ultima = Number(req.cookies.get(COOKIE_ACTIVIDAD)?.value);
+    const ahora = Date.now();
+    const precarga = req.headers.get("next-router-prefetch") === "1" || req.headers.get("purpose") === "prefetch";
+    if (Number.isFinite(ultima) && ultima > 0 && ahora - ultima > LIMITE_INACTIVIDAD_MS) {
+      porInactividad = true;
+      conSesion = false;
+      for (const c of req.cookies.getAll()) {
+        if (c.name.startsWith("sb-")) { req.cookies.delete(c.name); res.cookies.set(c.name, "", { path: "/", maxAge: 0 }); }
+      }
+      res.cookies.set("kp_plataforma", "", { path: "/", maxAge: 0 });
+      res.cookies.set(COOKIE_ACTIVIDAD, "", { path: "/", maxAge: 0 });
+    } else if (!precarga && (!Number.isFinite(ultima) || ultima <= 0 || ahora - ultima > 30_000)) {
+      res.cookies.set(COOKIE_ACTIVIDAD, String(ahora), { path: "/", httpOnly: true, sameSite: "lax", secure: !ES_DEV, maxAge: 60 * 60 * 24 * 7 });
+    }
+  } else if (req.cookies.has(COOKIE_ACTIVIDAD)) {
+    // Sin sesión: la marca vieja no puede cerrar la próxima sesión apenas se ingrese
+    res.cookies.set(COOKIE_ACTIVIDAD, "", { path: "/", maxAge: 0 });
+  }
 
   if (!conSesion && !esPublica(pathname)) {
     if (pathname.startsWith("/api/")) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+      const r401 = NextResponse.json({ error: porInactividad ? "La sesión se cerró por inactividad. Volvé a ingresar." : "No autenticado" }, { status: 401 });
+      res.cookies.getAll().forEach(c => r401.cookies.set(c));
+      return r401;
     }
     const url = req.nextUrl.clone();
     url.pathname = "/login";
-    url.search = `?next=${encodeURIComponent(pathname + search)}`;
+    url.search = `?next=${encodeURIComponent(pathname + search)}${porInactividad ? "&error=inactividad" : ""}`;
     const redir = NextResponse.redirect(url);
     res.cookies.getAll().forEach(c => redir.cookies.set(c));
     return redir;

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAdmin } from "@/lib/admin/acceso";
 import { NavegacionAdmin } from "./navegacion";
+import { CierreInactividad } from "@/components/layout/cierre-inactividad";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Plataforma · KurPorc", robots: { index: false, follow: false } };
@@ -31,6 +32,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div style={{ minHeight: "100vh", background: "var(--bg-base)" }}>
       <NavegacionAdmin nombre={admin.usuario.name} nivel={admin.nivel} />
       <main style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 14, maxWidth: 1320 }}>{children}</main>
+      <CierreInactividad />
     </div>
   );
 }

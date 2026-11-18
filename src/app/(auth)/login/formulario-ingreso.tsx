@@ -16,6 +16,7 @@ type Modo = "correo" | "usuario";
 const ERRORES_URL: Record<string, string> = {
   auth: "No se pudo completar el ingreso. Si acabás de confirmar tu correo, ingresá con tu correo y contraseña.",
   inactiva: "Tu cuenta está desactivada. Hablá con el administrador de tu organización.",
+  inactividad: "Por seguridad cerramos tu sesión porque pasaron 30 minutos sin usar KurPorc. Ingresá de nuevo.",
 };
 
 export function FormularioIngreso() {

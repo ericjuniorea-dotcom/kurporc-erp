@@ -512,3 +512,8 @@
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
+
+/* Pantalla de carga (loading.tsx): bloques que respiran mientras llega el módulo */
+@keyframes kp-respira { 0%, 100% { opacity: .55 } 50% { opacity: 1 } }
+.kp-esqueleto { background: var(--bg-overlay); border-radius: var(--radius-md); animation: kp-respira 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .kp-esqueleto { animation: none; } }

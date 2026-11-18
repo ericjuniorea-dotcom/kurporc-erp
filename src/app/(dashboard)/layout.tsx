@@ -9,6 +9,7 @@ import { getPermisos } from "@/lib/permisos/servidor";
 import { Sidebar } from "@/components/layout/sidebar";
 import { AyudaSoporte } from "@/components/layout/ayuda-soporte";
 import { LatidoUso } from "@/components/layout/latido-uso";
+import { CierreInactividad } from "@/components/layout/cierre-inactividad";
 
 import { esCuentaDePlataforma } from "@/lib/admin/cuenta-plataforma";
 export const dynamic = "force-dynamic";
@@ -85,6 +86,7 @@ export default async function DashboardLayout({
       </div>
       <AyudaSoporte oculto={!!plataforma} />
       {!plataforma && <LatidoUso />}
+      <CierreInactividad />
     </SesionProvider>
   );
 }
