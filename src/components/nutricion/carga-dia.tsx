@@ -2,8 +2,10 @@
 // Sanidad y Nutrición · carga del día. Cada entrega es una carga nueva (en un día puede haber varias del mismo
 // balanceado): al guardar, la casilla vuelve a cero y abajo queda la última carga (kg, quién y a qué hora) y el
 // total del día. Gestación, Iniciación y Engorde: por balanceado. Maternidad: por hembra lactante (ella y sus lechones).
+// Lechones: cada balanceado es una fase con meta = lechones vivos × kg por lechón; la barra muestra lo consumido
+// desde el parto y, al llegar, avisa que hay que pasar al siguiente (si muere un lechón, la meta baja sola).
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { IconCheck, IconChevronDown, IconChevronUp, IconLoader2, IconX } from "@tabler/icons-react";
+import { IconArrowRight, IconCheck, IconChevronDown, IconCircleCheck, IconChevronUp, IconLoader2, IconX } from "@tabler/icons-react";
 import { anularConsumo, nutricionDia, registrarConsumo } from "@/app/acciones/nutricion";
 import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 import type { ModuloNutricion } from "@/lib/nutricion/plan";
@@ -38,11 +40,8 @@ export function CargaDiaNutricion() {
   let teorico = 0;
   for (const t of tiposDe("GESTACION").slice(0, 1)) teorico += (t.kgPorAnimal ?? 0) * datos.animales.GESTACION;
   const hembra = tiposDe("MATERNIDAD_HEMBRAS")[0];
-  for (const c of datos.cerdas) {
-    teorico += hembra?.kgPorAnimal ?? 0;
-    const lt = tiposDe("MATERNIDAD_LECHONES").find(t => regsDe(t.id, c.farrowingId).length) ?? tiposDe("MATERNIDAD_LECHONES")[0];
-    teorico += (lt?.kgPorAnimal ?? 0) * c.lechones;
-  }
+  // (los lechones tienen meta por fase, no por día: se siguen con la barra de cada camada)
+  for (let i = 0; i < datos.cerdas.length; i++) teorico += hembra?.kgPorAnimal ?? 0;
   const cargado = datos.registros.reduce((s, r) => s + r.kg, 0);
   const costo = datos.registros.reduce((s, r) => s + r.costoGs, 0);
   const sinPlan = datos.tipos.length === 0;
@@ -216,8 +215,9 @@ function FilaCerda({ c, hembra, lechones, fecha, regsDe, onGuardado }: {
   c: Datos["cerdas"][number]; hembra?: Tipo; lechones: Tipo[]; fecha: string;
   regsDe: (t: string, f: string | null) => Reg[]; onGuardado: () => void;
 }) {
-  const usado = lechones.find(t => regsDe(t.id, c.farrowingId).length);
-  const [tipoL, setTipoL] = useState(usado?.id ?? lechones[0]?.id ?? "");
+  // Arranca en la fase en curso: el primer balanceado cuya meta todavía no se completó
+  const enCurso = lechones.find(t => !completa(t, c)) ?? lechones[lechones.length - 1];
+  const [tipoL, setTipoL] = useState(enCurso?.id ?? "");
   const [kgH, setKgH] = useState("");
   const [kgL, setKgL] = useState("");
   const { pendiente, msg, guardar } = useGuardar(onGuardado);
@@ -252,7 +252,7 @@ function FilaCerda({ c, hembra, lechones, fecha, regsDe, onGuardado }: {
               </select>
               <input className="kp-input" inputMode="decimal" aria-label="kg entregados a los lechones" placeholder="0 kg" value={kgL} onChange={e => setKgL(e.target.value)} style={{ height: 30, width: 110 }} />
             </div>
-            {tL?.kgPorAnimal != null && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Teórico: {c.lechones} × {tL.kgPorAnimal} kg = {kg(c.lechones * tL.kgPorAnimal)}</span>}
+            {tL && <AvanceFase t={tL} c={c} siguiente={lechones[lechones.indexOf(tL) + 1]} onPasar={setTipoL} />}
             <Cargas regs={regsL} onCambio={onGuardado} />
           </div>
         ) : <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>Sin balanceado de lechones en el plan</span>}
@@ -265,5 +265,42 @@ function FilaCerda({ c, hembra, lechones, fecha, regsDe, onGuardado }: {
         <div style={{ maxWidth: 220, marginTop: 4 }}><Mensaje msg={msg} /></div>
       </td>
     </tr>
+  );
+}
+
+const metaFase = (t: Tipo, c: Datos["cerdas"][number]) => t.kgPorAnimal != null ? t.kgPorAnimal * c.lechones : null;
+const completa = (t: Tipo, c: Datos["cerdas"][number]) => { const m = metaFase(t, c); return m != null && m > 0 && (c.consumido[t.id] ?? 0) >= m - 1e-9; };
+
+/** Consumido hasta el momento de esta fase (balanceado) frente a la meta de la camada, con barra verde que se llena. */
+function AvanceFase({ t, c, siguiente, onPasar }: { t: Tipo; c: Datos["cerdas"][number]; siguiente?: Tipo; onPasar: (id: string) => void }) {
+  const consumido = c.consumido[t.id] ?? 0;
+  const meta = metaFase(t, c);
+  if (meta == null) return <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Consumido hasta el momento: {kg(consumido)} (sin meta en el plan)</span>;
+  const listo = completa(t, c);
+  const pct = meta > 0 ? Math.min(100, (consumido / meta) * 100) : 0;
+  return (
+    <div style={{ border: `0.5px solid ${listo ? "var(--success)" : "var(--border-default)"}`, background: listo ? "var(--success-subtle, var(--bg-elevated))" : "var(--bg-elevated)", borderRadius: "var(--radius-md)", padding: "6px 8px", display: "flex", flexDirection: "column", gap: 4, maxWidth: 300 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 11.5, color: "var(--text-secondary)" }}>
+        <span>Consumido de {t.nombre}</span>
+        <strong style={{ fontWeight: 500, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>{kg(consumido)} de {kg(meta)}</strong>
+      </div>
+      <div role="progressbar" aria-label={`Avance de ${t.nombre}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct)}
+        style={{ height: 8, borderRadius: 4, background: "var(--bg-overlay)", overflow: "hidden" }}>
+        <div style={{ width: `${pct}%`, height: "100%", borderRadius: 4, background: "var(--success)", transition: "width .4s ease" }} />
+      </div>
+      <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>Meta: {c.lechones} lechones vivos × {t.kgPorAnimal} kg{!listo && meta > consumido ? ` · faltan ${kg(meta - consumido)}` : ""}</div>
+      {listo && (
+        <div role="status" style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", fontSize: 12, fontWeight: 500, color: "var(--success-text)" }}>
+          <IconCircleCheck size={14} aria-hidden />
+          Completado{siguiente ? <> · pasar a {siguiente.nombre}</> : " · última fase de maternidad"}
+          {siguiente && (
+            <button type="button" onClick={() => onPasar(siguiente.id)} className="btn"
+              style={{ height: 24, fontSize: 11.5, padding: "0 8px", display: "inline-flex", alignItems: "center", gap: 4 }}>
+              Pasar a {siguiente.nombre} <IconArrowRight size={12} aria-hidden />
+            </button>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

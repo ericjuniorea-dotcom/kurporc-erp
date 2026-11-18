@@ -51,7 +51,7 @@ function Modulo({ modulo, plan, puedeConfigurar, correr, pendiente }: {
   const tipos = plan.tipos.filter(t => t.modulo === modulo);
   const [nuevoProd, setNuevoProd] = useState("");
   const [nuevoKg, setNuevoKg] = useState("");
-  const unidad = info.por === "TOTAL" ? "kg por animal por día (vacío = a gusto)" : `kg por ${info.animal} por día`;
+  const unidad = info.por === "TOTAL" ? "kg por animal por día (vacío = a gusto)" : info.por === "LECHON" ? "kg por lechón en toda la fase (meta)" : `kg por ${info.animal} por día`;
   return (
     <section style={{ ...tarjeta, padding: "10px 14px", display: "flex", flexDirection: "column", gap: 8 }} aria-label={info.etiqueta}>
       <h3 style={{ margin: 0, fontSize: 13.5, fontWeight: 500, color: "var(--text-primary)" }}>{info.etiqueta}</h3>
@@ -63,7 +63,7 @@ function Modulo({ modulo, plan, puedeConfigurar, correr, pendiente }: {
             <option value="">Agregar balanceado…</option>
             {plan.productos.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
           </select>
-          <input className="kp-input" inputMode="decimal" aria-label="kg por animal por día" placeholder={info.por === "TOTAL" ? "a gusto" : "kg/día"} value={nuevoKg} onChange={e => setNuevoKg(e.target.value)} style={{ height: 30, width: 100 }} />
+          <input className="kp-input" inputMode="decimal" aria-label="kg por animal por día" placeholder={info.por === "TOTAL" ? "a gusto" : info.por === "LECHON" ? "kg/fase" : "kg/día"} value={nuevoKg} onChange={e => setNuevoKg(e.target.value)} style={{ height: 30, width: 100 }} />
           <button type="button" className="btn" style={{ height: 30, fontSize: 12, gap: 4 }} disabled={pendiente || !nuevoProd}
             onClick={() => { correr(() => guardarTipoBalanceado({ modulo, productoId: nuevoProd, kgPorAnimal: nuevoKg ? Number(nuevoKg.replace(",", ".")) : null })); setNuevoProd(""); setNuevoKg(""); }}>
             <IconPlus size={13} aria-hidden /> Agregar

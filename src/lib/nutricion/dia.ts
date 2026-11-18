@@ -26,6 +26,14 @@ export async function datosNutricionDia(tenantId: string, fecha: string) {
     prisma.feedRecord.findMany({ where: { tenantId, recordDate: { gte: desde, lt: hasta } }, orderBy: { createdAt: "asc" }, select: { id: true, feedTypeId: true, farrowingId: true, quantityKg: true, employeeId: true, createdAt: true } }),
   ]);
 
+  // Lo que consumió cada camada de cada balanceado de lechones desde el parto hasta este día (avance de la fase)
+  const consumoCamada = camadas.length ? await prisma.feedRecord.groupBy({
+    by: ["farrowingId", "feedTypeId"],
+    where: { tenantId, farrowingId: { in: camadas.map(c => c.id) }, recordDate: { lt: hasta } },
+    _sum: { quantityKg: true },
+  }) : [];
+  const consumido = (farrowingId: string) => Object.fromEntries(consumoCamada.filter(x => x.farrowingId === farrowingId).map(x => [x.feedTypeId, Number(x._sum.quantityKg ?? 0)]));
+
   // Stock y costo promedio de cada balanceado (lotes sin vencer)
   const productos = Array.from(new Set(tipos.map(t => t.productoBalanceadoId).filter((x): x is string => !!x)));
   const lotes = productos.length ? await prisma.loteInventario.findMany({
@@ -77,7 +85,7 @@ export async function datosNutricionDia(tenantId: string, fecha: string) {
     lotes: { INICIACION: iniciacion._count._all, ENGORDE: engorde._count._all },
     cerdas: camadas.map(c => ({
       farrowingId: c.id, sowId: c.sow.id, caravana: c.sow.caravanaCode || c.sow.identCode,
-      lechones: stockCamada(c), dias: Math.floor((desde.getTime() - Date.UTC(c.startDatetime.getUTCFullYear(), c.startDatetime.getUTCMonth(), c.startDatetime.getUTCDate())) / DIA),
+      lechones: stockCamada(c), consumido: consumido(c.id) as Record<string, number>, dias: Math.floor((desde.getTime() - Date.UTC(c.startDatetime.getUTCFullYear(), c.startDatetime.getUTCMonth(), c.startDatetime.getUTCDate())) / DIA),
     })),
   };
 }
