@@ -7,13 +7,17 @@ import {
   IconHeart, IconHeartPlus, IconBuildingWarehouse, IconChartLine,
   IconDna, IconSettings, IconCheck, IconPlus,
   IconLoader2, IconToggleLeft, IconToggleRight, IconTrash, IconEdit,
-  IconPackage,
+  IconPackage, IconAdjustments,
 } from "@tabler/icons-react";
 import VacunasTab from "@/components/configuracion/vacunas-tab";
+import { METAS_CATALOGO } from "@/lib/indicadores/catalogo";
+import { AyudaIndicador } from "@/components/indicadores/ayuda";
+import { PanelGenerales } from "@/components/configuracion/generales";
 
 /* ─── Constantes de módulo ─────────────────────────────────────── */
 
 const MODULES = [
+  { key: "GENERAL",    label: "Generales",   icon: IconAdjustments,       iconColor: "var(--text-secondary)" },
   { key: "GESTACION",  label: "Gestación",   icon: IconHeart,             iconColor: "var(--success)" },
   { key: "MATERNIDAD", label: "Maternidad",  icon: IconHeartPlus,         iconColor: "var(--info)" },
   { key: "RECRIA",     label: "Iniciación",  icon: IconBuildingWarehouse, iconColor: "var(--warning)" },
@@ -131,7 +135,13 @@ function MetasTab({ modulo }: { modulo: ModuleKey }) {
 
   if (loading) return <div style={{ padding: 32, color: "var(--text-muted)" }}><Spinner /></div>;
 
-  if (metas.length === 0) return (
+  const catalogo = METAS_CATALOGO.filter(c => c.modulo === modulo);
+  const filas = [
+    ...catalogo.map(c => { const db = metas.find(m => m.kpiKey === c.kpiKey); return { id: db?.id ?? `def-${c.kpiKey}`, kpiKey: c.kpiKey, label: c.label, valor: db ? String(db.valor) : String(c.defecto), porDefecto: !db, clave: c.clave as typeof c.clave | undefined }; }),
+    ...metas.filter(m => !catalogo.some(c => c.kpiKey === m.kpiKey)).map(m => ({ id: m.id, kpiKey: m.kpiKey, label: META_LABELS[m.kpiKey] ?? m.kpiKey, valor: String(m.valor), porDefecto: false, clave: undefined })),
+  ];
+
+  if (filas.length === 0) return (
     <div style={{ padding: 24 }}>
       <div className="kp-alert kp-alert-info" style={{ fontSize: 12, marginBottom: 12 }}>
         No hay metas configuradas para este módulo. Aplicá los valores por defecto:
@@ -157,12 +167,15 @@ function MetasTab({ modulo }: { modulo: ModuleKey }) {
           </tr>
         </thead>
         <tbody>
-          {metas.map(m => {
+          {filas.map(m => {
             const editVal = editing[m.kpiKey];
-            const isDirty = editVal !== undefined && editVal !== String(m.valor);
+            const isDirty = editVal !== undefined && (editVal !== String(m.valor) || m.porDefecto);
             return (
               <tr key={m.id}>
-                <td style={{ fontWeight: 500, fontSize: 12 }}>{META_LABELS[m.kpiKey] ?? m.kpiKey}</td>
+                <td style={{ fontWeight: 500, fontSize: 12 }}>
+                  {m.clave ? <AyudaIndicador clave={m.clave}>{m.label}</AyudaIndicador> : m.label}
+                  {m.porDefecto && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 400, color: "var(--text-muted)" }}>(valor sugerido: cambialo si tu meta es otra)</span>}
+                </td>
                 <td style={{ fontFamily: "monospace", fontSize: 10, color: "var(--text-muted)" }}>{m.kpiKey}</td>
                 <td>
                   <input
@@ -882,7 +895,7 @@ export default function ConfiguracionPage() {
             <span style={{ fontSize: 12, fontWeight: 500, color: "var(--text-primary)" }}>Configuración</span>
           </div>
           <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "3px 0 0" }}>
-            Metas, genética, vacunas y alertas por módulo
+            Preferencias, metas, genética, vacunas y alertas
           </p>
         </div>
         <nav style={{ flex: 1, padding: "8px 0" }}>
@@ -920,7 +933,7 @@ export default function ConfiguracionPage() {
           </div>
 
           {/* Config tabs */}
-          <div style={{ display: "flex", gap: 0 }}>
+          <div style={{ display: modulo === "GENERAL" ? "none" : "flex", gap: 0 }}>
             {CONFIG_TABS.map(t => (
               <button
                 key={t}
@@ -941,11 +954,13 @@ export default function ConfiguracionPage() {
 
         {/* Tab content */}
         <div style={{ flex: 1, padding: "16px 24px" }}>
+          {modulo === "GENERAL" ? <PanelGenerales metas={<MetasTab modulo={modulo} />} /> : <>
           {tab === "Metas"    && <MetasTab    modulo={modulo} />}
           {tab === "Genética" && <GeneticaTab />}
           {tab === "Vacunas"  && <VacunasTab  modulo={modulo} />}
           {tab === "Procesos" && <ProcesosTab modulo={modulo} />}
           {tab === "Alertas"  && <AlertasTab  modulo={modulo} />}
+          </>}
         </div>
       </div>
 

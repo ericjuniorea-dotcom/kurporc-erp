@@ -14,7 +14,7 @@ export async function metasRecria(org: string) {
   const m = (k: string, d: number) => { const x = metas.find(v => v.kpiKey === k); return x ? Number(x.valor) : d; };
   return {
     diasFase: m("dias_en_fase", 42),
-    mortalidadPct: m("mortalidad_pct_max", 1.5),
+    mortalidadPct: m("mortalidad_pct_max", 2),
     pesoSalidaKg: m("peso_umbral_f2_engorde", 25),
     gdpF1: m("gmd_fase1_gdia", 350) / 1000, gdpF2: m("gmd_fase2_gdia", 550) / 1000,
     // Consumo esperado por animal en la fase: pre-inicial 2 + inicial (Finanzas → Parámetros)

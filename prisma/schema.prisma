@@ -355,6 +355,7 @@ model User {
   onboardingCompleto Boolean      @default(false)
   ultimoAcceso       DateTime?
   bajaSolicitadaEn   DateTime?
+  ayudaIndicadores   Boolean      @default(true) @map("ayuda_indicadores") // nube «cómo se calcula» al pasar el mouse (Configuración → Generales)
 
   tenant                Tenant?                 @relation(fields: [tenantId], references: [id])
   userRoles             UserRole[]

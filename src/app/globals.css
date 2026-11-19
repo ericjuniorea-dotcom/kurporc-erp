@@ -517,3 +517,15 @@
 @keyframes kp-respira { 0%, 100% { opacity: .55 } 50% { opacity: 1 } }
 .kp-esqueleto { background: var(--bg-overlay); border-radius: var(--radius-md); animation: kp-respira 1.2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .kp-esqueleto { animation: none; } }
+
+/* Dashboard · flujo de animales fase por fase (Plantel → Maternidad → Iniciación → Engorde = Total) */
+.kp-flujo { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 18px; }
+.kp-flujo-paso { position: relative; min-width: 0; }
+.kp-flujo-flecha { position: absolute; right: -17px; top: 50%; transform: translateY(-50%); }
+.kp-tarjeta-link { transition: border-color .12s; }
+.kp-tarjeta-link:hover { border-color: var(--border-strong) !important; }
+.kp-fila-link { border-radius: var(--radius-md); transition: background .12s; }
+.kp-fila-link:hover { background: var(--bg-overlay); }
+@media (max-width: 1000px) { .kp-flujo { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .kp-flujo-flecha { display: none; } }
+@media (max-width: 520px) { .kp-flujo { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .kp-como-se-calcula { grid-template-columns: 1fr !important; } .kp-como-se-calcula dd { margin-bottom: 6px !important; } }

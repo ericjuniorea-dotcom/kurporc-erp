@@ -1,16 +1,14 @@
-// Se arma en el servidor con los datos de entrada ya resueltos (un solo viaje): ver src/lib/precarga.
-import { precargar } from "@/lib/precarga/servidor";
-import { Semilla } from "@/components/precarga/semilla";
-import { GET as dashboardKpis } from "@/app/api/dashboard/kpis/route";
-import { GET as dashboardChartData } from "@/app/api/dashboard/chart-data/route";
+// Dashboard: se calcula en el servidor y llega armado en un solo viaje (sin pedidos desde el navegador).
+import { getSession } from "@/lib/auth/config";
+import { redirect } from "next/navigation";
+import { tableroGranja } from "@/lib/indicadores/granja";
 import Pantalla from "./pantalla";
 
 export const dynamic = "force-dynamic";
 
 export default async function Pagina() {
-  const datos = await precargar({
-    "/api/dashboard/kpis": dashboardKpis,
-    "/api/dashboard/chart-data": dashboardChartData,
-  });
-  return <><Semilla datos={datos} /><Pantalla /></>;
+  const session = await getSession();
+  if (!session) redirect("/login");
+  const datos = await tableroGranja(session.user.tenantId);
+  return <Pantalla datos={datos} />;
 }

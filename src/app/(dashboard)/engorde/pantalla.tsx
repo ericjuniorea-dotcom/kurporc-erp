@@ -54,6 +54,8 @@ export default function EngordePage() {
   const router = useRouter();
 
   const [tab, setTab]         = useState("general");
+  // Abre directo en una pestaña si viene en la dirección (p. ej. «Analizar» desde el Dashboard)
+  useEffect(() => { const t = new URLSearchParams(window.location.search).get("tab"); if (t === "analisis") setTab(t); }, []);
   const [dataTab, setDataTab] = useState<DataSubTab>("lotes");
 
   const [kpiData, setKpiData]         = useState<KpiData | null>(null);

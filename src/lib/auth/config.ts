@@ -56,6 +56,7 @@ export interface UsuarioSesion {
   debeCambiarClave: boolean;
   onboardingCompleto: boolean;
   esSuperadmin: boolean;
+  ayudaIndicadores: boolean; // Configuración → Generales
 }
 
 export interface AppSession {
@@ -136,7 +137,7 @@ export const getUsuario = cache(async (): Promise<(UsuarioSesion & { aal: string
     where: { authUserId: claims.sub },
     select: {
       id: true, email: true, name: true, avatarUrl: true, language: true, isActive: true,
-      debeCambiarClave: true, onboardingCompleto: true, authUserId: true,
+      debeCambiarClave: true, onboardingCompleto: true, authUserId: true, ayudaIndicadores: true,
       adminPlataforma: { select: { userId: true } },
     },
     }),
@@ -148,6 +149,7 @@ export const getUsuario = cache(async (): Promise<(UsuarioSesion & { aal: string
     id: u.id, authUserId: u.authUserId!, email: u.email, name: u.name, avatarUrl: u.avatarUrl,
     language: u.language, debeCambiarClave: u.debeCambiarClave, onboardingCompleto: u.onboardingCompleto,
     esSuperadmin: !!u.adminPlataforma,
+    ayudaIndicadores: u.ayudaIndicadores,
     aal: typeof claims.aal === "string" ? claims.aal : null,
     faltaSegundoFactor,
     // Términos y Privacidad vigentes sin aceptar (Fase 4): sin esto no se usa la plataforma
