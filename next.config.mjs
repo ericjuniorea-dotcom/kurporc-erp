@@ -12,6 +12,8 @@ const encabezadosSeguridad = [
 
 const nextConfig = {
   poweredByHeader: false,
+  // Versión publicada: el navegador la compara al volver a la app para actualizarse sola (src/components/layout/version-nueva.tsx)
+  env: { NEXT_PUBLIC_VERSION: process.env.VERCEL_GIT_COMMIT_SHA || process.env.VERCEL_DEPLOYMENT_ID || "local" },
   serverExternalPackages: ["@prisma/client", "bcryptjs"],
   // Sin next/image: no se usa, y el optimizador de imágenes es el componente
   // de Next.js con más fallas críticas publicadas. Si algún día se usa, revisar antes.

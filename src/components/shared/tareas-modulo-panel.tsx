@@ -295,7 +295,7 @@ function TaskRow({ task, completing, onToggle }: {
         }
       </button>
 
-      <span style={{ fontSize: 12, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      <span className="kp-tarea-titulo" style={{ fontSize: 12, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         <span style={{ marginRight: 4 }}>{emoji}</span>
         <span style={{ fontWeight: done ? 400 : 500, color: done ? "var(--text-muted)" : ps.text, textDecoration: done ? "line-through" : "none" }}>
           {task.titulo}

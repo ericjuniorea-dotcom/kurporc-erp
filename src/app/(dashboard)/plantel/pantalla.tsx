@@ -159,9 +159,9 @@ export default function PlantelPage() {
   const isDescartados = tab === "Descartados";
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+    <div className="kp-plantel" style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       {/* Top section */}
-      <div style={{ padding: "20px 24px 0", flexShrink: 0 }}>
+      <div className="kp-plantel-top" style={{ padding: "20px 24px 0", flexShrink: 0 }}>
         {!hasFicha && <div style={{ marginBottom: 14 }}><PanelTransferencias pantalla="PLANTEL" /></div>}
         {/* Header + Stats */}
         {!hasFicha && !isDescartados && (
@@ -189,11 +189,11 @@ export default function PlantelPage() {
               </Link>
             </div>
 
-            <div className="kp-grilla-tarjetas" style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 10, marginBottom: 20 }}>
+            <div className="kp-grilla-tarjetas kp-plantel-stats" style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 10, marginBottom: 20 }}>
               {STAT_CARDS.map(({ label, sub, value, icon: Icon, color, onClick }) => (
                 <div
                   key={label}
-                  className="panel"
+                  className="panel kp-plantel-stat"
                   onClick={onClick}
                   style={{
                     display: "flex", flexDirection: "column", gap: 4, padding: "12px 14px",
@@ -209,10 +209,10 @@ export default function PlantelPage() {
                       {label}
                     </span>
                   </div>
-                  <span style={{ fontSize: 24, fontWeight: 500, color: stats ? color : "var(--text-muted)", lineHeight: 1 }}>
+                  <span className="kp-plantel-stat-valor" style={{ fontSize: 24, fontWeight: 500, color: stats ? color : "var(--text-muted)", lineHeight: 1 }}>
                     {stats ? (value ?? 0) : "—"}
                   </span>
-                  <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{sub}</span>
+                  <span className="kp-plantel-stat-sub" style={{ fontSize: 10, color: "var(--text-muted)" }}>{sub}</span>
                 </div>
               ))}
             </div>
@@ -255,8 +255,8 @@ export default function PlantelPage() {
       </div>
 
       {/* Content — split when ficha open */}
-      <div style={{ flex: 1, overflow: "hidden", display: "flex" }}>
-        <div style={{
+      <div className="kp-plantel-cuerpo" style={{ flex: 1, overflow: "hidden", display: "flex" }}>
+        <div className={hasFicha ? "kp-plantel-lista con-ficha" : "kp-plantel-lista"} style={{
           flex: hasFicha ? "0 0 460px" : "1 1 auto",
           overflowY: "auto",
           padding: "16px 24px",
@@ -273,7 +273,7 @@ export default function PlantelPage() {
         </div>
 
         {hasFicha && selectedSowId && (
-          <div style={{ flex: "1 1 0", overflow: "hidden", minWidth: 380 }}>
+          <div className="kp-plantel-ficha" style={{ flex: "1 1 0", overflow: "hidden", minWidth: 380 }}>
             <FichaDrawer
               sowId={selectedSowId}
               canEdit={canEdit}

@@ -9,6 +9,7 @@ import { IconArrowRight, IconCheck, IconChevronDown, IconCircleCheck, IconChevro
 import { anularConsumo, nutricionDia, registrarConsumo } from "@/app/acciones/nutricion";
 import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 import type { ModuloNutricion } from "@/lib/nutricion/plan";
+import { recargarSiVersionVieja } from "@/lib/version-vieja";
 
 type Datos = Awaited<ReturnType<typeof nutricionDia>>;
 type Tipo = Datos["tipos"][number];
@@ -27,11 +28,19 @@ export function CargaDiaNutricion() {
   const [error, setError] = useState<string | null>(null);
   const cargar = useCallback(() => {
     setError(null);
-    nutricionDia(fecha).then(setDatos).catch(() => setError("No se pudo cargar. Recargá la página."));
+    // Si falla, reintenta una vez; si es porque la pantalla quedó con una versión vieja, recarga sola
+    nutricionDia(fecha).then(setDatos).catch(() => new Promise(r => setTimeout(r, 800)).then(() => nutricionDia(fecha)).then(setDatos)
+      .catch((e: unknown) => { if (!recargarSiVersionVieja(e)) setError("No se pudo cargar."); }));
   }, [fecha]);
   useEffect(() => { cargar(); }, [cargar]);
 
-  if (error) return <div role="alert" style={{ fontSize: 13, color: "var(--danger-text)" }}>{error}</div>;
+  if (error) return (
+    <div role="alert" style={{ fontSize: 13, color: "var(--danger-text)", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+      {error}
+      <button type="button" className="btn" onClick={() => window.location.reload()}>Recargar</button>
+      <button type="button" className="btn" onClick={cargar}>Reintentar</button>
+    </div>
+  );
   if (!datos) return <div style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, color: "var(--text-muted)" }}><IconLoader2 size={15} className="animate-spin" aria-hidden /> Cargando…</div>;
 
   const tiposDe = (m: ModuloNutricion) => datos.tipos.filter(t => t.modulo === m);

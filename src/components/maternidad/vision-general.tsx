@@ -39,8 +39,8 @@ function KpiCard({
         background:   "var(--bg-surface)",
         border:       "0.5px solid var(--border-default)",
         borderRadius: "var(--radius-lg)",
-        padding:      "16px 20px",
-        flex:         1,
+        padding:      "14px 16px",
+        flex:         "1 1 140px",
         minWidth:     0,
         cursor:       onClick ? "pointer" : "default",
         transition:   onClick ? "filter 0.1s" : undefined,
@@ -96,7 +96,7 @@ export function VisionGeneralMaternidad() {
       {showModal && <HembrasMaternidadModal onClose={() => setShowModal(false)} />}
 
       {/* KPI strip */}
-      <div style={{ display: "flex", gap: 12 }}>
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         <KpiCard
           label="Reproductoras en maternidad"
           value={data.hembras}
@@ -119,7 +119,7 @@ export function VisionGeneralMaternidad() {
       </div>
 
       {/* Gráfico + Inconsistencias */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div className="content-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
 
         {/* Distribución por edad */}
         <div style={{
