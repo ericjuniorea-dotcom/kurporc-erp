@@ -7,6 +7,8 @@ import { getGestacionStates } from "@/lib/gestacion/sow-state";
 import { SELECT_STOCK_CAMADA } from "@/lib/maternidad/camadas";
 import { stockCamada } from "@/lib/auditoria/granja";
 import { INDICADORES, evaluar, tendencia, type ClaveIndicador, type Estado } from "./catalogo";
+import { generarOrdenesMaternidad, pendientesPorModulo } from "@/lib/transferencias/servidor";
+import { MODULOS_TRANSFERENCIA } from "@/lib/transferencias/tipos";
 
 const DIA = 86_400_000;
 const GESTACION = 114;           // días de gestación para la fecha probable de parto
@@ -187,11 +189,21 @@ export async function tableroGranja(tenantId: string) {
   if (atrasadas) operativos.push({ nivel: "atencion", href: "/maternidad", texto: `${atrasadas} camada${atrasadas === 1 ? "" : "s"} pasó los ${metaLact} días de lactancia: programá el destete` });
   if (partos7) operativos.push({ nivel: "info", href: "/gestacion", texto: `${partos7} parto${partos7 === 1 ? "" : "s"} esperado${partos7 === 1 ? "" : "s"} en los próximos 7 días: prepará las salas` });
   if (tareasVencidas) operativos.push({ nivel: "atencion", href: "/tareas", texto: `${tareasVencidas} tarea${tareasVencidas === 1 ? "" : "s"} de sanidad vencida${tareasVencidas === 1 ? "" : "s"}` });
+  // Transferencias de animales: lo que espera ser recibido o enviado en cada módulo
+  await generarOrdenesMaternidad(tenantId).catch(e => console.error("[ordenes-maternidad]", e));
+  for (const t of await pendientesPorModulo(tenantId)) {
+    const m = t.estado === "EN_CAMINO" ? t.destino : t.origen;
+    const info = MODULOS_TRANSFERENCIA[m];
+    if (!info) continue;
+    operativos.unshift(t.estado === "EN_CAMINO"
+      ? { nivel: "atencion", href: info.href, texto: `${info.etiqueta}: ${t.animales} animal${t.animales === 1 ? "" : "es"} por recibir (${MODULOS_TRANSFERENCIA[t.origen]?.etiqueta ?? t.origen})` }
+      : { nivel: "atencion", href: info.href, texto: `${info.etiqueta}: ${t.transferencias} orden${t.transferencias === 1 ? "" : "es"} para pasar a ${MODULOS_TRANSFERENCIA[t.destino]?.etiqueta ?? t.destino}` });
+  }
 
   return {
     generado: hoy.toISOString(),
     indicadores,
-    avisos: [...operativos, ...avisos].slice(0, 6),
+    avisos: [...operativos, ...avisos].slice(0, 8),
     inventario: {
       madres, prenadas, servidas, lactantes, vacias, cuarentena, cachorras, machos,
       lechonesMat, camadas: lactantes, lechonesIni, lotesIni: ini._count._all, cerdosEng, lotesEng: eng._count._all,

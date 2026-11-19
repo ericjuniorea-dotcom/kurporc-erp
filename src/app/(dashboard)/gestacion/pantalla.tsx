@@ -14,6 +14,7 @@ import {
 
 import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 import dynamic from "next/dynamic";
+import { PanelTransferencias } from "@/components/transferencias/panel";
 
 // Se bajan recién cuando se abren (la pantalla inicial queda más liviana)
 function Cargando() { return <div className="kp-esqueleto" style={{ height: 220, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" />; }
@@ -354,6 +355,7 @@ export default function GestacionPage() {
       />
 
       <div style={{ padding: "16px 20px" }}>
+        <div style={{ marginBottom: 14 }}><PanelTransferencias pantalla="GESTACION" /></div>
         {tab === "vision" && <VisionGeneralGestacion onOpenLotes={() => setTab("lotes")} />}
         {tab === "lotes"  && <LotesView onBack={() => setTab("vision")} />}
 

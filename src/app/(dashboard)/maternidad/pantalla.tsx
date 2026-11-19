@@ -8,6 +8,7 @@ import { TareasModuloPanel }         from "@/components/shared/tareas-modulo-pan
 import { Topbar }                    from "@/components/layout/topbar";
 import { IconHeartPlus }             from "@tabler/icons-react";
 import dynamic from "next/dynamic";
+import { PanelTransferencias } from "@/components/transferencias/panel";
 
 // Se bajan recién cuando se abren (la pantalla inicial queda más liviana)
 function Cargando() { return <div className="kp-esqueleto" style={{ height: 220, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" />; }
@@ -66,6 +67,7 @@ export default function MaternidadPage() {
       />
 
       <div style={{ padding: "16px 20px" }}>
+        <div style={{ marginBottom: 14 }}><PanelTransferencias pantalla="MATERNIDAD" /></div>
         {tab === "vision" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <VisionGeneralMaternidad />

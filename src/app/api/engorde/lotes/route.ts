@@ -6,6 +6,7 @@ import { getPermisos, puede } from "@/lib/permisos/servidor";
 import { jsonConMontos } from "@/lib/permisos/montos";
 import { sitioEnVacio } from "@/lib/engorde/vacio";
 import { conActor } from "@/lib/db/actor";
+import { registrarTraslado } from "@/lib/transferencias/servidor";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
@@ -157,6 +158,12 @@ export async function POST(req: NextRequest) {
       status: "ACTIVE",
     },
   });
+
+  // Lote armado con animales de Iniciación: Engorde confirma la llegada (transferencia con aceptación)
+  if (nurseryBatchId && (procedencia || "RECRIA_PROPIA") === "RECRIA_PROPIA") {
+    await registrarTraslado({ tenantId, origen: "INICIACION", destino: "ENGORDE", categoria: "LECHONES", cantidad: Number(currentCount), creadaPor: session.user.id,
+      nurseryBatchId, growingBatchId: lote.id, pesoTotalKg: Number(entryWeightKg) || null, motivo: `Animales de Iniciación al lote de Engorde ${batchCode}` });
+  }
 
   // Fase 9: animales comprados a terceros = gasto "Compra de lechones para engorde" (pendiente de pago)
   if ((procedencia === "COMPRA_EXTERNA") && costoCompra && BigInt(costoCompra) > 0n) {

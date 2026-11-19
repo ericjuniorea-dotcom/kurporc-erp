@@ -14,6 +14,7 @@ const SECCIONES: (SeccionFinanzas & { permiso: string })[] = [
   { grupo: "Día a día", href: "/finanzas/pagar", label: "Por pagar", permiso: "finanzas.pagar.ver" },
   { grupo: "Día a día", href: "/finanzas/cobrar", label: "Por cobrar", permiso: "finanzas.cobrar.ver" },
   { grupo: "Día a día", href: "/finanzas/ventas", label: "Ventas", permiso: "ventas.ventas.ver" },
+  { grupo: "Día a día", href: "/finanzas/compra-animales", label: "Compra de animales", permiso: "finanzas.movimientos.ver" },
   { grupo: "Análisis", href: "/finanzas/estado", label: "Estado financiero", permiso: "finanzas.estado.ver" },
   { grupo: "Análisis", href: "/finanzas/indicadores", label: "Indicadores", permiso: "finanzas.indicadores.ver" },
   { grupo: "Análisis", href: "/finanzas/analisis", label: "Análisis del año", permiso: "finanzas.indicadores.ver" },

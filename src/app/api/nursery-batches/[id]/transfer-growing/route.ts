@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth/config";
 import prisma from "@/lib/db/prisma";
 import { transferToGrowingSchema } from "@/lib/validations/recria";
 import { getPermisos, puede } from "@/lib/permisos/servidor";
+import { registrarTraslado } from "@/lib/transferencias/servidor";
 
 // Traslado de recría a engorde: crea un GrowingBatch y desactiva el NurseryBatch
 export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
@@ -56,6 +57,11 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
 
     return g;
   });
+
+  // Transferencia con aceptación: Engorde confirma cuántos llegaron y dónde quedaron
+  await registrarTraslado({ tenantId, origen: "INICIACION", destino: "ENGORDE", categoria: "LECHONES", cantidad: animalCount, creadaPor: session.user.id,
+    nurseryBatchId: params.id, growingBatchId: growingBatch.id, pesoTotalKg: entryWeightKg,
+    motivo: `Lote ${nurseryBatch.batchCode} de Iniciación pasa a Engorde como ${batchCode}: ${animalCount} animales` });
 
   // Alerta de peso de transferencia: si el promedio supera el umbral configurado
   const config = await prisma.tenant.findUnique({

@@ -1,4 +1,5 @@
 "use client";
+import { PanelTransferencias } from "@/components/transferencias/panel";
 import { useState, useEffect, useCallback } from "react";
 import { useSession, usePermisos } from "@/lib/auth/sesion-cliente";
 import { useRouter }         from "next/navigation";
@@ -95,6 +96,7 @@ export default function RecriaPage() {
       {/* ── VISIÓN GENERAL ─────────────────────────────────────── */}
       {tab === "vision" && (
         <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
+          <PanelTransferencias pantalla="INICIACION" onCambio={load} />
           {!loading && batches.length > 0 && (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <div style={{ background: "var(--bg-surface)", border: "0.5px solid var(--info-border)", borderRadius: "var(--radius-lg)", padding: "12px 14px" }}>

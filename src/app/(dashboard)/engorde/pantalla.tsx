@@ -14,6 +14,7 @@ import type { LoteCardData } from "@/components/engorde/LoteCard";
 
 import { TareasModuloPanel }      from "@/components/shared/tareas-modulo-panel";
 import dynamic from "next/dynamic";
+import { PanelTransferencias } from "@/components/transferencias/panel";
 
 // Se bajan recién cuando se abren (la pantalla inicial queda más liviana)
 function Cargando() { return <div className="kp-esqueleto" style={{ height: 220, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" />; }
@@ -121,6 +122,7 @@ export default function EngordePage() {
       {/* ── VISIÓN GENERAL ─────────────────────────────────────────── */}
       {tab === "general" && (
         <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
+          <PanelTransferencias pantalla="ENGORDE" />
           <KpiStrip
             lotesAbiertos={kpiData?.kpis.lotesAbiertos ?? 0}
             stockTotal={kpiData?.kpis.stockTotal ?? 0}

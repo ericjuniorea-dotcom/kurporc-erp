@@ -3702,3 +3702,45 @@ model NecesidadSnapshot {
   @@index([organizacionId, stockItemId, calculadoEn])
   @@map("necesidad_snapshot")
 }
+
+// Transferencias de animales entre módulos (con aceptación del módulo que recibe).
+// COMPRA: Finanzas registra la compra (gasto + animales «en camino») y el módulo de destino la recibe.
+// Internas: Gestación → Maternidad (orden automática N días antes del parto), destete → Iniciación / Gestación,
+// Iniciación → Engorde. Estados: ORDEN (el origen tiene que enviar) → EN_CAMINO → RECIBIDA | RECHAZADA | ANULADA.
+model TransferenciaAnimal {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String    @map("tenant_id")
+  origen           String // COMPRA | GESTACION | MATERNIDAD | INICIACION | ENGORDE | PLANTEL
+  destino          String // GESTACION | MATERNIDAD | INICIACION | ENGORDE | CUARENTENA | PLANTEL
+  categoria        String // LECHONES | REPRODUCTORAS | REPRODUCTORES
+  estado           String    @default("EN_CAMINO") // ORDEN | EN_CAMINO | RECIBIDA | RECHAZADA | ANULADA
+  motivo           String // texto de la orden: «Parto probable el 12/12», «Destete de la camada…», «Compra a Granja X»
+  cantidad         Int
+  pesoTotalKg      Decimal?  @map("peso_total_kg") @db.Decimal(10, 2)
+  edadDias         Int?      @map("edad_dias")
+  proveedor        String? // granja de origen (compras)
+  movimientoId     String?   @map("movimiento_id") @db.Uuid
+  costoTotalGs     BigInt?   @map("costo_total_gs")
+  animales         Json? // compras: [{ caravana, sexo, pesoKg, genetica, nacimiento }]
+  ubicacion        String? // a dónde va (galpón / corral / sala); la confirma quien recibe
+  sowId            String?   @map("sow_id")
+  farrowingId      String?   @map("farrowing_id")
+  nurseryBatchId   String?   @map("nursery_batch_id")
+  growingBatchId   String?   @map("growing_batch_id")
+  fechaProgramada  DateTime? @map("fecha_programada") @db.Date
+  creadaPor        String?   @map("creada_por")
+  enviadaPor       String?   @map("enviada_por")
+  enviadaEn        DateTime? @map("enviada_en")
+  resueltaPor      String?   @map("resuelta_por")
+  resueltaEn       DateTime? @map("resuelta_en")
+  cantidadRecibida Int?      @map("cantidad_recibida")
+  pesoRecibidoKg   Decimal?  @map("peso_recibido_kg") @db.Decimal(10, 2)
+  nota             String?
+  resultado        Json? // lo que se creó al recibir (ids de reproductoras, lote…)
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  @@index([tenantId, estado])
+  @@index([tenantId, destino, estado])
+  @@index([sowId])
+  @@map("transferencias_animales")
+}

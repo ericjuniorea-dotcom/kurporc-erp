@@ -555,3 +555,15 @@
 .kp-cerda-carga { border: 0.5px solid var(--border-default); border-radius: var(--radius-lg); background: var(--bg-surface); padding: 12px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .kp-cerda-bloque { display: flex; flex-direction: column; gap: 6px; padding-top: 10px; border-top: 0.5px solid var(--border-default); }
 @media (max-width: 420px) { .kp-cerdas-carga { grid-template-columns: 1fr; padding: 8px; } }
+
+/* Transferencias de animales (panel de cada módulo) */
+.kp-transfer-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px; }
+.kp-transfer { border: 0.5px solid var(--border-default); border-radius: var(--radius-md); background: var(--bg-elevated); padding: 10px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+@media (max-width: 420px) { .kp-transfer-lista { grid-template-columns: 1fr; } }
+/* Finanzas · compra de animales */
+.kp-form-compra { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.kp-fila-animal { display: grid; grid-template-columns: 24px minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.7fr) minmax(0, 1fr); gap: 6px; }
+@media (max-width: 640px) {
+  .kp-fila-animal { grid-template-columns: 24px minmax(0, 1fr) minmax(0, 1fr); padding-bottom: 8px; border-bottom: 0.5px dashed var(--border-default); }
+  .kp-fila-animal > :nth-child(4) { grid-column: 2; } .kp-fila-animal > :nth-child(5) { grid-column: 3; }
+}

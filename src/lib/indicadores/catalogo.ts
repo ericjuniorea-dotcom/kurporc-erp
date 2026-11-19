@@ -189,10 +189,13 @@ export type ClaveIndicador = keyof typeof INDICADORES;
 export const indicador = (c: ClaveIndicador): Indicador => INDICADORES[c];
 
 /** Metas que el programa sabe medir, con su valor por defecto (si la granja todavía no la cargó). */
-export const METAS_CATALOGO: { modulo: string; kpiKey: string; label: string; defecto: number; clave: ClaveIndicador }[] =
-  (Object.entries(INDICADORES) as [ClaveIndicador, Indicador][])
+export const METAS_CATALOGO: { modulo: string; kpiKey: string; label: string; defecto: number; clave?: ClaveIndicador }[] = [
+  ...(Object.entries(INDICADORES) as [ClaveIndicador, Indicador][])
     .filter(([, i]) => i.meta)
-    .map(([clave, i]) => ({ modulo: i.meta!.modulo, kpiKey: i.meta!.kpiKey, label: `${i.nombre}${i.unidad ? ` (${i.unidad})` : ""}${i.sentido === "menor" ? " · máximo" : " · mínimo"}`, defecto: i.meta!.defecto, clave }));
+    .map(([clave, i]) => ({ modulo: i.meta!.modulo, kpiKey: i.meta!.kpiKey, label: `${i.nombre}${i.unidad ? ` (${i.unidad})` : ""}${i.sentido === "menor" ? " · máximo" : " · mínimo"}`, defecto: i.meta!.defecto, clave })),
+  // Parámetros de trabajo (no son indicadores)
+  { modulo: "GESTACION", kpiKey: "dias_traslado_maternidad", label: "Días antes del parto para pasar la reproductora a Maternidad (orden de trabajo automática)", defecto: 5 },
+];
 
 export type Estado = "EN_META" | "ATENCION" | "FUERA" | "SIN_DATO";
 

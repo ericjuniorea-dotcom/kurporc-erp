@@ -15,6 +15,7 @@ import { ModalGrupoPlantel, type GrupoPlantel } from "@/components/plantel/modal
 
 import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 import dynamic from "next/dynamic";
+import { PanelTransferencias } from "@/components/transferencias/panel";
 
 // Se bajan recién cuando se abren (la pantalla inicial queda más liviana)
 function Cargando() { return <div className="kp-esqueleto" style={{ height: 220, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" />; }
@@ -161,6 +162,7 @@ export default function PlantelPage() {
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       {/* Top section */}
       <div style={{ padding: "20px 24px 0", flexShrink: 0 }}>
+        {!hasFicha && <div style={{ marginBottom: 14 }}><PanelTransferencias pantalla="PLANTEL" /></div>}
         {/* Header + Stats */}
         {!hasFicha && !isDescartados && (
           <>

@@ -7,6 +7,7 @@ import { diffDays, isoWeekLabel } from "@/lib/utils";
 import { generarTareasNurseryBatch } from "@/lib/tasks/generate";
 import { generarEventosNursery } from "@/lib/sanidad/generate-eventos";
 import { getPermisos, puede } from "@/lib/permisos/servidor";
+import { registrarTraslado } from "@/lib/transferencias/servidor";
 
 export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
 
   const farrowing = await prisma.farrowingEvent.findFirst({
     where: { id: params.id, tenantId },
-    select: { startDatetime: true, sowId: true, weaning: { select: { id: true } } },
+    select: { startDatetime: true, sowId: true, weaning: { select: { id: true } }, sow: { select: { caravanaCode: true, identCode: true } } },
   });
 
   if (!farrowing) return NextResponse.json({ error: "Parto no encontrado" }, { status: 404 });
@@ -124,6 +125,16 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     where: { id: farrowing.sowId },
     data:  { plantelState: d.sowDestination === "CULL" ? "CULLED" : "EMPTY" },
   }).catch(() => {});
+
+  // Transferencias con aceptación: los lechones quedan «por recibir» en Iniciación y la reproductora en Gestación
+  const caravana = farrowing.sow.caravanaCode || farrowing.sow.identCode;
+  await registrarTraslado({ tenantId, origen: "MATERNIDAD", destino: "INICIACION", categoria: "LECHONES", cantidad: d.pigletsWeaned, creadaPor: session.user.id,
+    farrowingId: params.id, nurseryBatchId: nurseryBatch.id, pesoTotalKg: d.totalLitterWeightKg || null,
+    motivo: `Destete de la camada de ${caravana}: ${d.pigletsWeaned} lechones al lote ${batchCode}` });
+  if (d.sowDestination === "GESTATION") {
+    await registrarTraslado({ tenantId, origen: "MATERNIDAD", destino: "GESTACION", categoria: "REPRODUCTORAS", cantidad: 1, creadaPor: session.user.id,
+      sowId: farrowing.sowId, farrowingId: params.id, motivo: `Reproductora ${caravana} destetada: vuelve a Gestación para el próximo servicio` });
+  }
 
   return NextResponse.json({ weaning, nurseryBatch, lactationDays, avgPigletWeightKg }, { status: 201 });
 }
