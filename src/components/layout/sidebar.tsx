@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { KurPorcLogo } from "@/components/ui/logo";
 import { ThemeToggle } from "./theme-toggle";
+import { CampanaAvisos } from "./campana-avisos";
 import { signOut } from "@/lib/auth/sesion-cliente";
 import type { Membresia } from "@/lib/auth/config";
 import { SelectorOrganizacion } from "./selector-organizacion";
@@ -88,6 +89,7 @@ export function Sidebar({ farmName, permisos, organizacionActiva, membresias, es
         </button>
         <KurPorcLogo size="sm" />
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <CampanaAvisos />
           <ThemeToggle />
           <button
             type="button"
@@ -128,6 +130,7 @@ export function Sidebar({ farmName, permisos, organizacionActiva, membresias, es
                 : farmName}
             </div>
           </div>
+          <CampanaAvisos className="campana-escritorio" />
           <button
             type="button"
             aria-label="Cerrar menú"

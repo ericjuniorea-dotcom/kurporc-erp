@@ -31,8 +31,14 @@ export const INDICADORES = {
   repeticion_celo: {
     nombre: "Repetición de celo", grupo: "Reproducción", unidad: "%", decimales: 0, sentido: "menor",
     meta: { modulo: "GESTACION", kpiKey: "repeticion_celo_pct_max", defecto: 10 },
-    formula: "Servicios que son repetición ÷ servicios del período × 100. Es repetición cuando la cerda se vuelve a servir dentro de los 60 días del servicio anterior, sin haber parido.",
-    paraQue: "Cuenta las cerdas que no quedaron preñadas y volvieron en celo. Cada repetición son unos 21 días de cerda que come sin producir.",
+    formula: "De los servicios del período que ya tienen 60 días: los que se volvieron a servir dentro de los 60 días sin parir ÷ total de esos servicios × 100. Las dosis de un mismo celo cuentan como un solo servicio. Regulares (18-24 días): la cerda no quedó preñada. Irregulares (25-60 días): quedó preñada y perdió los embriones.",
+    paraQue: "Cuenta las cerdas que no quedaron preñadas y volvieron en celo. Cada repetición son unos 21 días de cerda que come sin producir. Regulares altas: revisá detección de celo, momento de la inseminación y calidad del semen. Irregulares altas: estrés por calor, enfermedad o vacunación.",
+  },
+  repeticion_tardia: {
+    nombre: "Repetición tardía (+60 días)", grupo: "Reproducción", unidad: "%", decimales: 0, sentido: "menor",
+    meta: { modulo: "GESTACION", kpiKey: "repeticion_tardia_pct_max", defecto: 5 },
+    formula: "De los servicios del período que ya tienen 115 días: los que se volvieron a servir después de los 60 días sin parir ÷ total de esos servicios × 100. Sumada a la repetición de celo da el total de cerdas que volvieron a servicio sin parir.",
+    paraQue: "Son cerdas que quedaron preñadas y la perdieron tarde (aborto no visto, pérdida de la gestación) o falsas preñadas. Si sube, revisá la vacunación (parvovirus, leptospirosis, PRRS), el calor y el diagnóstico de preñez a los 21-28 días.",
   },
   intervalo_destete_servicio: {
     nombre: "Intervalo destete-servicio", grupo: "Reproducción", unidad: "días", decimales: 1, sentido: "menor",

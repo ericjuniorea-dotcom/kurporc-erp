@@ -38,6 +38,7 @@ Cada usuario prende o apaga la nube en **Configuración → Generales** (columna
 ## Definiciones ya acordadas con el dueño (no cambiar sin preguntarle)
 
 - Nacidos muertos y momificados son indicadores separados (÷ nacidos totales); el dueño los relaciona con la vacunación de las reproductoras, por eso su aviso lleva a Sanidad → Vacunación. «Muertos al nacer» es la suma y no genera aviso propio.
+- Repetición de celo (estándar): de los servicios con 60+ días, los que se volvieron a servir dentro de 60 días sin parir. Repetición tardía: los que volvieron después de 60 días (cohorte de 115 días). El Excel del dueño sumaba las dos (~27%).
 - Mortalidad total NO incluye los nacidos muertos (se mide desde el nacido vivo).
 - Mortalidad predestete: camadas destetadas en el período → muertos en lactancia ÷ (nacidos vivos + recibidos − donados).
 - Mortalidad en Iniciación / Engorde: muertes del período ÷ animales que entraron a la fase en el período.

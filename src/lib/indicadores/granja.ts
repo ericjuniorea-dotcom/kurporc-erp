@@ -71,15 +71,15 @@ export async function tableroGranja(tenantId: string) {
   const metaDe = (c: ClaveIndicador) => { const i = INDICADORES[c]; return "meta" in i && i.meta ? meta(i.meta.modulo, i.meta.kpiKey, i.meta.defecto) : null; };
 
   // Celos: las dosis de un mismo celo cuentan como un solo servicio
-  type Celo = { sowId: string; fecha: Date; pario: boolean; repeticion: boolean };
+  // siguiente = fecha del próximo celo servido de la misma cerda (para saber si volvió y a los cuántos días)
+  type Celo = { sowId: string; fecha: Date; pario: boolean; siguiente?: number };
   const celos: Celo[] = [];
   let ult: Celo | null = null, ultFecha = 0;
   for (const s of servicios) {
     const t = s.serviceDate.getTime();
     if (ult && ult.sowId === s.sowId && t - ultFecha <= MISMO_CELO * DIA) { ult.pario ||= !!s.farrowing; ultFecha = t; continue; }
-    const previo = ult && ult.sowId === s.sowId ? ult : null;
-    const c: Celo = { sowId: s.sowId, fecha: s.serviceDate, pario: !!s.farrowing,
-      repeticion: !!previo && !previo.pario && t - previo.fecha.getTime() <= VENTANA_REPETICION * DIA };
+    if (ult && ult.sowId === s.sowId) ult.siguiente = t;
+    const c: Celo = { sowId: s.sowId, fecha: s.serviceDate, pario: !!s.farrowing };
     celos.push(c); ult = c; ultFecha = t;
   }
   const muertosIni = (v: Ventana) => suma(muertesIni.filter(e => dentro(e.eventDate, v)), e => Number(((e.metadata ?? {}) as { quantity?: number }).quantity ?? 1));
@@ -100,7 +100,12 @@ export async function tableroGranja(tenantId: string) {
       + suma(l.outgoingTransfers, x => x.count) - suma(l.incomingTransfers, x => x.count));
     // Tasa de parto: servicios ya «maduros» (la ventana corrida 115 días hacia atrás)
     const maduros = celos.filter(c => c.fecha >= new Date(v.desde.getTime() - MADURA_TASA_PARTO * DIA) && c.fecha < new Date(v.hasta.getTime() - MADURA_TASA_PARTO * DIA));
-    const celosV = celos.filter(c => dentro(c.fecha, v));
+    // Repetición: de los servicios con al menos 60 días (ya se pudo ver si volvieron), cuántos se volvieron a servir sin parir
+    const corrida = (dias: number) => celos.filter(c => c.fecha >= new Date(v.desde.getTime() - dias * DIA) && c.fecha < new Date(v.hasta.getTime() - dias * DIA));
+    const madurosRep = corrida(VENTANA_REPETICION);
+    const volvio = (c: Celo) => !c.pario && c.siguiente != null ? (c.siguiente - c.fecha.getTime()) / DIA : null;
+    const repiten = madurosRep.filter(c => { const d = volvio(c); return d != null && d <= VENTANA_REPETICION; }).length;
+    const tardias = maduros.filter(c => { const d = volvio(c); return d != null && d > VENTANA_REPETICION; }).length;
     // Intervalo destete-servicio: primer celo de la cerda dentro de los 60 días del destete, si cae en la ventana
     const ids: number[] = [];
     for (const x of destetes) {
@@ -123,7 +128,8 @@ export async function tableroGranja(tenantId: string) {
     const total = fases.length ? (1 - fases.reduce((s, x) => s * (1 - x / 100), 1)) * 100 : null;
     return {
       tasa_parto: { valor: pct(maduros.filter(c => c.pario).length, maduros.length), base: maduros.length },
-      repeticion_celo: { valor: pct(celosV.filter(c => c.repeticion).length, celosV.length), base: celosV.length },
+      repeticion_celo: { valor: pct(repiten, madurosRep.length), base: madurosRep.length },
+      repeticion_tardia: { valor: pct(tardias, maduros.length), base: maduros.length },
       intervalo_destete_servicio: { valor: idsProm, base: ids.length },
       partos_cerda_anio: { valor: pca, base: w.length },
       destetados_cerda_anio: { valor: pca != null && destCamada != null ? pca * destCamada : null, base: w.length },
