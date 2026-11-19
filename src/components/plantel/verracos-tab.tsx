@@ -55,7 +55,7 @@ export function VerracosTab() {
 
   const [form, setForm] = useState({
     caravanaCode: "", tattooCode: "", rfidChip: "", geneticaId: "",
-    birthDate: "", entryWeightKg: "", sourceProvider: "", purchasePriceGs: "",
+    birthDate: "", entryWeightKg: "", sourceProvider: "Propio (criado en la granja)", purchasePriceGs: "",
     galponAssigned: "", corralAssigned: "", plantelNotes: "", initialDestination: "QUARANTINE",
   });
 
@@ -87,8 +87,8 @@ export function VerracosTab() {
   }, [loadBoars]);
 
   async function handleSubmit() {
-    if (!form.caravanaCode || !form.birthDate || !form.entryWeightKg || !form.sourceProvider || !form.geneticaId) {
-      alert("Completá los campos obligatorios: Caravana, F. Nacimiento, Peso, Proveedor, Genética");
+    if (!form.caravanaCode || !form.birthDate || !form.entryWeightKg || !form.geneticaId) {
+      alert("Completá los campos obligatorios: Caravana, fecha de nacimiento, peso y genética");
       return;
     }
     const genetica = geneticaOptions.find(g => g.id === form.geneticaId);
@@ -102,7 +102,7 @@ export function VerracosTab() {
       if (res.ok) {
         setShowForm(false);
         setForm({ caravanaCode: "", tattooCode: "", rfidChip: "", geneticaId: "",
-          birthDate: "", entryWeightKg: "", sourceProvider: "", purchasePriceGs: "",
+          birthDate: "", entryWeightKg: "", sourceProvider: "Propio (criado en la granja)", purchasePriceGs: "",
           galponAssigned: "", corralAssigned: "", plantelNotes: "", initialDestination: "QUARANTINE" });
         loadBoars();
       }
@@ -166,7 +166,7 @@ export function VerracosTab() {
           {BOAR_STATES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
         <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-          <IconPlus size={13} aria-hidden /> Registrar reproductor
+          <IconPlus size={13} aria-hidden /> Registrar reproductor propio
         </button>
       </div>
 
@@ -269,9 +269,9 @@ export function VerracosTab() {
                 <div><label className="kp-label">Fecha de nacimiento *</label><input className="kp-input" type="date" value={form.birthDate} onChange={e => F("birthDate", e.target.value)} /></div>
                 <div><label className="kp-label">Peso al ingreso (kg) *</label><input className="kp-input" type="number" step="0.1" value={form.entryWeightKg} onChange={e => F("entryWeightKg", e.target.value)} /></div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div><label className="kp-label">Proveedor / Origen *</label><input className="kp-input" value={form.sourceProvider} onChange={e => F("sourceProvider", e.target.value)} /></div>
-                <div><label className="kp-label">Precio de compra (₲)</label><input className="kp-input" type="number" value={form.purchasePriceGs} onChange={e => F("purchasePriceGs", e.target.value)} /></div>
+              <div style={{ fontSize: 12, color: "var(--text-secondary)", background: "var(--bg-overlay)", borderRadius: "var(--radius-md)", padding: "8px 10px" }}>
+                Solo para reproductores <strong>criados en tu granja</strong>. Si lo compraste a otra granja, cargalo en{" "}
+                <a href="/finanzas/compra-animales" style={{ color: "var(--accent-text)", fontWeight: 500 }}>Finanzas → Compra de animales</a>: llega a Plantel o a Cuarentena para recibirlo.
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div><label className="kp-label">Galpón asignado</label><input className="kp-input" value={form.galponAssigned} onChange={e => F("galponAssigned", e.target.value)} /></div>

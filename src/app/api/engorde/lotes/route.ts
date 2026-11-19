@@ -124,6 +124,11 @@ export async function POST(req: NextRequest) {
   } = body;
   const costoCompra = typeof costoIngresoGs === "string" || typeof costoIngresoGs === "number" ? String(costoIngresoGs).replace(/\D/g, "") : "";
 
+  // Toda compra a otra granja entra por Finanzas → Compra de animales (llega acá como transferencia a recibir)
+  if (procedencia === "COMPRA_EXTERNA") {
+    return NextResponse.json({ error: "Las compras a otra granja se cargan en Finanzas → Compra de animales; te llegan acá para recibirlas." }, { status: 400 });
+  }
+
   if (!batchCode || !currentCount || !entryWeightKg || !entryDate) {
     return NextResponse.json({ error: "Faltan campos obligatorios" }, { status: 400 });
   }

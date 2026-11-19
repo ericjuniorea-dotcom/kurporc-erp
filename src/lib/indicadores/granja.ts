@@ -130,6 +130,8 @@ export async function tableroGranja(tenantId: string) {
       nacidos_totales_parto: { valor: div(totales, p.length), base: p.length },
       nacidos_vivos_parto: { valor: div(vivos, p.length), base: p.length },
       muertos_al_nacer: { valor: pct(totales - vivos, totales), base: p.length },
+      nacidos_muertos: { valor: pct(suma(p, x => x.bornDead), totales), base: p.length },
+      momificados: { valor: pct(suma(p, x => x.mummified), totales), base: p.length },
       peso_al_nacer: { valor: div(suma(conPesoP, x => Number(x.totalLitterWeightKg)), suma(conPesoP, x => x.bornAlive)), base: conPesoP.length },
       mortalidad_predestete: { valor: pre, base: w.length },
       destetados_camada: { valor: destCamada, base: w.length },
@@ -177,13 +179,15 @@ export async function tableroGranja(tenantId: string) {
   // ── Avisos: lo que está fuera de meta y empeora primero ──
   const href: Record<string, string> = { Reproducción: "/gestacion?tab=analisis", Maternidad: "/maternidad?tab=analisis", Iniciación: "/recria", Engorde: "/engorde?tab=analisis", General: "/dashboard" };
   const peso = (f: FilaIndicador) => (f.estado === "FUERA" ? 2 : 1) + (f.tendencia === "empeora" ? 1 : 0) + Math.min(1, Math.abs(f.distancia ?? 0));
-  const avisos: Aviso[] = indicadores.filter(f => f.estado === "FUERA" || f.estado === "ATENCION").sort((x, y) => peso(y) - peso(x)).map(f => {
+  const avisos: Aviso[] = indicadores.filter(f => (f.estado === "FUERA" || f.estado === "ATENCION") && f.clave !== "muertos_al_nacer" /* ya avisan sus partes: nacidos muertos y momificados */).sort((x, y) => peso(y) - peso(x)).map(f => {
     const i = INDICADORES[f.clave];
     const fmt = (v: number | null) => v == null ? "—" : `${v.toLocaleString("es-PY", { maximumFractionDigits: i.decimales })}${i.unidad === "%" ? "%" : ""}`;
     const simbolo = "sentido" in i && i.sentido === "menor" ? "≤" : "≥";
     const tend = f.tendencia === "empeora" ? " y empeorando en los últimos 3 meses" : f.tendencia === "mejora" ? ", pero mejorando en los últimos 3 meses" : "";
-    return { nivel: f.estado === "FUERA" ? "critico" as const : "atencion" as const, clave: f.clave, href: href[i.grupo] ?? "/dashboard",
-      texto: `${i.nombre}: ${fmt(f.anual)} (meta ${simbolo} ${fmt(f.meta)})${tend}` };
+    // Nacidos muertos y momificados apuntan a la vacunación de las reproductoras
+    const vacunas = f.clave === "nacidos_muertos" || f.clave === "momificados";
+    return { nivel: f.estado === "FUERA" ? "critico" as const : "atencion" as const, clave: f.clave, href: vacunas ? "/sanidad?categoria=vacunacion" : href[i.grupo] ?? "/dashboard",
+      texto: `${i.nombre}: ${fmt(f.anual)} (meta ${simbolo} ${fmt(f.meta)})${tend}${vacunas ? " · revisá la vacunación de las reproductoras" : ""}` };
   });
   const operativos: Aviso[] = [];
   if (atrasadas) operativos.push({ nivel: "atencion", href: "/maternidad", texto: `${atrasadas} camada${atrasadas === 1 ? "" : "s"} pasó los ${metaLact} días de lactancia: programá el destete` });

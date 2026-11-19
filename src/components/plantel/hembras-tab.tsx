@@ -186,7 +186,7 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
 
   const [form, setForm] = useState({
     caravanaCode: "", tattooCode: "", rfidChip: "", geneticaId: "",
-    birthDate: "", entryWeightKg: "", sourceProvider: "", purchasePriceGs: "",
+    birthDate: "", entryWeightKg: "", sourceProvider: "Propia (nacida en la granja)", purchasePriceGs: "",
     damCodeOrigin: "", sireCodeOrigin: "", galponAssigned: "", corralAssigned: "",
     plantelNotes: "", initialDestination: "QUARANTINE",
   });
@@ -239,8 +239,8 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
   );
 
   async function handleSubmit() {
-    if (!form.caravanaCode || !form.birthDate || !form.entryWeightKg || !form.sourceProvider || !form.geneticaId) {
-      alert("Completá los campos obligatorios: Caravana, F. Nacimiento, Peso, Proveedor, Genética");
+    if (!form.caravanaCode || !form.birthDate || !form.entryWeightKg || !form.geneticaId) {
+      alert("Completá los campos obligatorios: Caravana, fecha de nacimiento, peso y genética");
       return;
     }
     const genetica = geneticaOptions.find(g => g.id === form.geneticaId);
@@ -254,7 +254,7 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
       if (res.ok) {
         setShowForm(false);
         setForm({ caravanaCode: "", tattooCode: "", rfidChip: "", geneticaId: "",
-          birthDate: "", entryWeightKg: "", sourceProvider: "", purchasePriceGs: "",
+          birthDate: "", entryWeightKg: "", sourceProvider: "Propia (nacida en la granja)", purchasePriceGs: "",
           damCodeOrigin: "", sireCodeOrigin: "", galponAssigned: "", corralAssigned: "",
           plantelNotes: "", initialDestination: "QUARANTINE" });
         loadSows();
@@ -377,7 +377,7 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
           </select>
         </div>
         <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-          <IconPlus size={13} aria-hidden /> Registrar reproductora
+          <IconPlus size={13} aria-hidden /> Registrar cachorra propia
         </button>
       </div>
 
@@ -516,7 +516,7 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
             onClick={e => e.stopPropagation()}
           >
             <div style={{ padding: "16px 20px", borderBottom: "0.5px solid var(--border-default)" }}>
-              <h2 style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)", margin: 0 }}>Registrar reproductora</h2>
+              <h2 style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)", margin: 0 }}>Registrar cachorra nacida en la granja</h2>
             </div>
             <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -553,15 +553,9 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
                   <input className="kp-input" type="number" step="0.1" value={form.entryWeightKg} onChange={e => F("entryWeightKg", e.target.value)} placeholder="Ej: 135.0" />
                 </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label className="kp-label">Proveedor / Origen *</label>
-                  <input className="kp-input" value={form.sourceProvider} onChange={e => F("sourceProvider", e.target.value)} placeholder="Nombre de la granja de origen" />
-                </div>
-                <div>
-                  <label className="kp-label">Precio de compra (₲)</label>
-                  <input className="kp-input" type="number" value={form.purchasePriceGs} onChange={e => F("purchasePriceGs", e.target.value)} placeholder="Ej: 2500000" />
-                </div>
+              <div style={{ fontSize: 12, color: "var(--text-secondary)", background: "var(--bg-overlay)", borderRadius: "var(--radius-md)", padding: "8px 10px" }}>
+                Solo para cachorras <strong>nacidas en tu granja</strong>. Si la compraste a otra granja, cargala en{" "}
+                <a href="/finanzas/compra-animales" style={{ color: "var(--accent-text)", fontWeight: 500 }}>Finanzas → Compra de animales</a>: llega a Gestación o a Cuarentena para recibirla.
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
@@ -602,7 +596,7 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
             <div style={{ padding: "12px 20px", borderTop: "0.5px solid var(--border-default)", display: "flex", justifyContent: "flex-end", gap: 8 }}>
               <button className="btn" onClick={() => setShowForm(false)}>Cancelar</button>
               <button className="btn btn-primary" onClick={handleSubmit} disabled={saving}>
-                {saving ? <><IconLoader2 size={12} style={{ animation: "spin 1s linear infinite" }} /> Guardando…</> : "Registrar reproductora"}
+                {saving ? <><IconLoader2 size={12} style={{ animation: "spin 1s linear infinite" }} /> Guardando…</> : "Registrar cachorra"}
               </button>
             </div>
           </div>

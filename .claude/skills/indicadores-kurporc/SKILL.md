@@ -37,6 +37,8 @@ Cada usuario prende o apaga la nube en **Configuración → Generales** (columna
 
 ## Definiciones ya acordadas con el dueño (no cambiar sin preguntarle)
 
+- Nacidos muertos y momificados son indicadores separados (÷ nacidos totales); el dueño los relaciona con la vacunación de las reproductoras, por eso su aviso lleva a Sanidad → Vacunación. «Muertos al nacer» es la suma y no genera aviso propio.
+- Mortalidad total NO incluye los nacidos muertos (se mide desde el nacido vivo).
 - Mortalidad predestete: camadas destetadas en el período → muertos en lactancia ÷ (nacidos vivos + recibidos − donados).
 - Mortalidad en Iniciación / Engorde: muertes del período ÷ animales que entraron a la fase en el período.
 - Mortalidad total: 1 − (1 − predestete) × (1 − Iniciación) × (1 − Engorde), de cada 100 nacidos vivos.

@@ -183,7 +183,7 @@ function Flujo({ t }: { t: TableroGranja }) {
 
 /* ── 3. ¿Dónde se pierden los lechones? ────────────────────── */
 function DondeSePierden({ t }: { t: TableroGranja }) {
-  const claves: ClaveIndicador[] = ["muertos_al_nacer", "mortalidad_predestete", "mortalidad_iniciacion", "mortalidad_engorde", "mortalidad_total"];
+  const claves: ClaveIndicador[] = ["nacidos_muertos", "momificados", "mortalidad_predestete", "mortalidad_iniciacion", "mortalidad_engorde", "mortalidad_total"];
   const filas = claves.map(c => fila(t, c));
   const escala = Math.max(5, ...filas.flatMap(f => [f.anual ?? 0, f.reciente ?? 0, f.meta ?? 0])) * 1.1;
   return (

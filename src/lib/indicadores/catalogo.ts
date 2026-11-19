@@ -71,6 +71,18 @@ export const INDICADORES = {
     formula: "(Nacidos muertos + momificados) ÷ nacidos totales × 100.",
     paraQue: "Muestra pérdidas en el parto y en la gestación. Si sube, revisá la atención del parto, partos largos, temperatura y enfermedades reproductivas.",
   },
+  nacidos_muertos: {
+    nombre: "Nacidos muertos", grupo: "Maternidad", unidad: "%", decimales: 1, sentido: "menor",
+    meta: { modulo: "MATERNIDAD", kpiKey: "nacidos_muertos_pct_max", defecto: 5 },
+    formula: "Lechones nacidos muertos (formados, que murieron en el parto o justo antes) ÷ nacidos totales × 100. No incluye los momificados.",
+    paraQue: "Si sube, revisá primero la vacunación de las reproductoras (parvovirus, leptospirosis, erisipela; en Sanidad → Vacunación) y después partos largos, falta de atención en el parto, calor y cerdas viejas o muy gordas.",
+  },
+  momificados: {
+    nombre: "Momificados", grupo: "Maternidad", unidad: "%", decimales: 1, sentido: "menor",
+    meta: { modulo: "MATERNIDAD", kpiKey: "pct_momificados_max", defecto: 1 },
+    formula: "Lechones momificados (murieron dentro de la madre durante la gestación) ÷ nacidos totales × 100.",
+    paraQue: "Los momificados casi siempre son por enfermedad reproductiva: parvovirus sobre todo, también leptospirosis o PRRS. Si sube, revisá que todas las reproductoras y cachorras tengan sus vacunas al día antes del servicio.",
+  },
   peso_al_nacer: {
     nombre: "Peso al nacer", grupo: "Maternidad", unidad: "kg", decimales: 2, sentido: "mayor",
     meta: { modulo: "MATERNIDAD", kpiKey: "peso_nacer_kg", defecto: 1.4 },

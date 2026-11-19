@@ -163,25 +163,9 @@ export function TabLotes() {
                   <label className="kp-label">Sitio / ubicación</label>
                   <input className="kp-input" value={form.sitio} onChange={e => F("sitio", e.target.value)} placeholder="Ej: Sitio 2" />
                 </div>
-                <div>
-                  <label className="kp-label">Procedencia</label>
-                  <select className="kp-input" value={form.procedencia} onChange={e => F("procedencia", e.target.value)}>
-                    <option value="RECRIA_PROPIA">Recría propia</option>
-                    <option value="COMPRA_EXTERNA">Compra externa</option>
-                  </select>
+                <div style={{ gridColumn: "1 / -1", fontSize: 12, color: "var(--text-muted)", background: "var(--bg-overlay)", borderRadius: "var(--radius-md)", padding: "8px 10px" }}>
+                  Animales de tu Iniciación. ¿Los compraste a otra granja? Cargá la compra en <a href="/finanzas/compra-animales" style={{ color: "var(--accent-text)", fontWeight: 500 }}>Finanzas → Compra de animales</a>: te llegan acá para recibirlos y se arma el lote solo.
                 </div>
-                {form.procedencia === "COMPRA_EXTERNA" && (
-                  <>
-                    <div>
-                      <label className="kp-label">Proveedor</label>
-                      <input className="kp-input" value={form.proveedor} onChange={e => F("proveedor", e.target.value)} maxLength={120} />
-                    </div>
-                    <div>
-                      <label className="kp-label">Total pagado por los animales (₲)</label>
-                      <input className="kp-input" inputMode="numeric" value={form.costoIngresoGs} onChange={e => F("costoIngresoGs", e.target.value.replace(/[^0-9]/g, ""))} placeholder="Queda en Finanzas como gasto pendiente" />
-                    </div>
-                  </>
-                )}
                 <div>
                   <label className="kp-label">Fecha de ingreso *</label>
                   <input className="kp-input" type="date" value={form.entryDate} onChange={e => F("entryDate", e.target.value)} />
