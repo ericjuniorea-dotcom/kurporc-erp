@@ -65,7 +65,7 @@ export function ModalMuerteLechon({ farrowing, onClose, onSaved }: Props) {
       justifyContent: "center",
       background: "rgba(0,0,0,0.55)",
     }}>
-      <div className="kp-modal" style={{ width: 460 }}>
+      <div className="kp-modal" style={{ width: 460, maxWidth: "calc(100vw - 24px)" }}>
         {/* Header */}
         <div className="kp-modal-title">
           <IconAlertTriangle size={15} style={{ color: "var(--danger)" }} aria-hidden />

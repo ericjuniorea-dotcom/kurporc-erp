@@ -99,7 +99,7 @@ export function FormAborto() {
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Registrar aborto</div>
         <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
-          Registra el aborto de una cerda gestante o servida. La hembra pasará a estado "Vacía".
+          Registra el aborto de una cerda gestante o servida. La reproductora pasará a estado "Vacía".
         </div>
       </div>
 
@@ -143,7 +143,7 @@ export function FormAborto() {
               className="kp-input"
               style={{ fontSize: 12, width: "100%" }}
             >
-              <option value="">— Seleccionar hembra —</option>
+              <option value="">— Seleccionar reproductora —</option>
               {gestantes.map(g => (
                 <option key={g.sowId} value={g.sowId}>
                   {g.caravana} · {g.plantelState === "PREGNANT" ? "Preñada" : "Servida"} · {g.diasGestacion}d

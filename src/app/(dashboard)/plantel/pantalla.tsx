@@ -19,7 +19,7 @@ import dynamic from "next/dynamic";
 // Se bajan recién cuando se abren (la pantalla inicial queda más liviana)
 function Cargando() { return <div className="kp-esqueleto" style={{ height: 220, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" />; }
 const DescartadosTab = dynamic(() => import("@/components/plantel/descartados-tab").then(m => m.DescartadosTab), { loading: () => <Cargando /> });
-const TABS = ["Hembras", "Reproductores", "Semen Externo", "Descartados"] as const;
+const TABS = ["Reproductoras", "Reproductores", "Semen Externo", "Descartados"] as const;
 type Tab = typeof TABS[number];
 
 interface Stats {
@@ -49,13 +49,13 @@ interface HembraMaternidad {
 export default function PlantelPage() {
   const { data: session, status } = useSession();
   const { alguno } = usePermisos();
-  const [tab, setTab]               = useState<Tab>("Hembras");
+  const [tab, setTab]               = useState<Tab>("Reproductoras");
   const [stats, setStats]           = useState<Stats | null>(null);
   // ?cerda=<id> abre la ficha directamente (enlaces desde Maternidad, Gestación, Cerdas paradas…)
   const [selectedSowId, setSelectedSowId] = useState<string | null>(null);
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("cerda");
-    if (id) { setTab("Hembras"); setSelectedSowId(id); }
+    if (id) { setTab("Reproductoras"); setSelectedSowId(id); }
   }, []);
   const [showMatModal, setShowMatModal]   = useState(false);
   const [grupo, setGrupo]                 = useState<GrupoPlantel | null>(null);
@@ -82,7 +82,7 @@ export default function PlantelPage() {
   }, [tab]);
 
   useEffect(() => {
-    if (tab !== "Hembras") setSelectedSowId(null);
+    if (tab !== "Reproductoras") setSelectedSowId(null);
   }, [tab]);
 
   if (status === "loading") {
@@ -105,7 +105,7 @@ export default function PlantelPage() {
       onClick: () => setGrupo("GENERAL"),
     },
     {
-      label:   "Hembras en Maternidad",
+      label:   "Reproductoras en Maternidad",
       sub:     "partos activos sin destete",
       value:   stats?.hembrasEnMaternidad,
       icon:    IconBabyCarriage,
@@ -146,7 +146,7 @@ export default function PlantelPage() {
     },
     {
       label: "Cuarentena",
-      sub:   "hembras en cuarentena",
+      sub:   "reproductoras en cuarentena",
       value: stats?.cuarentena,
       icon:  IconShieldCheck,
       color: "var(--warning-text)",
@@ -154,7 +154,7 @@ export default function PlantelPage() {
     },
   ];
 
-  const hasFicha      = tab === "Hembras" && !!selectedSowId;
+  const hasFicha      = tab === "Reproductoras" && !!selectedSowId;
   const isDescartados = tab === "Descartados";
 
   return (
@@ -170,7 +170,7 @@ export default function PlantelPage() {
                   Plantel Reproductivo
                 </h1>
                 <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "4px 0 0" }}>
-                  Registro central de hembras, reproductores y material genético
+                  Registro central de reproductoras, reproductores y material genético
                 </p>
               </div>
               <Link
@@ -187,7 +187,7 @@ export default function PlantelPage() {
               </Link>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 10, marginBottom: 20 }}>
+            <div className="kp-grilla-tarjetas" style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 10, marginBottom: 20 }}>
               {STAT_CARDS.map(({ label, sub, value, icon: Icon, color, onClick }) => (
                 <div
                   key={label}
@@ -259,7 +259,7 @@ export default function PlantelPage() {
           overflowY: "auto",
           padding: "16px 24px",
         }}>
-          {tab === "Hembras" && (
+          {tab === "Reproductoras" && (
             <HembrasTab
               selectedSowId={selectedSowId}
               onSelectSow={setSelectedSowId}
@@ -309,7 +309,7 @@ export default function PlantelPage() {
             }}>
               <div>
                 <h2 style={{ fontSize: 15, fontWeight: 500, color: "var(--text-primary)", margin: 0 }}>
-                  Hembras en Maternidad
+                  Reproductoras en Maternidad
                 </h2>
                 <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "2px 0 0" }}>
                   Partos activos sin destete registrado
@@ -335,7 +335,7 @@ export default function PlantelPage() {
                 </div>
               ) : !matData || matData.length === 0 ? (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 120, color: "var(--text-muted)", fontSize: 13 }}>
-                  No hay hembras en maternidad
+                  No hay reproductoras en maternidad
                 </div>
               ) : (
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -381,7 +381,7 @@ export default function PlantelPage() {
       )}
       {grupo && (
         <ModalGrupoPlantel grupo={grupo} onClose={cerrarGrupo}
-          onVerFicha={id => { setGrupo(null); setTab("Hembras"); setSelectedSowId(id); }} />
+          onVerFicha={id => { setGrupo(null); setTab("Reproductoras"); setSelectedSowId(id); }} />
       )}
     </div>
   );

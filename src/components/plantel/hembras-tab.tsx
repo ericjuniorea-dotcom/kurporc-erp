@@ -377,7 +377,7 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
           </select>
         </div>
         <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-          <IconPlus size={13} aria-hidden /> Registrar hembra
+          <IconPlus size={13} aria-hidden /> Registrar reproductora
         </button>
       </div>
 
@@ -512,11 +512,11 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
           onClick={() => setShowForm(false)}
         >
           <div
-            style={{ background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-xl)", width: 560, maxHeight: "90vh", overflowY: "auto" }}
+            style={{ background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-xl)", width: 560, maxWidth: "calc(100vw - 24px)", maxHeight: "90vh", overflowY: "auto" }}
             onClick={e => e.stopPropagation()}
           >
             <div style={{ padding: "16px 20px", borderBottom: "0.5px solid var(--border-default)" }}>
-              <h2 style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)", margin: 0 }}>Registrar hembra</h2>
+              <h2 style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)", margin: 0 }}>Registrar reproductora</h2>
             </div>
             <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -602,7 +602,7 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
             <div style={{ padding: "12px 20px", borderTop: "0.5px solid var(--border-default)", display: "flex", justifyContent: "flex-end", gap: 8 }}>
               <button className="btn" onClick={() => setShowForm(false)}>Cancelar</button>
               <button className="btn btn-primary" onClick={handleSubmit} disabled={saving}>
-                {saving ? <><IconLoader2 size={12} style={{ animation: "spin 1s linear infinite" }} /> Guardando…</> : "Registrar hembra"}
+                {saving ? <><IconLoader2 size={12} style={{ animation: "spin 1s linear infinite" }} /> Guardando…</> : "Registrar reproductora"}
               </button>
             </div>
           </div>
@@ -616,7 +616,7 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
           onClick={() => setDeathModal(null)}
         >
           <div
-            style={{ background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-xl)", width: 400 }}
+            style={{ background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-xl)", width: 400, maxWidth: "calc(100vw - 24px)" }}
             onClick={e => e.stopPropagation()}
           >
             <div style={{ padding: "16px 20px", borderBottom: "0.5px solid var(--border-default)" }}>
@@ -651,7 +651,7 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
           onClick={() => setDiscardModal(null)}
         >
           <div
-            style={{ background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-xl)", width: 660, maxHeight: "92vh", display: "flex", flexDirection: "column" }}
+            style={{ background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-xl)", width: 660, maxWidth: "calc(100vw - 24px)", maxHeight: "92vh", display: "flex", flexDirection: "column" }}
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
@@ -790,7 +790,7 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
                     </div>
                   </div>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+                <div className="kp-grilla-form" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
                   <div>
                     <label className="kp-label">Estado sanitario</label>
                     <input className="kp-input" value={discardForm.estadoSanitario} onChange={e => DF("estadoSanitario", e.target.value)} placeholder="Ej: Caquéxico" />
@@ -808,7 +808,7 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
 
               {/* 4. Info reproductiva */}
               <FormSection title={`4. Información reproductiva${loadingRepro ? " — cargando datos…" : " (autocompletado)"}`}>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+                <div className="kp-grilla-form" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
                   <div>
                     <label className="kp-label">N° parto al descarte</label>
                     <input className="kp-input" type="number" min="0" value={discardForm.numeroParto} onChange={e => DF("numeroParto", e.target.value)} placeholder="Ej: 5" />

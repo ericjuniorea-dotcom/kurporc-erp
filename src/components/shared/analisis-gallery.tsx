@@ -83,7 +83,7 @@ export function AnalisisGallery({ cards }: Props) {
       </div>
 
       {/* Cards grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+      <div className="kp-grilla-tarjetas" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
         {filtered.map(card => (
           <div key={card.id} style={{
             background: "var(--bg-surface)",

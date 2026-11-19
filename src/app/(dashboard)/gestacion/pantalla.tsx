@@ -124,7 +124,7 @@ function VisionGeneralGestacion({ onOpenLotes }: { onOpenLotes: () => void }) {
       {modal === "disponibles" && <DisponiblesModal onClose={() => setModal(null)} />}
 
       {/* ── KPI cards (clickables) + acceso a Lotes ───────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+      <div className="kp-grilla-tarjetas" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
         {kpiCards.map(c => (
           <button
             key={c.label}

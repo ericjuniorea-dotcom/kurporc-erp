@@ -310,7 +310,7 @@ export function BatchCard({ batch, canEdit, onRefresh }: Props) {
       {/* Modal: registrar pesaje */}
       {weightDialog && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.55)" }}>
-          <div className="kp-modal" style={{ width: 440 }}>
+          <div className="kp-modal" style={{ width: 440, maxWidth: "calc(100vw - 24px)" }}>
             <div className="kp-modal-title">
               <IconScale size={14} style={{ color: "var(--accent)" }} aria-hidden />
               Registrar pesaje — {batch.batchCode}
@@ -350,7 +350,7 @@ export function BatchCard({ batch, canEdit, onRefresh }: Props) {
       {/* Modal: cambio de fase */}
       {phaseDialog && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.55)" }}>
-          <div className="kp-modal" style={{ width: 440 }}>
+          <div className="kp-modal" style={{ width: 440, maxWidth: "calc(100vw - 24px)" }}>
             <div className="kp-modal-title">
               <IconArrowRight size={14} style={{ color: "var(--info)" }} aria-hidden />
               Pasar a Fase 2 — {batch.batchCode}
@@ -395,7 +395,7 @@ export function BatchCard({ batch, canEdit, onRefresh }: Props) {
       {/* Modal: registrar muerte */}
       {deathDialog && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.55)" }}>
-          <div className="kp-modal" style={{ width: 460 }}>
+          <div className="kp-modal" style={{ width: 460, maxWidth: "calc(100vw - 24px)" }}>
             <div className="kp-modal-title">
               <IconSkull size={14} style={{ color: "var(--danger)" }} aria-hidden />
               Muerte de animales — {batch.batchCode}

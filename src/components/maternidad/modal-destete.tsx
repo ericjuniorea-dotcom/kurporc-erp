@@ -76,7 +76,7 @@ export function ModalDestete({ farrowing, onClose, onSaved }: Props) {
       justifyContent: "center",
       background:     "rgba(0,0,0,0.55)",
     }}>
-      <div className="kp-modal" style={{ width: 500 }}>
+      <div className="kp-modal" style={{ width: 500, maxWidth: "calc(100vw - 24px)" }}>
         {/* Header */}
         <div className="kp-modal-title">
           <IconScale size={15} style={{ color: "var(--success)" }} aria-hidden />
@@ -165,7 +165,7 @@ export function ModalDestete({ farrowing, onClose, onSaved }: Props) {
             <p style={{ fontSize: 11, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 8 }}>
               Movimientos de último momento (opcional)
             </p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            <div className="kp-grilla-form" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
               {[
                 { label: "Muertes finales", field: "lastMinuteDeaths"   as const },
                 { label: "Recibidos",        field: "lastMinuteReceived" as const },

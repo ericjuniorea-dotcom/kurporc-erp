@@ -242,7 +242,7 @@ export function VerracosTab() {
       {/* Registration modal */}
       {showForm && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setShowForm(false)}>
-          <div style={{ background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-xl)", width: 540, maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-xl)", width: 540, maxWidth: "calc(100vw - 24px)", maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: "16px 20px", borderBottom: "0.5px solid var(--border-default)" }}>
               <h2 style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)", margin: 0 }}>Registrar reproductor</h2>
             </div>
@@ -303,7 +303,7 @@ export function VerracosTab() {
       {/* Death/Discard modal */}
       {actionModal && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setActionModal(null)}>
-          <div style={{ background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-xl)", width: 400 }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-xl)", width: 400, maxWidth: "calc(100vw - 24px)" }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: "16px 20px", borderBottom: "0.5px solid var(--border-default)" }}>
               <h2 style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)", margin: 0 }}>
                 {actionModal.type === "death" ? "Registrar muerte" : "Registrar descarte"}{" — "}

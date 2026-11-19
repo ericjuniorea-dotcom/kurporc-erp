@@ -193,7 +193,7 @@ function CardCerdaMaternidad({ farrowing: f, canRegister, onDeath, onAdopt, onWe
       </div>
 
       {/* Datos del parto */}
-      <div style={{
+      <div className="kp-grilla-tarjetas" style={{
         display:       "grid",
         gridTemplateColumns: "1fr 1fr 1fr",
         gap:           1,

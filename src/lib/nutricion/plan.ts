@@ -4,8 +4,8 @@
 import type { Prisma } from "@prisma/client";
 
 export const MODULOS_NUTRICION = {
-  GESTACION:           { etiqueta: "Gestación",                 por: "HEMBRA", animal: "hembra" },
-  MATERNIDAD_HEMBRAS:  { etiqueta: "Maternidad · hembras",      por: "HEMBRA", animal: "hembra" },
+  GESTACION:           { etiqueta: "Gestación",                 por: "HEMBRA", animal: "reproductora" },
+  MATERNIDAD_HEMBRAS:  { etiqueta: "Maternidad · reproductoras", por: "HEMBRA", animal: "reproductora" },
   MATERNIDAD_LECHONES: { etiqueta: "Maternidad · lechones",     por: "LECHON", animal: "lechón" },
   INICIACION:          { etiqueta: "Iniciación",                por: "TOTAL",  animal: "lechón" },
   ENGORDE:             { etiqueta: "Engorde",                   por: "TOTAL",  animal: "cerdo" },

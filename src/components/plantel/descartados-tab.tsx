@@ -98,7 +98,7 @@ function DetailPanel({ sow, onClose }: { sow: SowDescartada; onClose: () => void
       <div
         style={{
           background: "var(--bg-surface)", borderLeft: "0.5px solid var(--border-default)",
-          width: 440, height: "100%", overflowY: "auto", padding: 0,
+          width: 440, maxWidth: "calc(100vw - 24px)", height: "100%", overflowY: "auto", padding: 0,
         }}
         onClick={e => e.stopPropagation()}
       >

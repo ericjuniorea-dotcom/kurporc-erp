@@ -65,21 +65,16 @@ export function CargaDiaNutricion() {
       </div>
       {sinPlan && <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>Todavía no hay balanceados en el plan. Abrí «Plan de alimentación» y tocá «Cargar plan sugerido».</div>}
 
-      <ModuloTotal titulo="Gestación" animales={datos.animales.GESTACION} detalle="hembras activas fuera de Maternidad" tipos={tiposDe("GESTACION")} {...comun} />
+      <ModuloTotal titulo="Gestación" animales={datos.animales.GESTACION} detalle="reproductoras activas fuera de Maternidad" tipos={tiposDe("GESTACION")} {...comun} />
 
-      <section style={{ ...tarjeta, overflow: "hidden" }} aria-label="Maternidad">
+      <section style={tarjeta} aria-label="Maternidad">
         <div style={{ padding: "10px 14px", borderBottom: "0.5px solid var(--border-default)", display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
           <h3 style={{ margin: 0, fontSize: 13.5, fontWeight: 500, color: "var(--text-primary)" }}>Maternidad</h3>
-          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{datos.cerdas.length} hembras lactantes · cargá lo que se entregó a cada una y a sus lechones</span>
+          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{datos.cerdas.length} reproductoras lactantes · cargá lo que se entregó a cada una y a sus lechones</span>
         </div>
-        {datos.cerdas.length === 0 ? <div style={{ padding: 14, fontSize: 12.5, color: "var(--text-muted)" }}>No hay hembras en Maternidad.</div> : (
-          <div style={{ overflowX: "auto" }}>
-            <table className="kp-table" style={{ minWidth: 900 }}>
-              <thead><tr><th>Cerda</th><th style={{ textAlign: "right" }}>Lechones</th><th>Hembra (lactación)</th><th>Lechones</th><th /></tr></thead>
-              <tbody>
-                {datos.cerdas.map(c => <FilaCerda key={c.farrowingId} c={c} hembra={hembra} lechones={tiposDe("MATERNIDAD_LECHONES")} {...comun} />)}
-              </tbody>
-            </table>
+        {datos.cerdas.length === 0 ? <div style={{ padding: 14, fontSize: 12.5, color: "var(--text-muted)" }}>No hay reproductoras en Maternidad.</div> : (
+          <div className="kp-cerdas-carga">
+            {datos.cerdas.map(c => <FilaCerda key={c.farrowingId} c={c} hembra={hembra} lechones={tiposDe("MATERNIDAD_LECHONES")} {...comun} />)}
           </div>
         )}
       </section>
@@ -231,40 +226,46 @@ function FilaCerda({ c, hembra, lechones, fecha, regsDe, onGuardado }: {
     .sort((a, b) => a.hora.localeCompare(b.hora));
 
   return (
-    <tr style={{ verticalAlign: "top" }}>
-      <td><CaravanaFicha sowId={c.sowId} caravana={c.caravana} /><div style={{ fontSize: 11, color: "var(--text-muted)" }}>{c.dias} días de lactancia</div></td>
-      <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{c.lechones}</td>
-      <td>
+    <article className="kp-cerda-carga" aria-label={`Reproductora ${c.caravana}`}>
+      <header style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
+        <span style={{ fontSize: 14, fontWeight: 600 }}><CaravanaFicha sowId={c.sowId} caravana={c.caravana} /></span>
+        <span style={{ fontSize: 12, color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>{c.lechones} lechones · {c.dias} días de lactancia</span>
+      </header>
+      <div className="kp-cerda-bloque">
+        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--text-secondary)" }}>Reproductora{hembra ? ` · ${hembra.nombre}` : ""}</div>
         {hembra ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            <input className="kp-input" inputMode="decimal" aria-label="kg entregados a la hembra" placeholder="0 kg" value={kgH} onChange={e => setKgH(e.target.value)} style={{ height: 30, width: 110 }} />
-            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{hembra.nombre}{hembra.kgPorAnimal != null ? ` · teórico ${kg(hembra.kgPorAnimal)}` : ""}</span>
+          <>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <input className="kp-input" inputMode="decimal" aria-label="kg entregados a la reproductora" placeholder="0 kg" value={kgH} onChange={e => setKgH(e.target.value)} style={{ height: 40, width: 120 }} />
+              {hembra.kgPorAnimal != null && <span style={{ fontSize: 12, color: "var(--text-muted)" }}>teórico {kg(hembra.kgPorAnimal)}</span>}
+            </div>
             <Cargas regs={regsDe(hembra.id, c.farrowingId)} onCambio={onGuardado} />
-          </div>
-        ) : <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>Sin balanceado de lactación en el plan</span>}
-      </td>
-      <td>
+          </>
+        ) : <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Sin balanceado de lactación en el plan</span>}
+      </div>
+      <div className="kp-cerda-bloque">
+        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--text-secondary)" }}>Lechones</div>
         {lechones.length ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            <div style={{ display: "flex", gap: 6 }}>
-              <select className="kp-input" aria-label="Balanceado de los lechones" value={tipoL} onChange={e => setTipoL(e.target.value)} style={{ height: 30, width: "auto" }}>
+          <>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <select className="kp-input" aria-label="Balanceado de los lechones" value={tipoL} onChange={e => setTipoL(e.target.value)} style={{ height: 40, flex: "1 1 140px", minWidth: 0 }}>
                 {lechones.map(t => <option key={t.id} value={t.id}>{t.nombre}</option>)}
               </select>
-              <input className="kp-input" inputMode="decimal" aria-label="kg entregados a los lechones" placeholder="0 kg" value={kgL} onChange={e => setKgL(e.target.value)} style={{ height: 30, width: 110 }} />
+              <input className="kp-input" inputMode="decimal" aria-label="kg entregados a los lechones" placeholder="0 kg" value={kgL} onChange={e => setKgL(e.target.value)} style={{ height: 40, width: 120 }} />
             </div>
             {tL && <AvanceFase t={tL} c={c} siguiente={lechones[lechones.indexOf(tL) + 1]} onPasar={setTipoL} />}
             <Cargas regs={regsL} onCambio={onGuardado} />
-          </div>
-        ) : <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>Sin balanceado de lechones en el plan</span>}
-      </td>
-      <td style={{ textAlign: "right" }}>
-        <button type="button" className="btn btn-primary" style={{ height: 30, fontSize: 12 }} disabled={pendiente || items.length === 0}
+          </>
+        ) : <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Sin balanceado de lechones en el plan</span>}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <button type="button" className="btn btn-primary" style={{ height: 42, fontSize: 14, width: "100%", justifyContent: "center" }} disabled={pendiente || items.length === 0}
           onClick={() => guardar(items, g => { if (hembra && g.includes(hembra.id)) setKgH(""); if (tL && g.includes(tL.id)) setKgL(""); })}>
-          {pendiente && <IconLoader2 size={13} className="animate-spin" aria-hidden />} Guardar
+          {pendiente && <IconLoader2 size={14} className="animate-spin" aria-hidden />} Guardar
         </button>
-        <div style={{ maxWidth: 220, marginTop: 4 }}><Mensaje msg={msg} /></div>
-      </td>
-    </tr>
+        <Mensaje msg={msg} />
+      </div>
+    </article>
   );
 }
 
@@ -279,7 +280,7 @@ function AvanceFase({ t, c, siguiente, onPasar }: { t: Tipo; c: Datos["cerdas"][
   const listo = completa(t, c);
   const pct = meta > 0 ? Math.min(100, (consumido / meta) * 100) : 0;
   return (
-    <div style={{ border: `0.5px solid ${listo ? "var(--success)" : "var(--border-default)"}`, background: listo ? "var(--success-subtle, var(--bg-elevated))" : "var(--bg-elevated)", borderRadius: "var(--radius-md)", padding: "6px 8px", display: "flex", flexDirection: "column", gap: 4, maxWidth: 300 }}>
+    <div style={{ border: `0.5px solid ${listo ? "var(--success)" : "var(--border-default)"}`, background: listo ? "var(--success-subtle, var(--bg-elevated))" : "var(--bg-elevated)", borderRadius: "var(--radius-md)", padding: "6px 8px", display: "flex", flexDirection: "column", gap: 4, maxWidth: "100%" }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 11.5, color: "var(--text-secondary)" }}>
         <span>Consumido de {t.nombre}</span>
         <strong style={{ fontWeight: 500, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>{kg(consumido)} de {kg(meta)}</strong>

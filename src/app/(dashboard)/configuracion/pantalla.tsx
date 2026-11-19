@@ -317,7 +317,7 @@ function GeneticaTab() {
 
       {showForm && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setShowForm(false)}>
-          <div style={{ background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-xl)", width: 480 }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-xl)", width: 480, maxWidth: "calc(100vw - 24px)" }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: "14px 20px", borderBottom: "0.5px solid var(--border-default)" }}>
               <h2 style={{ fontSize: 14, fontWeight: 500, margin: 0, color: "var(--text-primary)" }}>Agregar genética</h2>
             </div>
@@ -642,8 +642,8 @@ const MODULE_PROCESOS: Partial<Record<ModuleKey, ProcesoTemplate[]>> = {
   PLANTEL: [
     {
       key: "cuarentena_hembras",
-      label: "Cuarentena de hembras nuevas o enfermas",
-      descripcion: "Define la cantidad de días de cuarentena obligatoria para hembras que ingresan al plantel o que son reingresadas por enfermedad. El sistema mostrará la fecha de alta posible y bloqueará el alta manual antes de ese plazo.",
+      label: "Cuarentena de reproductoras nuevas o enfermas",
+      descripcion: "Define la cantidad de días de cuarentena obligatoria para reproductoras que ingresan al plantel o que son reingresadas por enfermedad. El sistema mostrará la fecha de alta posible y bloqueará el alta manual antes de ese plazo.",
       params: {
         dias_cuarentena:   { type: "number",  label: "Días de cuarentena",    min: 7, max: 90,  unit: "días",  defaultVal: 30 },
         activo:            { type: "boolean", label: "Control activo",         hint: "Si está activo, el sistema bloquea el alta antes de cumplir los días configurados",  defaultVal: true },

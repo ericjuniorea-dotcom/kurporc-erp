@@ -66,7 +66,7 @@ function PartosList({ canRegister }: { canRegister: boolean }) {
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
         <div style={{ position: "relative", flex: 1 }}>
           <IconSearch size={12} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", pointerEvents: "none" }} />
-          <input className="kp-input" style={{ paddingLeft: 26 }} placeholder="Buscar por hembra..." value={query} onChange={e => setQuery(e.target.value)} />
+          <input className="kp-input" style={{ paddingLeft: 26 }} placeholder="Buscar por reproductora..." value={query} onChange={e => setQuery(e.target.value)} />
         </div>
         {canRegister && (
           <Link href="/maternidad/nuevo-parto" className="btn btn-primary" style={{ textDecoration: "none", whiteSpace: "nowrap" }}>
@@ -81,7 +81,7 @@ function PartosList({ canRegister }: { canRegister: boolean }) {
         <table className="kp-table">
           <thead>
             <tr>
-              <th>Hembra</th>
+              <th>Reproductora</th>
               <th>Fecha parto</th>
               <th style={{ textAlign: "right" }}>Nacidos vivos</th>
               <th>Ubicación</th>
@@ -143,7 +143,7 @@ function MuerteList({ canRegister }: { canRegister: boolean }) {
         <button className="btn" onClick={() => setStep("list")}>← Volver</button>
         <div style={{ position: "relative", flex: 1 }}>
           <IconSearch size={12} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", pointerEvents: "none" }} />
-          <input className="kp-input" style={{ paddingLeft: 26 }} placeholder="ID de la hembra..." value={search} onChange={e => setSearch(e.target.value)} autoFocus />
+          <input className="kp-input" style={{ paddingLeft: 26 }} placeholder="ID de la reproductora..." value={search} onChange={e => setSearch(e.target.value)} autoFocus />
         </div>
       </div>
       <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>Seleccioná la cerda con partos activos:</div>
@@ -181,7 +181,7 @@ function MuerteList({ canRegister }: { canRegister: boolean }) {
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
         <div style={{ position: "relative", flex: 1 }}>
           <IconSearch size={12} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", pointerEvents: "none" }} />
-          <input className="kp-input" style={{ paddingLeft: 26 }} placeholder="Buscar por hembra..." value={query} onChange={e => setQuery(e.target.value)} />
+          <input className="kp-input" style={{ paddingLeft: 26 }} placeholder="Buscar por reproductora..." value={query} onChange={e => setQuery(e.target.value)} />
         </div>
         {canRegister && (
           <button className="btn btn-primary" onClick={() => { setStep("search"); setSearch(""); }}>
@@ -196,7 +196,7 @@ function MuerteList({ canRegister }: { canRegister: boolean }) {
         <table className="kp-table">
           <thead>
             <tr>
-              <th>Hembra</th>
+              <th>Reproductora</th>
               <th>Fecha y hora</th>
               <th style={{ textAlign: "right" }}>Cantidad</th>
               <th>Causa</th>
@@ -259,7 +259,7 @@ function MovimientoList({ canRegister }: { canRegister: boolean }) {
         <button className="btn" onClick={() => setStep("list")}>← Volver</button>
         <div style={{ position: "relative", flex: 1 }}>
           <IconSearch size={12} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", pointerEvents: "none" }} />
-          <input className="kp-input" style={{ paddingLeft: 26 }} placeholder="ID de la hembra..." value={search} onChange={e => setSearch(e.target.value)} autoFocus />
+          <input className="kp-input" style={{ paddingLeft: 26 }} placeholder="ID de la reproductora..." value={search} onChange={e => setSearch(e.target.value)} autoFocus />
         </div>
       </div>
       <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>Seleccioná la cerda:</div>
@@ -297,7 +297,7 @@ function MovimientoList({ canRegister }: { canRegister: boolean }) {
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
         <div style={{ position: "relative", flex: 1 }}>
           <IconSearch size={12} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", pointerEvents: "none" }} />
-          <input className="kp-input" style={{ paddingLeft: 26 }} placeholder="Buscar por hembra..." value={query} onChange={e => setQuery(e.target.value)} />
+          <input className="kp-input" style={{ paddingLeft: 26 }} placeholder="Buscar por reproductora..." value={query} onChange={e => setQuery(e.target.value)} />
         </div>
         {canRegister && (
           <button className="btn btn-primary" onClick={() => { setStep("search"); setSearch(""); }}>
@@ -312,7 +312,7 @@ function MovimientoList({ canRegister }: { canRegister: boolean }) {
         <table className="kp-table">
           <thead>
             <tr>
-              <th>Hembra</th>
+              <th>Reproductora</th>
               <th>Fecha</th>
               <th>Acción</th>
               <th style={{ textAlign: "right" }}>Cantidad</th>
@@ -369,7 +369,7 @@ function DesteteList({ canRegister }: { canRegister: boolean }) {
         <button className="btn" onClick={() => setStep("list")}>← Volver</button>
         <div style={{ position: "relative", flex: 1 }}>
           <IconSearch size={12} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", pointerEvents: "none" }} />
-          <input className="kp-input" style={{ paddingLeft: 26 }} placeholder="ID de la hembra..." value={search} onChange={e => setSearch(e.target.value)} autoFocus />
+          <input className="kp-input" style={{ paddingLeft: 26 }} placeholder="ID de la reproductora..." value={search} onChange={e => setSearch(e.target.value)} autoFocus />
         </div>
       </div>
       <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>Seleccioná la cerda (partos activos sin destete):</div>
@@ -407,7 +407,7 @@ function DesteteList({ canRegister }: { canRegister: boolean }) {
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
         <div style={{ position: "relative", flex: 1 }}>
           <IconSearch size={12} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", pointerEvents: "none" }} />
-          <input className="kp-input" style={{ paddingLeft: 26 }} placeholder="Buscar por hembra..." value={query} onChange={e => setQuery(e.target.value)} />
+          <input className="kp-input" style={{ paddingLeft: 26 }} placeholder="Buscar por reproductora..." value={query} onChange={e => setQuery(e.target.value)} />
         </div>
         {canRegister && (
           <button className="btn btn-primary" onClick={() => { setStep("search"); setSearch(""); }}>
@@ -422,7 +422,7 @@ function DesteteList({ canRegister }: { canRegister: boolean }) {
         <table className="kp-table">
           <thead>
             <tr>
-              <th>Hembra</th>
+              <th>Reproductora</th>
               <th>Fecha destete</th>
               <th style={{ textAlign: "right" }}>Destetados</th>
               <th style={{ textAlign: "right" }}>Peso medio (kg)</th>

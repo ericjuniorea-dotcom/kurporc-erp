@@ -208,7 +208,7 @@ export function TabVacunas({ sowId }: { sowId: string }) {
                     <tr>
                       <td colSpan={6} style={{ background: "var(--bg-elevated)", padding: "12px 14px" }}>
                         {error && <div style={{ fontSize: 11, color: "var(--danger)", marginBottom: 8 }}>{error}</div>}
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
+                        <div className="kp-grilla-form" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
                           <div>
                             <label className="kp-label" style={{ fontSize: 10 }}>Fecha de aplicación *</label>
                             <input

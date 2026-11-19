@@ -9,13 +9,13 @@ export type GrupoPlantel = "GENERAL" | "MATERNIDAD" | "PRENADAS" | "SERVIDAS" | 
 type Fila = { id: string; tipo: "cerda" | "verraco"; caravana: string; categoria: string; estado: string; linea: string | null; fecha: string | null; dias: number | null; detalle: string };
 
 const TEXTOS: Record<GrupoPlantel, { titulo: string; sub: string; fecha: string; dias: string }> = {
-  GENERAL:       { titulo: "Stock general", sub: "Todas las hembras activas y los reproductores", fecha: "Desde", dias: "Días" },
-  MATERNIDAD:    { titulo: "Hembras en maternidad", sub: "Partos activos sin destete", fecha: "Fecha de parto", dias: "Días de lactancia" },
+  GENERAL:       { titulo: "Stock general", sub: "Todas las reproductoras activas y los reproductores", fecha: "Desde", dias: "Días" },
+  MATERNIDAD:    { titulo: "Reproductoras en maternidad", sub: "Partos activos sin destete", fecha: "Fecha de parto", dias: "Días de lactancia" },
   PRENADAS:      { titulo: "Preñadas", sub: "Gestación confirmada", fecha: "Fecha de servicio", dias: "Días de gestación" },
   SERVIDAS:      { titulo: "Servidas", sub: "Pendientes de diagnóstico", fecha: "Fecha de servicio", dias: "Días desde el servicio" },
   DISPONIBLES:   { titulo: "Disponibles", sub: "Listas para inseminación", fecha: "Desde", dias: "Días" },
   REPRODUCTORES: { titulo: "Reproductores", sub: "Activos y en descanso", fecha: "Ingreso", dias: "Días" },
-  CUARENTENA:    { titulo: "Cuarentena", sub: "Hembras en cuarentena", fecha: "Ingreso", dias: "Días en cuarentena" },
+  CUARENTENA:    { titulo: "Cuarentena", sub: "Reproductoras en cuarentena", fecha: "Ingreso", dias: "Días en cuarentena" },
 };
 const fmt = (s: string | null) => s ? new Date(s).toLocaleDateString("es-PY", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" }) : "—";
 

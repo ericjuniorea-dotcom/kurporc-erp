@@ -11,7 +11,7 @@ type ModuleKey = "GESTACION" | "MATERNIDAD" | "RECRIA" | "ENGORDE" | "PLANTEL" |
 type Paridad = "NULIPARA" | "MULTIPARA" | "AMBAS";
 type Sujeto = "LECHON" | "HEMBRA";
 
-const SUJETO_LABELS: Record<Sujeto, string> = { LECHON: "Lechones", HEMBRA: "Hembras en lactación" };
+const SUJETO_LABELS: Record<Sujeto, string> = { LECHON: "Lechones", HEMBRA: "Reproductoras en lactación" };
 
 const MOMENTO_LABELS: Record<string, string> = {
   PRE_SERVICIO_7:    "7d pre-servicio",
@@ -218,7 +218,7 @@ export default function VacunasTab({ modulo }: { modulo: ModuleKey }) {
             expandidas={expandidas} toggleExpand={toggleExpand} toggleActiva={toggleActiva}
           />
           <SeccionSujeto
-            titulo="Hembras en lactación" keyPrefix="hembra" grupos={gruposHembra} mostrarTodas={mostrarTodas}
+            titulo="Reproductoras en lactación" keyPrefix="hembra" grupos={gruposHembra} mostrarTodas={mostrarTodas}
             expandidas={expandidas} toggleExpand={toggleExpand} toggleActiva={toggleActiva}
           />
           {gruposSinClasificar.length > 0 && (
@@ -499,7 +499,7 @@ function AgregarVacunaModal({
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={onClose}>
-      <div style={{ background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-xl)", width: 660, maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+      <div style={{ background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-xl)", width: 660, maxWidth: "calc(100vw - 24px)", maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
         <div style={{ padding: "14px 20px", borderBottom: "0.5px solid var(--border-default)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h2 style={{ fontSize: 14, fontWeight: 500, margin: 0, color: "var(--text-primary)" }}>
             Agregar vacuna — módulo {modulo}

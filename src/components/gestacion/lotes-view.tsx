@@ -268,7 +268,7 @@ export function LotesView({ onBack }: { onBack?: () => void }) {
           <IconLayoutGrid size={28} style={{ color: "var(--text-muted)", marginBottom: 10 }} />
           <p style={{ fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", margin: 0 }}>Sin lotes creados aún</p>
           <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4, marginBottom: 0 }}>
-            Creá un lote seleccionando varias hembras en "Ingreso de datos → Registrar servicio".
+            Creá un lote seleccionando varias reproductoras en "Ingreso de datos → Registrar servicio".
           </p>
         </div>
       </div>

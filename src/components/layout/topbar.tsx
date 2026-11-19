@@ -48,6 +48,8 @@ export function Topbar({ title, icon: Icon, iconColor, tabs, activeTab, onTabCha
       {/* Tabs opcionales */}
       {tabs && tabs.length > 0 && (
         <div
+          className="kp-topbar-tabs"
+          role="tablist"
           style={{
             display: "flex",
             gap: 2,
@@ -59,6 +61,9 @@ export function Topbar({ title, icon: Icon, iconColor, tabs, activeTab, onTabCha
           {tabs.map((tab) => (
             <button
               key={tab.key}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.key}
               onClick={() => onTabChange?.(tab.key)}
               style={{
                 fontSize: 12,
@@ -79,10 +84,10 @@ export function Topbar({ title, icon: Icon, iconColor, tabs, activeTab, onTabCha
       )}
 
       {/* Spacer */}
-      <div style={{ flex: 1 }} />
+      <div className="kp-topbar-espacio" style={{ flex: 1 }} />
 
       {/* Acciones */}
-      {actions}
+      {actions && <div className="kp-topbar-acciones" style={{ display: "flex", alignItems: "center", gap: 8 }}>{actions}</div>}
 
       {/* Config */}
       {configHref && (

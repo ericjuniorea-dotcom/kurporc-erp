@@ -246,7 +246,7 @@ export function FichaDrawer({ sowId, canEdit, onClose }: Props) {
           onClick={() => setShowBaja(false)}
         >
           <div
-            style={{ background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-xl)", width: 380 }}
+            style={{ background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-xl)", width: 380, maxWidth: "calc(100vw - 24px)" }}
             onClick={e => e.stopPropagation()}
           >
             <div style={{ padding: "16px 20px", borderBottom: "0.5px solid var(--border-default)", display: "flex", alignItems: "center", gap: 8 }}>

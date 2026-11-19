@@ -206,7 +206,7 @@ export function HembrasMaternidadModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <ModalShell title="Hembras en maternidad" icon={IconHeartPlus} iconColor="var(--accent)" count={filtered.length} onClose={onClose}>
+    <ModalShell title="Reproductoras en maternidad" icon={IconHeartPlus} iconColor="var(--accent)" count={filtered.length} onClose={onClose}>
       <SearchBar value={search} onChange={setSearch} placeholder="Buscar por caravana…">
         {estados.length > 0 && (
           <FilterSelect value={estadoFilt} onChange={setEstadoFilt} options={estados} placeholder="Todos los estados" />
@@ -215,7 +215,7 @@ export function HembrasMaternidadModal({ onClose }: { onClose: () => void }) {
         <SortButton label="Fecha destete"      active={sortKey === "destete"} asc={sortAsc} onClick={() => toggleSort("destete")} />
       </SearchBar>
 
-      {loading ? <Spinner /> : filtered.length === 0 ? <EmptyState msg="Sin hembras en maternidad" /> : (
+      {loading ? <Spinner /> : filtered.length === 0 ? <EmptyState msg="Sin reproductoras en maternidad" /> : (
         <div style={{ overflowX: "auto" }}>
           <table className="kp-table" style={{ width: "100%" }}>
             <thead>

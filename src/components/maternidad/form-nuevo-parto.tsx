@@ -229,7 +229,7 @@ export function FormNuevoParto() {
 
       {/* Lechones */}
       <Section title="Lechones nacidos">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
+        <div className="kp-grilla-form" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
           <div>
             <label className="kp-label">Nacidos vivos *</label>
             <input type="number" min={0} className="kp-input" {...register("bornAlive")} />
@@ -265,7 +265,7 @@ export function FormNuevoParto() {
           </div>
         )}
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
+        <div className="kp-grilla-form" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
           <div>
             <label className="kp-label">Hembras vivas</label>
             <input type="number" min={0} className="kp-input" {...register("femalesBornAlive")} />

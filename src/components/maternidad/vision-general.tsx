@@ -98,7 +98,7 @@ export function VisionGeneralMaternidad() {
       {/* KPI strip */}
       <div style={{ display: "flex", gap: 12 }}>
         <KpiCard
-          label="Hembras en maternidad"
+          label="Reproductoras en maternidad"
           value={data.hembras}
           sub="partos activos"
           color="var(--accent)"

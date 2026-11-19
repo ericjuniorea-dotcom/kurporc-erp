@@ -179,7 +179,7 @@ export function DisponiblesParaServicio() {
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
-            No hay hembras disponibles para servicio en este momento.
+            No hay reproductoras disponibles para servicio en este momento.
           </div>
         ) : (
           <div>

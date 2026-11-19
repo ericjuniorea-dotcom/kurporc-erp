@@ -463,14 +463,19 @@
   /* El contenido principal deja lugar a la barra superior fija */
   .sidebar-main { padding-top: 52px; }
 
-  /* Topbar de cada módulo: scroll horizontal en vez de desbordar/romper */
+  /* Topbar de cada módulo: en el celular, título y botones arriba; las pestañas abajo a todo el ancho
+     (nada queda escondido a la derecha) */
   .kp-topbar {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-left: 14px !important;
-    padding-right: 14px !important;
+    flex-wrap: wrap;
+    height: auto !important;
+    min-height: 52px;
+    row-gap: 8px !important;
+    padding: 8px 12px !important;
   }
-  .kp-topbar::-webkit-scrollbar { display: none; }
+  .kp-topbar-tabs { order: 3; width: 100%; flex-wrap: wrap; }
+  .kp-topbar-tabs > button { flex: 1 1 auto; min-height: 36px !important; white-space: normal; line-height: 1.2; font-size: 13px !important; }
+  .kp-topbar-acciones { flex-wrap: wrap; justify-content: flex-end; }
+  .kp-topbar-espacio { min-width: 0; }
   .topbar-theme-desktop { display: none !important; }
 
   /* Evita que iOS haga zoom automático al tocar un campo de texto
@@ -529,3 +534,24 @@
 @media (max-width: 1000px) { .kp-flujo { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .kp-flujo-flecha { display: none; } }
 @media (max-width: 520px) { .kp-flujo { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { .kp-como-se-calcula { grid-template-columns: 1fr !important; } .kp-como-se-calcula dd { margin-bottom: 6px !important; } }
+
+/* Celular: grillas de tarjetas (3+ columnas) pasan a 2; grillas de formulario a 2 y luego a 1 */
+.kp-grilla-tarjetas > *, .kp-grilla-form > * { min-width: 0; }
+@media (max-width: 900px) { .kp-grilla-tarjetas { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
+@media (max-width: 640px) { .kp-grilla-form { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
+@media (max-width: 400px) { .kp-grilla-form { grid-template-columns: 1fr !important; } }
+/* Red de seguridad en el celular: ninguna grilla fija de 3 o más columnas ensancha la pantalla */
+@media (max-width: 640px) {
+  .sidebar-main [style*="grid-template-columns"][style*="repeat(3,"], .sidebar-main [style*="grid-template-columns"][style*="repeat(4,"],
+  .sidebar-main [style*="grid-template-columns"][style*="repeat(5,"], .sidebar-main [style*="grid-template-columns"][style*="repeat(6,"],
+  .sidebar-main [style*="grid-template-columns"][style*="repeat(7,"], .sidebar-main [style*="grid-template-columns"][style*="1fr 1fr 1fr"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .sidebar-main img, .sidebar-main video, .sidebar-main canvas { max-width: 100%; height: auto; }
+}
+
+/* Nutrición · carga por reproductora en Maternidad: una tarjeta por reproductora (en el celular, una debajo de otra) */
+.kp-cerdas-carga { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; padding: 12px; }
+.kp-cerda-carga { border: 0.5px solid var(--border-default); border-radius: var(--radius-lg); background: var(--bg-surface); padding: 12px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.kp-cerda-bloque { display: flex; flex-direction: column; gap: 6px; padding-top: 10px; border-top: 0.5px solid var(--border-default); }
+@media (max-width: 420px) { .kp-cerdas-carga { grid-template-columns: 1fr; padding: 8px; } }

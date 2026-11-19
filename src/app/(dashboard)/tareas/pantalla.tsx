@@ -461,7 +461,7 @@ export default function TareasPage() {
           operador={operador} setOperador={setOperador} orden={orden} setOrden={setOrden} />
 
         {/* KPI strip */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 8 }}>
+        <div className="kp-grilla-tarjetas" style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 8 }}>
           {[
             { label: "Urgentes",   value: kpis.urgente,    bg: "var(--accent-subtle)",  border: "var(--accent-border)",  color: "var(--accent)"  },
             { label: "Para hoy",   value: kpis.hoy,        bg: "var(--warning-subtle)", border: "var(--warning-border)", color: "var(--warning)" },

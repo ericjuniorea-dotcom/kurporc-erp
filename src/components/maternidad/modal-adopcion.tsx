@@ -70,7 +70,7 @@ export function ModalAdopcion({ farrowing, onClose, onSaved }: Props) {
       display: "flex", alignItems: "center", justifyContent: "center",
       background: "rgba(0,0,0,0.55)",
     }}>
-      <div className="kp-modal" style={{ width: 500 }}>
+      <div className="kp-modal" style={{ width: 500, maxWidth: "calc(100vw - 24px)" }}>
         {/* Header */}
         <div className="kp-modal-title">
           <IconArrowsLeftRight size={15} style={{ color: "var(--info)" }} aria-hidden />

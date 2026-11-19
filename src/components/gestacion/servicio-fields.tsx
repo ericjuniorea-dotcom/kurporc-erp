@@ -332,7 +332,7 @@ export function ServicioFields({
       const fecha = new Date(json.previousServiceDate).toLocaleDateString("es-PY", {
         day: "2-digit", month: "2-digit", year: "numeric",
       });
-      setHeatRepeatMsg(`Repetición de celo registrada. Esta hembra fue servida el ${fecha}.`);
+      setHeatRepeatMsg(`Repetición de celo registrada. Esta reproductora fue servida el ${fecha}.`);
     }
 
     setSuccessMsg(`Servicio registrado para la cerda ${sow.identCode}`);

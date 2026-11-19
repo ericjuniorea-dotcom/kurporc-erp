@@ -408,7 +408,7 @@ export default function SanidadPage() {
   const verNutricion = alguno(["alimentacion.consumos.ver"]);
   const CATEGORIAS = [
     { key: "vacunacion",   label: "Vacunación",             icon: IconVaccine,     color: "var(--info)",    sub: "Protocolo, lotes y aplicación",                                    contador: pendientesVacunacion },
-    { key: "nutricion",    label: "Nutrición",              icon: IconWheat,       color: "var(--warning)", sub: "Balanceado del día por módulo y por hembra lactante, plan de alimentación" },
+    { key: "nutricion",    label: "Nutrición",              icon: IconWheat,       color: "var(--warning)", sub: "Balanceado del día por módulo y por reproductora lactante, plan de alimentación" },
     { key: "maternidad",   label: "Sanidad de maternidad",  icon: IconScissors,    color: "#e0785c",         sub: "Descolmillado, corte de cola, corte de ombligo, hierro, castración" },
     { key: "tratamientos", label: "Tratamientos clínicos",  icon: IconStethoscope, color: "#8b5cf6",         sub: "Diagnóstico, medicamento y período de retiro" },
     { key: "necropsias",   label: "Necropsias / bajas",     icon: IconMicroscope, color: "var(--text-muted)", sub: "Registro de mortalidad con causa sanitaria" },
@@ -691,7 +691,7 @@ export default function SanidadPage() {
                         <input className="kp-input" placeholder="Ej: Parvovirus porcino" value={vacForm.enfermedad} onChange={e => setVacForm(f => ({ ...f, enfermedad: e.target.value }))} />
                       </div>
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                    <div className="kp-grilla-form" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
                       {vacForm.categoria === "VACUNA" && (
                         <div>
                           <label className="kp-label">Sector destino</label>

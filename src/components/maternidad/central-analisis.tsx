@@ -345,7 +345,7 @@ function AnalisisMortalidad({ onBack: _ }: { onBack: () => void }) {
 
       {byAge.length > 0 && (
         <ChartPanel title="Distribución por edad al momento de la muerte">
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+          <div className="kp-grilla-tarjetas" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
             {byAge.map(b => (
               <div key={b.label} style={{
                 background: "var(--bg-overlay)", borderRadius: "var(--radius-md)", padding: "10px 12px", textAlign: "center",
