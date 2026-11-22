@@ -61,7 +61,6 @@ function VisionGeneralGestacion({ onOpenLotes }: { onOpenLotes: () => void }) {
   const [distribucion,    setDistribucion]    = useState<Distribucion[]>([]);
   const [loadingKpis,     setLoadingKpis]     = useState(true);
   const [loadingVision,   setLoadingVision]   = useState(true);
-  const [panelTab,        setPanelTab]        = useState<"inconsistencias" | "tareas">("inconsistencias");
   const [modal,           setModal]           = useState<ModalType>(null);
 
   useEffect(() => {
@@ -179,120 +178,87 @@ function VisionGeneralGestacion({ onOpenLotes }: { onOpenLotes: () => void }) {
         </button>
       </div>
 
-      {/* ── Distribución de gestantes (CENTRAL) ───────────────────── */}
-      <div style={{
-        background: "var(--bg-surface)", border: "0.5px solid var(--border-default)",
-        borderRadius: "var(--radius-lg)", padding: "18px 20px",
-      }}>
+      {/* ── Distribución de gestantes + Inconsistencias (como en Maternidad) ── */}
+      <div className="content-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div style={{
-          fontSize: 10, fontWeight: 600, color: "var(--text-secondary)",
-          textTransform: "uppercase", letterSpacing: "0.1em",
-          textAlign: "center", marginBottom: 18,
+          background: "var(--bg-surface)", border: "0.5px solid var(--border-default)",
+          borderRadius: "var(--radius-lg)", padding: "18px 20px", minWidth: 0,
         }}>
-          Distribución de gestantes por día de gestación
-        </div>
-
-        {loadingVision ? (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "40px 0", color: "var(--text-muted)", fontSize: 12 }}>
-            <IconLoader2 size={14} style={{ animation: "spin 1s linear infinite" }} />
-            Cargando…
+          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-primary)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 16 }}>
+            Distribución de gestantes por día de gestación
           </div>
-        ) : (
-          <GraficoDistribucion distribucion={distribucion} />
-        )}
-        <div style={{ textAlign: "center", fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
-          Día de gestación
-        </div>
-      </div>
-
-      {/* ── Panel inferior: Inconsistencias | Tareas ──────────────── */}
-      <div style={{
-        background: "var(--bg-surface)", border: "0.5px solid var(--border-default)",
-        borderRadius: "var(--radius-lg)", overflow: "hidden",
-      }}>
-        <div style={{ display: "flex", borderBottom: "0.5px solid var(--border-default)", background: "var(--bg-elevated)" }}>
-          {(["inconsistencias", "tareas"] as const).map(key => {
-            const label = key === "inconsistencias"
-              ? `Inconsistencias${inconsistencias.length ? ` (${inconsistencias.length})` : ""}`
-              : "Listado de tareas";
-            const activeColor = key === "inconsistencias" ? "var(--danger)" : "var(--accent)";
-            const activeText  = key === "inconsistencias" ? "var(--danger-text)" : "var(--text-primary)";
-            return (
-              <button
-                key={key}
-                onClick={() => setPanelTab(key)}
-                style={{
-                  padding: "10px 18px", fontSize: 12, fontWeight: 500,
-                  background: "none", border: "none", cursor: "pointer",
-                  color:        panelTab === key ? activeText  : "var(--text-muted)",
-                  borderBottom: panelTab === key ? `2px solid ${activeColor}` : "2px solid transparent",
-                  transition: "color 0.12s",
-                }}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div style={{ padding: 16 }}>
-          {panelTab === "inconsistencias" && (
-            loadingVision ? (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "24px 0", color: "var(--text-muted)", fontSize: 12 }}>
-                <IconLoader2 size={14} style={{ animation: "spin 1s linear infinite" }} />
-                Cargando…
-              </div>
-            ) : inconsistencias.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "24px 0", color: "var(--success-text)", fontSize: 12 }}>
-                Sin inconsistencias en datos de gestación ✓
-              </div>
-            ) : (
-              <>
-                <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 10 }}>
-                  Inconsistencias en los datos de Gestación
-                </div>
-                <table className="kp-table" style={{ width: "100%" }}>
-                  <thead>
-                    <tr>
-                      <th>Caravana</th>
-                      <th>Ubicación</th>
-                      <th>Días gestación</th>
-                      <th>Previsión de parto</th>
-                      <th>Problema</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {inconsistencias.map(inc => {
-                      const isDanger = inc.diasGestacion >= 120;
-                      const color    = isDanger ? "var(--danger-text)" : "var(--warning-text)";
-                      return (
-                        <tr key={inc.sowId}>
-                          <td style={{ fontWeight: 500 }}><CaravanaFicha sowId={inc.sowId} caravana={inc.caravana} /></td>
-                          <td>{inc.ubicacion}</td>
-                          <td style={{ fontWeight: 600, color }}>{inc.diasGestacion}d</td>
-                          <td>{fmtDate(inc.fechaPartoProyectada)}</td>
-                          <td>
-                            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                              {isDanger
-                                ? <IconAlertTriangle size={12} style={{ color: "var(--danger)",  flexShrink: 0 }} />
-                                : <IconAlertCircle   size={12} style={{ color: "var(--warning)", flexShrink: 0 }} />}
-                              <span style={{ fontSize: 11, color }}>{inc.problema}</span>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </>
-            )
+          {loadingVision ? (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "40px 0", color: "var(--text-muted)", fontSize: 12 }}>
+              <IconLoader2 size={14} style={{ animation: "spin 1s linear infinite" }} />
+              Cargando…
+            </div>
+          ) : (
+            <GraficoDistribucion distribucion={distribucion} />
           )}
+          <div style={{ textAlign: "center", fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
+            Día de gestación
+          </div>
+        </div>
 
-          {panelTab === "tareas" && (
-            <TareasModuloPanel sector="gestacion" accentColor="var(--success)" />
+        <div style={{ background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-lg)", overflow: "hidden", minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 18px", borderBottom: "0.5px solid var(--border-default)" }}>
+            <IconAlertTriangle size={15} style={{ color: "var(--warning)" }} aria-hidden />
+            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-primary)", textTransform: "uppercase", letterSpacing: "0.06em", flex: 1 }}>Inconsistencias</span>
+            {inconsistencias.length > 0 && (
+              <span style={{ fontSize: 11, fontWeight: 600, minWidth: 22, height: 22, borderRadius: 99, display: "inline-flex", alignItems: "center", justifyContent: "center", border: "1px solid var(--warning)", color: "var(--warning-text)" }}>{inconsistencias.length}</span>
+            )}
+          </div>
+          {loadingVision ? (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "24px 0", color: "var(--text-muted)", fontSize: 12 }}>
+              <IconLoader2 size={14} style={{ animation: "spin 1s linear infinite" }} />
+              Cargando…
+            </div>
+          ) : inconsistencias.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-muted)", fontSize: 12 }}>
+              Sin inconsistencias detectadas
+            </div>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+                  <table className="kp-table" style={{ width: "100%" }}>
+                    <thead>
+                      <tr>
+                        <th>Caravana</th>
+                        <th>Ubicación</th>
+                        <th>Días gestación</th>
+                        <th>Previsión de parto</th>
+                        <th>Problema</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {inconsistencias.map(inc => {
+                        const isDanger = inc.diasGestacion >= 120;
+                        const color    = isDanger ? "var(--danger-text)" : "var(--warning-text)";
+                        return (
+                          <tr key={inc.sowId}>
+                            <td style={{ fontWeight: 500 }}><CaravanaFicha sowId={inc.sowId} caravana={inc.caravana} /></td>
+                            <td>{inc.ubicacion}</td>
+                            <td style={{ fontWeight: 600, color }}>{inc.diasGestacion}d</td>
+                            <td>{fmtDate(inc.fechaPartoProyectada)}</td>
+                            <td>
+                              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                                {isDanger
+                                  ? <IconAlertTriangle size={12} style={{ color: "var(--danger)",  flexShrink: 0 }} />
+                                  : <IconAlertCircle   size={12} style={{ color: "var(--warning)", flexShrink: 0 }} />}
+                                <span style={{ fontSize: 11, color }}>{inc.problema}</span>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+            </div>
           )}
         </div>
       </div>
+
+      {/* ── Órdenes de trabajo: primero el Manejo (traslados, celo, diagnósticos, servicios), después Vacunación ── */}
+      <TareasModuloPanel sector="gestacion" accentColor="var(--success)" manejo="gestacion" />
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>

@@ -10,7 +10,7 @@ const DIA = 86_400_000;
 const GESTACION = 114;
 
 export type AccionMaternidad = {
-  id: string; tipo: "destete" | "parto" | "recibir";
+  id: string; tipo: "destete" | "parto" | "recibir"; href?: string;
   nivel: "atrasado" | "hoy" | "pronto";
   titulo: string; detalle: string; fecha: string; enDias: number; sowId?: string; caravana?: string;
 };

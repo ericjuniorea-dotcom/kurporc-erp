@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { IconCheck, IconLoader2, IconListCheck, IconChevronRight, IconPlus, IconX } from "@tabler/icons-react";
 import Link from "next/link";
 import { FiltrosTareas, agruparTareas, filtrarTareas } from "@/components/tareas/filtros-tareas";
-import type { CategoriaTarea } from "@/lib/tareas/categorias";
+import { categoriaTarea, OCULTAS_EN_MODULO, type CategoriaTarea } from "@/lib/tareas/categorias";
 
 interface Task {
   id:                string;
@@ -17,7 +17,11 @@ interface Task {
   sector:            string;
   responsableNombre: string | null;
   responsableKey:    string | null;
+  /** Manejo calculado (destete, parto, servicio…): no se tilda, se hace registrando el dato en el módulo */
+  enlace?:           string;
 }
+
+type AccionManejo = { id: string; tipo: string; nivel: "atrasado" | "hoy" | "pronto"; titulo: string; detalle: string; fecha: string; href?: string };
 
 const TIPO_EMOJI: Record<string, string> = {
   "destete":              "🐷",
@@ -42,6 +46,12 @@ const TIPO_EMOJI: Record<string, string> = {
   "control-temperatura":  "🌡️",
   "alimentacion":         "🌾",
   "repeticion-celo":      "🔄",
+  "parto":                "🤱",
+  "traslado":             "🚚",
+  "celo":                 "🔄",
+  "diagnostico":          "🔍",
+  "servicio":             "🧬",
+  "recibir":              "📥",
 };
 
 const AVATAR_MINI: Record<string, { in: string; bg: string }> = {
@@ -62,10 +72,13 @@ const P_STYLE = {
 interface Props {
   sector:       string;
   accentColor?: string;
+  /** Módulo cuyo manejo pendiente (destetes, partos, servicios…) va primero, como «Manejo» */
+  manejo?:      "maternidad" | "gestacion";
 }
 
-export function TareasModuloPanel({ sector, accentColor = "var(--text-primary)" }: Props) {
+export function TareasModuloPanel({ sector, accentColor = "var(--text-primary)", manejo }: Props) {
   const [tasks,          setTasks]          = useState<Task[]>([]);
+  const [acciones,       setAcciones]       = useState<Task[]>([]);
   const [counts,         setCounts]         = useState({ urgente: 0, hoy: 0, programada: 0, completada: 0 });
   const [loading,        setLoading]        = useState(true);
   const [completing,     setCompleting]     = useState<string | null>(null);
@@ -89,7 +102,15 @@ export function TareasModuloPanel({ sector, accentColor = "var(--text-primary)" 
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [sector]);
+    if (manejo) {
+      fetch(`/api/${manejo}/acciones`, { cache: "no-store" }).then(r => r.ok ? r.json() : []).then((xs: AccionManejo[]) => setAcciones((Array.isArray(xs) ? xs : []).map(a => ({
+        id: a.id, tipo: a.tipo === "recibir" ? "traslado" : a.tipo, titulo: a.titulo, descripcion: a.detalle,
+        prioridad: a.nivel === "atrasado" ? "urgente" : a.nivel === "hoy" ? "hoy" : "programada",
+        fechaVencimiento: a.fecha, fechaCompletada: null, targetLabel: null, sector, responsableNombre: null, responsableKey: null,
+        enlace: a.href ?? (a.tipo === "destete" ? "/maternidad?tab=ingreso" : `/${manejo}`),
+      })))).catch(() => {});
+    }
+  }, [sector, manejo]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -120,8 +141,10 @@ export function TareasModuloPanel({ sector, accentColor = "var(--text-primary)" 
     load();
   }
 
-  const pending    = tasks.filter(t => !t.fechaCompletada);
-  const done       = tasks.filter(t =>  t.fechaCompletada);
+  // Alimentación e Instalaciones no se muestran acá (siguen en Tareas): la pantalla queda limpia para lo importante
+  const visibles   = tasks.filter(t => !OCULTAS_EN_MODULO.includes(categoriaTarea(t)));
+  const pending    = [...acciones, ...visibles.filter(t => !t.fechaCompletada)];
+  const done       = visibles.filter(t =>  t.fechaCompletada);
   const totalPending = pending.filter(t => t.prioridad === "urgente" || t.prioridad === "hoy").length;
   const grupos     = agruparTareas(filtrarTareas(pending, { categoria, operador }), "categoria");
 
@@ -276,6 +299,12 @@ function TaskRow({ task, completing, onToggle }: {
       border: `0.5px solid ${ps.border}`,
       opacity: done ? 0.55 : 1,
     }}>
+      {task.enlace ? (
+        <Link href={task.enlace} title="Ir a registrarlo" aria-label={`Ir a registrar: ${task.titulo}`}
+          style={{ width: 18, height: 18, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${ps.dot}`, display: "flex", alignItems: "center", justifyContent: "center", color: ps.dot, textDecoration: "none" }}>
+          <IconChevronRight size={12} />
+        </Link>
+      ) : (
       <button
         onClick={() => onToggle(task)}
         disabled={isLoading}
@@ -294,6 +323,7 @@ function TaskRow({ task, completing, onToggle }: {
           : null
         }
       </button>
+      )}
 
       <span className="kp-tarea-titulo" style={{ fontSize: 12, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         <span style={{ marginRight: 4 }}>{emoji}</span>
@@ -304,6 +334,9 @@ function TaskRow({ task, completing, onToggle }: {
           <span style={{ fontSize: 10, color: "var(--text-muted)", marginLeft: 6 }}>
             {task.targetLabel}
           </span>
+        )}
+        {task.enlace && task.descripcion && (
+          <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)", fontWeight: 400, whiteSpace: "normal", marginTop: 1 }}>{task.descripcion}</span>
         )}
       </span>
 
