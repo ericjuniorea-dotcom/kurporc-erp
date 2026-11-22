@@ -68,7 +68,7 @@ const FILAS: Fila[] = [
   ["sanidad.necropsias", ["ver", "crear"], "Necropsias"],
   ["sanidad.carencias", ["liberar"], "Liberar un animal antes de terminar la carencia (con motivo)", "S"],
   ["sanidad.botiquin", ["ver", "contar"], "Stock sanitario y conteos físicos"],
-  ["alimentacion.consumos", ["ver", "crear", "editar"], "Registro de balanceado entregado a cada sector y lote"],
+  ["alimentacion.consumos", ["ver", "crear", "editar", "anular"], "Registro de balanceado entregado a cada sector y lote", "S:anular"],
   ["alimentacion.etapas", ["configurar"], "Etapas de alimentación y el producto de stock de cada una"],
   ["stock.items", ["ver", "crear", "editar"], "Productos de stock"],
   ["stock.entradas", ["crear"], "Entradas de stock (compras)"],

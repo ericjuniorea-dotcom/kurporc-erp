@@ -60,6 +60,9 @@ async function validarAsignacion(actor: Permisos, d: { rolId: string; ajustes: {
   for (const a of d.ajustes) if (!CLAVES_PERMISOS.has(a.clave)) throw new Error(`•Permiso desconocido: ${a.clave}`);
   const resultado = await efectivos(o, d.rolId, d.ajustes);
   if (!actor.esPropietario) {
+    // Anular (cualquier módulo) lo da solo el Administrador General
+    const anular = Array.from(resultado).filter(c => c.endsWith(".anular"));
+    if (anular.length) throw new Error(`•Solo el Administrador General puede dar permisos para anular (${anular.slice(0, 3).join(", ")}).`);
     const sobra = Array.from(resultado).filter(c => !actor.claves.has(c));
     if (sobra.length) throw new Error(`•No podés dar permisos que vos no tenés (${sobra.slice(0, 3).join(", ")}${sobra.length > 3 ? "…" : ""}).`);
     if (d.limiteCompraGs === null) throw new Error("•Solo el Administrador General puede dar compras sin límite.");

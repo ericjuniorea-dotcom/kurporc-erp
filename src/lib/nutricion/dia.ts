@@ -10,7 +10,9 @@ const DIA = 86_400_000;
 export const fechaDia = (s: string) => new Date(`${s}T00:00:00Z`);
 
 export type TipoBalanceado = { id: string; nombre: string; modulo: ModuloNutricion; kgPorAnimal: number | null; productoId: string | null; stockKg: number; costoKg: number | null };
-export type Registro = { id: string; feedTypeId: string; farrowingId: string | null; kg: number; costoGs: number; quien: string | null; usuarioId: string | null; hora: string };
+export type Registro = { id: string; feedTypeId: string; farrowingId: string | null; kg: number; costoGs: number; quien: string | null; usuarioId: string | null; hora: string;
+  /** Anulada: no cuenta en totales; se muestra tachada con quién y por qué */
+  anulado: { quien: string | null; cuando: string; motivo: string | null } | null };
 
 export async function datosNutricionDia(tenantId: string, fecha: string) {
   const desde = fechaDia(fecha), hasta = new Date(desde.getTime() + DIA);
@@ -23,13 +25,13 @@ export async function datosNutricionDia(tenantId: string, fecha: string) {
     prisma.sow.count({ where: { tenantId, isActive: true } }),
     prisma.nurseryBatch.aggregate({ where: { tenantId, isActive: true }, _sum: { currentCount: true }, _count: { _all: true } }),
     prisma.growingBatch.aggregate({ where: { tenantId, status: "ACTIVE" }, _sum: { currentCount: true }, _count: { _all: true } }),
-    prisma.feedRecord.findMany({ where: { tenantId, recordDate: { gte: desde, lt: hasta } }, orderBy: { createdAt: "asc" }, select: { id: true, feedTypeId: true, farrowingId: true, quantityKg: true, employeeId: true, createdAt: true } }),
+    prisma.feedRecord.findMany({ where: { tenantId, recordDate: { gte: desde, lt: hasta } }, orderBy: { createdAt: "asc" }, select: { id: true, feedTypeId: true, farrowingId: true, quantityKg: true, employeeId: true, createdAt: true, anuladoEn: true, anuladoPor: true, motivoAnulacion: true } }),
   ]);
 
   // Lo que consumió cada camada de cada balanceado de lechones desde el parto hasta este día (avance de la fase)
   const consumoCamada = camadas.length ? await prisma.feedRecord.groupBy({
     by: ["farrowingId", "feedTypeId"],
-    where: { tenantId, farrowingId: { in: camadas.map(c => c.id) }, recordDate: { lt: hasta } },
+    where: { tenantId, farrowingId: { in: camadas.map(c => c.id) }, recordDate: { lt: hasta }, anuladoEn: null },
     _sum: { quantityKg: true },
   }) : [];
   const consumido = (farrowingId: string) => Object.fromEntries(consumoCamada.filter(x => x.farrowingId === farrowingId).map(x => [x.feedTypeId, Number(x._sum.quantityKg ?? 0)]));
@@ -58,7 +60,7 @@ export async function datosNutricionDia(tenantId: string, fecha: string) {
     const v = Math.abs(Number(m.cantidad)) * Number(m.lote?.costoUnitario ?? 0) * (m.tipo === "SALIDA" ? 1 : -1);
     costo.set(m.referenciaId!, (costo.get(m.referenciaId!) ?? 0) + v);
   }
-  const quienes = Array.from(new Set(registros.map(r => r.employeeId).filter((x): x is string => !!x)));
+  const quienes = Array.from(new Set(registros.flatMap(r => [r.employeeId, r.anuladoPor]).filter((x): x is string => !!x)));
   const nombre = new Map((await prisma.user.findMany({ where: { id: { in: quienes } }, select: { id: true, name: true } })).map(u => [u.id, u.name]));
 
   const listaTipos: TipoBalanceado[] = tipos.filter(t => esModuloNutricion(t.modulo)).map(t => {
@@ -70,6 +72,7 @@ export async function datosNutricionDia(tenantId: string, fecha: string) {
     id: r.id, feedTypeId: r.feedTypeId, farrowingId: r.farrowingId, kg: Number(r.quantityKg),
     costoGs: Math.round(costo.get(r.id) ?? 0), quien: r.employeeId ? nombre.get(r.employeeId) ?? null : null,
     usuarioId: r.employeeId, hora: r.createdAt.toISOString(),
+    anulado: r.anuladoEn ? { quien: r.anuladoPor ? nombre.get(r.anuladoPor) ?? null : null, cuando: r.anuladoEn.toISOString(), motivo: r.motivoAnulacion } : null,
   }));
 
   return {

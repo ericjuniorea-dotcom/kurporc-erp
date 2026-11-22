@@ -41,6 +41,7 @@ export async function guardarRol(datos: z.input<typeof rolSchema>): Promise<R> {
     for (const c of d.permisos) if (!CLAVES_PERMISOS.has(c)) throw new Error(`•Permiso desconocido: ${c}`);
     const claves = Array.from(conVer(d.permisos)).filter(c => !SOLO_PROPIETARIO.has(c));
     if (!permisos.esPropietario) {
+      if (claves.some(c => c.endsWith(".anular"))) throw new Error("•Solo el Administrador General puede armar roles que anulen.");
       const sobra = claves.filter(c => !permisos.claves.has(c));
       if (sobra.length) throw new Error(`•No podés armar un rol con permisos que vos no tenés (${sobra.slice(0, 3).join(", ")}${sobra.length > 3 ? "…" : ""}).`);
     }

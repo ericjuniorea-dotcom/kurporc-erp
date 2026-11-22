@@ -30,7 +30,7 @@ async function cargar(org: string, id: string) {
       pen: { select: { number: true, location: { select: { name: true } } } },
       weanings: { select: { weaningDate: true, pigletsWeaned: true, avgPigletWeightKg: true, totalLitterWeightKg: true, lactationDays: true, farrowing: { select: { startDatetime: true, sow: { select: { id: true, identCode: true } } } } } },
       weightRecords: { orderBy: { recordDate: "asc" } },
-      feedRecords: { select: { recordDate: true, quantityKg: true, feedType: { select: { name: true } } }, orderBy: { recordDate: "asc" } },
+      feedRecords: { where: { anuladoEn: null }, select: { recordDate: true, quantityKg: true, feedType: { select: { name: true } } }, orderBy: { recordDate: "asc" } },
       sales: { orderBy: { saleDate: "asc" } },
       phaseChanges: { orderBy: { changeDate: "asc" } },
       growingBatches: { select: { id: true, batchCode: true, entryDate: true, entryWeightKg: true, currentCount: true,

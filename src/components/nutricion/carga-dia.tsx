@@ -52,8 +52,10 @@ export function CargaDiaNutricion() {
   const hembra = tiposDe("MATERNIDAD_HEMBRAS")[0];
   // (los lechones tienen meta por fase, no por día: se siguen con la barra de cada camada)
   for (let i = 0; i < datos.cerdas.length; i++) teorico += hembra?.kgPorAnimal ?? 0;
-  const cargado = datos.registros.reduce((s, r) => s + r.kg, 0);
-  const costo = datos.registros.reduce((s, r) => s + r.costoGs, 0);
+  // Las cargas anuladas no suman
+  const vigentes = datos.registros.filter(r => !r.anulado);
+  const cargado = vigentes.reduce((s, r) => s + r.kg, 0);
+  const costo = vigentes.reduce((s, r) => s + r.costoGs, 0);
   const sinPlan = datos.tipos.length === 0;
   const comun = { fecha, regsDe, onGuardado: cargar };
 
@@ -65,7 +67,7 @@ export function CargaDiaNutricion() {
           <input type="date" className="kp-input" value={fecha} max={hoyPY()} onChange={e => e.target.value && setFecha(e.target.value)} style={{ height: 32 }} />
         </label>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 8, flex: 1, minWidth: 280 }}>
-          {[["Teórico del día", kg(teorico)], ["Cargado", `${kg(cargado)} · ${datos.registros.length} carga${datos.registros.length === 1 ? "" : "s"}`], ["Costo del día", gs(costo)]].map(([t, v]) => (
+          {[["Teórico del día", kg(teorico)], ["Cargado", `${kg(cargado)} · ${vigentes.length} carga${vigentes.length === 1 ? "" : "s"}`], ["Costo del día", gs(costo)]].map(([t, v]) => (
             <div key={t} style={{ ...tarjeta, padding: "8px 12px" }}>
               <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{t}</div>
               <div style={{ fontSize: 16, fontWeight: 500, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>{v}</div>
@@ -105,32 +107,40 @@ function Cargas({ regs, onCambio }: { regs: Reg[]; onCambio: () => void }) {
   const [pendiente, iniciar] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
   if (regs.length === 0) return <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Sin cargas este día</span>;
-  const ultima = regs[regs.length - 1];
-  const total = regs.reduce((s, r) => s + r.kg, 0);
+  const vigentes = regs.filter(r => !r.anulado);
+  const ultima = vigentes[vigentes.length - 1];
+  const total = vigentes.reduce((s, r) => s + r.kg, 0);
   const anular = (r: Reg) => {
-    if (!window.confirm(`¿Anular la carga de ${kg(r.kg)} de las ${hora(r.hora)}? El balanceado vuelve al inventario.`)) return;
+    const motivo = window.prompt(`Anular la carga de ${kg(r.kg)} de las ${hora(r.hora)}.
+El balanceado vuelve al inventario y queda registrado quién la anuló.
+
+¿Por qué la anulás?`);
+    if (!motivo || motivo.trim().length < 3) { if (motivo !== null) setMsg("Escribí el motivo para anular."); return; }
     setMsg(null);
     iniciar(async () => {
-      const res = await anularConsumo(r.id).catch((e: unknown) => ({ ok: false as const, error: mensajeError(e, "No se pudo anular. Probá de nuevo.") }));
+      const res = await anularConsumo(r.id, motivo.trim()).catch((e: unknown) => ({ ok: false as const, error: mensajeError(e, "No se pudo anular. Probá de nuevo.") }));
       if (!res.ok) setMsg(res.error); else onCambio();
     });
   };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 11.5 }}>
-      <span style={{ color: "var(--success-text)", display: "inline-flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
-        <IconCheck size={12} aria-hidden />
-        Última: {kg(ultima.kg)}{ultima.quien ? ` · ${ultima.quien}` : ""} · {hora(ultima.hora)}
-      </span>
+      {ultima ? (
+        <span style={{ color: "var(--success-text)", display: "inline-flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
+          <IconCheck size={12} aria-hidden />
+          Última: {kg(ultima.kg)}{ultima.quien ? ` · ${ultima.quien}` : ""} · {hora(ultima.hora)}
+        </span>
+      ) : <span style={{ color: "var(--text-muted)" }}>Todas las cargas de hoy fueron anuladas</span>}
       <button type="button" onClick={() => setAbierto(a => !a)} aria-expanded={abierto}
         style={{ alignSelf: "flex-start", background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 11.5, color: "var(--text-secondary)", display: "inline-flex", gap: 3, alignItems: "center" }}>
-        Total del día: <strong style={{ fontWeight: 500 }}>{kg(total)}</strong> en {regs.length} carga{regs.length === 1 ? "" : "s"}
+        Total del día: <strong style={{ fontWeight: 500 }}>{kg(total)}</strong> en {vigentes.length} carga{vigentes.length === 1 ? "" : "s"}{regs.length > vigentes.length ? ` · ${regs.length - vigentes.length} anulada${regs.length - vigentes.length === 1 ? "" : "s"}` : ""}
         {abierto ? <IconChevronUp size={12} aria-hidden /> : <IconChevronDown size={12} aria-hidden />}
       </button>
       {abierto && (
         <ul style={{ listStyle: "none", margin: 0, padding: "4px 0 0", display: "flex", flexDirection: "column", gap: 2, borderTop: "0.5px dashed var(--border-default)" }}>
           {[...regs].reverse().map(r => (
-            <li key={r.id} style={{ display: "flex", gap: 6, alignItems: "center", color: "var(--text-secondary)", fontVariantNumeric: "tabular-nums" }}>
-              <span>{hora(r.hora)}</span><span>· {kg(r.kg)}</span>{r.costoGs > 0 && <span>· {gs(r.costoGs)}</span>}<span>· {r.quien ?? "—"}</span>
+            <li key={r.id} style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", color: r.anulado ? "var(--text-muted)" : "var(--text-secondary)", fontVariantNumeric: "tabular-nums" }}>
+              <span style={{ textDecoration: r.anulado ? "line-through" : "none", display: "inline-flex", gap: 6 }}><span>{hora(r.hora)}</span><span>· {kg(r.kg)}</span>{r.costoGs > 0 && <span>· {gs(r.costoGs)}</span>}<span>· {r.quien ?? "—"}</span></span>
+              {r.anulado && <span style={{ color: "var(--danger-text)" }}>Anulada{r.anulado.quien ? ` por ${r.anulado.quien}` : ""} · {hora(r.anulado.cuando)}{r.anulado.motivo ? ` · «${r.anulado.motivo}»` : ""}</span>}
               {r.puedeAnular && (
                 <button type="button" disabled={pendiente} onClick={() => anular(r)} aria-label={`Anular la carga de las ${hora(r.hora)}`} title="Anular esta carga"
                   style={{ background: "none", border: "none", cursor: "pointer", color: "var(--danger-text)", display: "inline-flex", padding: 0 }}><IconX size={12} /></button>

@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
 
   const [records, feedTypes, lotes, growingBatches] = await Promise.all([
     prisma.feedRecord.findMany({
-      where: { tenantId, recordDate: { gte: from, lte: to } },
+      where: { tenantId, recordDate: { gte: from, lte: to }, anuladoEn: null },
       include: { feedType: { select: { name: true, phase: true } } },
       orderBy: { recordDate: "asc" },
     }),

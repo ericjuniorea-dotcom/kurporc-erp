@@ -27,7 +27,7 @@ export async function analizarLote(org: string, id: string) {
     where: { id, tenantId: org },
     include: {
       deaths: true, otherExits: true, sales: true, weightRecords: { orderBy: { recordDate: "asc" } },
-      feedRecords: { select: { quantityKg: true } },
+      feedRecords: { where: { anuladoEn: null }, select: { quantityKg: true } },
       outgoingTransfers: true, incomingTransfers: true,
       withdrawalPeriods: { include: { medicine: { select: { name: true } } }, orderBy: { startDate: "desc" } },
     },

@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     where,
     include: {
       vacuna: { select: { id: true, nombre: true, enfermedad: true, dosisMl: true, viaAplicacion: true, criticidad: true } },
-      aplicaciones: { select: { id: true, dosisAplicadas: true, responsable: true, fechaAplicacion: true, loteVacunaId: true } },
+      aplicaciones: { where: { anuladaEn: null }, select: { id: true, dosisAplicadas: true, responsable: true, fechaAplicacion: true, loteVacunaId: true } },
     },
     orderBy: { fecha: "asc" },
     take: 300,

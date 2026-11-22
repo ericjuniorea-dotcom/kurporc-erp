@@ -1312,6 +1312,10 @@ model FeedRecord {
   employeeId     String?
   isSynced       Boolean  @default(true) // false = pendiente de sync offline
   createdAt      DateTime @default(now())
+  // Anulación (nunca se borra): queda quién, cuándo y por qué; no cuenta en consumos ni costos
+  anuladoEn       DateTime? @map("anulado_en")
+  anuladoPor      String?   @map("anulado_por")
+  motivoAnulacion String?   @map("motivo_anulacion")
 
   feedType     FeedType        @relation(fields: [feedTypeId], references: [id])
   farrowing    FarrowingEvent? @relation(fields: [farrowingId], references: [id])
@@ -2275,6 +2279,10 @@ model AplicacionVacuna {
   observaciones     String?
   grupoAplicacionId String? // agrupa todas las filas creadas en una misma acción de "Registrar aplicación" (bulk)
   createdAt         DateTime           @default(now())
+  // Anulación (nunca se borra): devuelve el stock al lote y el evento vuelve a pendiente
+  anuladaEn         DateTime?          @map("anulada_en")
+  anuladaPor        String?            @map("anulada_por")
+  motivoAnulacion   String?            @map("motivo_anulacion")
   evento            EventoVacunacion   @relation(fields: [eventoId], references: [id])
   loteVacuna        LoteInventario?    @relation(fields: [loteVacunaId], references: [id])
   vacuna            ProductoInventario @relation(fields: [vacunaId], references: [id])

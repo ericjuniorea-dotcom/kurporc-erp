@@ -80,7 +80,7 @@ async function computeStockYFaltantesUncached(
     idsBalanceado.length > 0
       ? prisma.feedRecord.groupBy({
           by: ["feedTypeId"],
-          where: { tenantId, recordDate: { gte: hace7 } },
+          where: { tenantId, recordDate: { gte: hace7 }, anuladoEn: null },
           _sum: { quantityKg: true },
         })
       : Promise.resolve([]),

@@ -10,6 +10,7 @@ import { descontarStock } from "@/lib/inventario/descontar";
 import { datosNutricionDia, fechaDia } from "@/lib/nutricion/dia";
 import { consumoPorPeriodo } from "@/lib/nutricion/periodo";
 import { asegurarPlanSugerido, MODULOS_NUTRICION, esModuloNutricion } from "@/lib/nutricion/plan";
+import { registrarAuditoria } from "@/lib/seguridad/auditoria";
 
 type R = { ok: true; aviso?: string } | { ok: false; error: string };
 const DIA = 86_400_000;
@@ -25,12 +26,11 @@ function manejar(e: unknown): { ok: false; error: string } {
 }
 
 export async function nutricionDia(fecha: string) {
-  const { session, permisos } = await requirePermiso("alimentacion.consumos.ver");
+  const { permisos } = await requirePermiso("alimentacion.consumos.ver");
   const d = await datosNutricionDia(permisos.organizacionId, FECHA.parse(fecha));
-  // Cada carga la puede anular quien la hizo (ese mismo día) o quien puede editar consumos
-  const editaTodo = permisos.esPropietario || puede(permisos, "alimentacion.consumos.editar");
-  const hoy = hoyPY();
-  return { ...d, registros: d.registros.map(r => ({ ...r, puedeAnular: editaTodo || (r.usuarioId === session.user.id && d.fecha === hoy) })) };
+  // Anular solo con el permiso «anular» (lo da el Administrador General)
+  const anula = puede(permisos, "alimentacion.consumos.anular");
+  return { ...d, registros: d.registros.map(r => ({ ...r, puedeAnular: anula && !r.anulado })) };
 }
 
 const hoyPY = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Asuncion" }).format(new Date());
@@ -67,16 +67,19 @@ export async function registrarConsumo(datos: z.input<typeof consumo>): Promise<
   } catch (e) { return manejar(e); }
 }
 
-/** Anula una carga: el balanceado vuelve a los lotes de donde salió (queda el movimiento de devolución). */
-export async function anularConsumo(id: string): Promise<R> {
+/**
+ * Anula una carga (nunca se borra): queda quién la anuló, cuándo y por qué, el balanceado vuelve a los lotes de
+ * donde salió y deja de contar en consumos y costos. Solo con el permiso «anular» (lo da el Administrador General).
+ */
+export async function anularConsumo(id: string, motivo: string): Promise<R> {
   try {
-    const { session, permisos } = await requirePermiso("alimentacion.consumos.ver");
+    const { session, permisos } = await requirePermiso("alimentacion.consumos.anular");
     const org = permisos.organizacionId;
-    const reg = await prisma.feedRecord.findFirst({ where: { id: String(id).slice(0, 40), tenantId: org }, select: { id: true, employeeId: true, recordDate: true, feedType: { select: { productoBalanceadoId: true } } } });
+    const texto = String(motivo ?? "").trim().slice(0, 300);
+    if (texto.length < 3) throw new Error("•Escribí por qué la anulás.");
+    const reg = await prisma.feedRecord.findFirst({ where: { id: String(id).slice(0, 40), tenantId: org }, select: { id: true, anuladoEn: true, quantityKg: true, recordDate: true, feedType: { select: { name: true } } } });
     if (!reg) throw new Error("•Esa carga no existe.");
-    const editaTodo = permisos.esPropietario || puede(permisos, "alimentacion.consumos.editar");
-    const propiaDeHoy = reg.employeeId === session.user.id && reg.recordDate.toISOString().slice(0, 10) === hoyPY() && puede(permisos, "alimentacion.consumos.crear");
-    if (!editaTodo && !propiaDeHoy) throw new Error("•Solo podés anular tus cargas de hoy. Para otras, pedíselo al administrador.");
+    if (reg.anuladoEn) throw new Error("•Esa carga ya estaba anulada.");
     await conActor(session.user.id, async tx => {
       const salidas = await tx.movimientoInventario.findMany({ where: { tenantId: org, referenciaId: reg.id, origen: "ALIMENTACION", tipo: "SALIDA" }, select: { loteId: true, productoId: true, cantidad: true } });
       const entradas = await tx.movimientoInventario.findMany({ where: { tenantId: org, referenciaId: reg.id, origen: "ALIMENTACION", tipo: "ENTRADA" }, select: { loteId: true, cantidad: true } });
@@ -89,8 +92,9 @@ export async function anularConsumo(id: string): Promise<R> {
         await tx.loteInventario.update({ where: { id: loteId }, data: { cantidadActual: { increment: cant } } });
         await tx.movimientoInventario.create({ data: { tenantId: org, productoId, loteId, tipo: "ENTRADA", cantidad: cant, origen: "ALIMENTACION", referenciaId: reg.id, usuarioId: session.user.id, nota: "Carga de consumo anulada" } });
       }
-      await tx.feedRecord.delete({ where: { id: reg.id } });
+      await tx.feedRecord.update({ where: { id: reg.id }, data: { anuladoEn: new Date(), anuladoPor: session.user.id, motivoAnulacion: texto } });
     });
+    await registrarAuditoria("MOVIMIENTO_ANULADO", "feed_record", reg.id, { motivo: texto, kg: Number(reg.quantityKg), balanceado: reg.feedType.name, fecha: reg.recordDate.toISOString().slice(0, 10) }, { actorId: session.user.id, organizacionId: org });
     invalidateInventario(org);
     return { ok: true };
   } catch (e) { return manejar(e); }

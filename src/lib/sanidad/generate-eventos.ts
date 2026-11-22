@@ -128,6 +128,7 @@ export async function verificarVacunasParaServicio(
       where: {
         tenantId,
         vacunaId: item.vacunaId,
+        anuladaEn: null,
         evento: { animalId },
         fechaAplicacion: {
           // Válida en los últimos 6 meses (180 días)

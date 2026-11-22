@@ -23,7 +23,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
       select: {
         id: true, fecha: true, fechaVencimiento: true, tipo: true, concepto: true, subcategoria: true, cantidad: true, unidadMedida: true,
         montoGs: true, estado: true, observacion: true, naturaleza: true, area: true, signo: true, precioUnitarioGs: true, unidadId: true,
-        origen: true, motivoAnulacion: true, facturaNumero: true, medioPago: true, cuentaFondosId: true,
+        origen: true, motivoAnulacion: true, anuladoPor: true, anuladoEn: true, facturaNumero: true, medioPago: true, cuentaFondosId: true,
         categoria: { select: { nombre: true } }, contraparte: { select: { nombre: true } },
         pagos: { select: { montoGs: true, fechaPago: true } },
       },
@@ -34,6 +34,8 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
     prisma.productoInventario.findMany({ where: { tenantId: org, isActive: true }, orderBy: [{ categoria: "asc" }, { nombre: "asc" }], select: { id: true, nombre: true, categoria: true, unidadMedida: true } }),
     prisma.contraparte.findMany({ where: { organizacionId: org, activa: true }, orderBy: { nombre: "asc" }, select: { nombre: true, tipo: true } }),
   ]);
+  const idsAnul = Array.from(new Set(movs.map(m => m.anuladoPor).filter((x): x is string => !!x)));
+  const anuladores = new Map((idsAnul.length ? await prisma.user.findMany({ where: { id: { in: idsAnul } }, select: { id: true, name: true } }) : []).map(u => [u.id, u.name]));
 
   // Meses con movimientos (para el selector) + el actual
   const meses = await prisma.movimiento.groupBy({ by: ["mes"], where: { organizacionId: org }, orderBy: { mes: "desc" } });
@@ -58,7 +60,9 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
           cantidad: m.cantidad?.toString() ?? null, unidadMedida: m.unidadMedida ?? "", contraparte: m.contraparte?.nombre ?? "",
           montoGs: m.montoGs.toString(), pagadoGs: pagado.toString(), estado: m.estado, observacion: m.observacion ?? "",
           naturaleza: m.naturaleza, area: m.area, signo: m.signo, precioUnitario: m.precioUnitarioGs?.toString() ?? null,
-          unidad: unidades.find(u => u.id === m.unidadId)?.codigo ?? "", origen: m.origen, motivoAnulacion: m.motivoAnulacion ?? "",
+          unidad: unidades.find(u => u.id === m.unidadId)?.codigo ?? "", origen: m.origen,
+          // Quién anuló y cuándo (queda registrado)
+          motivoAnulacion: m.motivoAnulacion ? `${m.motivoAnulacion}${m.anuladoPor && anuladores.get(m.anuladoPor) ? ` (por ${anuladores.get(m.anuladoPor)}` : ""}${m.anuladoEn ? `${m.anuladoPor && anuladores.get(m.anuladoPor) ? ", " : " ("}${m.anuladoEn.toISOString().slice(0, 10).split("-").reverse().join("/")})` : m.anuladoPor && anuladores.get(m.anuladoPor) ? ")" : ""}` : "",
           factura: m.facturaNumero ?? "", ultimoPago: m.pagos.map(p => p.fechaPago.toISOString().slice(0, 10)).sort().at(-1) ?? null,
         };
       })}

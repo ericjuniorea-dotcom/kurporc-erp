@@ -139,6 +139,10 @@ export const ROLES_PLANTILLA: RolPlantilla[] = [
   },
 ];
 
+// Anular (con registro de quién y por qué) lo otorga solo el Administrador General, persona por persona:
+// ninguna plantilla de rol lo trae, salvo la suya.
+for (const r of ROLES_PLANTILLA) if (r.codigo !== "ADMIN_GENERAL") r.permisos = r.permisos.filter(c => !c.endsWith(".anular"));
+
 /** Rol legado (IDs 1-14 de la tabla "roles") → código de plantilla. Orden = prioridad. */
 export const ROL_LEGADO_A_PLANTILLA: Array<[number, string]> = [
   [2, "ADMIN_GENERAL"],      // Admin de granja (propietario)

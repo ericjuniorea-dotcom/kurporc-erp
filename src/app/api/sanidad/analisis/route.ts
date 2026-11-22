@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
       select: { id: true, fecha: true, sector: true, estado: true },
     }),
     prisma.aplicacionVacuna.findMany({
-      where: { tenantId, fechaAplicacion: { gte: from, lte: to } },
+      where: { tenantId, fechaAplicacion: { gte: from, lte: to }, anuladaEn: null },
       include: {
         vacuna: { select: { nombre: true, codigo: true } },
         evento: { select: { sector: true, fecha: true } },

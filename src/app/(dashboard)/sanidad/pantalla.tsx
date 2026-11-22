@@ -20,6 +20,7 @@ const PanelMaternidadSanidad = dynamic(() => import("@/components/sanidad/panel-
 const PanelTratamientos = dynamic(() => import("@/components/sanidad/panel-tratamientos").then(m => m.PanelTratamientos), { loading: () => <Cargando /> });
 const PanelNecropsias = dynamic(() => import("@/components/sanidad/panel-necropsias").then(m => m.PanelNecropsias), { loading: () => <Cargando /> });
 const PanelBrotes = dynamic(() => import("@/components/sanidad/panel-brotes").then(m => m.PanelBrotes), { loading: () => <Cargando /> });
+const AplicacionesRegistradas = dynamic(() => import("@/components/sanidad/aplicaciones-registradas").then(m => m.AplicacionesRegistradas), { loading: () => <Cargando /> });
 const CentralAnalisisSanidad = dynamic(() => import("@/components/sanidad/central-analisis").then(m => m.CentralAnalisisSanidad), { loading: () => <Cargando /> });
 
 /* ─── Tipos ──────────────────────────────────────────────────────── */
@@ -537,7 +538,10 @@ export default function SanidadPage() {
 
         {/* ── VISIÓN GENERAL ─────────────────────────────────────── */}
         {!loading && !noVacunas && tab === "vision" && (
-          <VisionGeneralSanidad />
+          <>
+            <VisionGeneralSanidad />
+            <AplicacionesRegistradas />
+          </>
         )}
 
         {/* ── CENTRAL DE ANÁLISIS ────────────────────────────────── */}
@@ -584,6 +588,7 @@ export default function SanidadPage() {
                 )}
               </div>
             )}
+            {ingresoTab === "vacunacion" && <AplicacionesRegistradas />}
 
             {/* Nuevo lote */}
             {ingresoTab === "lotes" && (

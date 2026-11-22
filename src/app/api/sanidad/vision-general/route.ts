@@ -22,7 +22,7 @@ export async function GET() {
       orderBy: { fecha: "asc" },
     }),
     prisma.aplicacionVacuna.findMany({
-      where:  { tenantId, fechaAplicacion: { gte: ago30 } },
+      where:  { tenantId, fechaAplicacion: { gte: ago30 }, anuladaEn: null },
       select: { eventoId: true, fechaAplicacion: true },
     }),
     computeStockAlertas(tenantId, "VACUNA"),

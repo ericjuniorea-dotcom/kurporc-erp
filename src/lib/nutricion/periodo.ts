@@ -22,7 +22,7 @@ function periodo(d: Date, a: Agrupar): { clave: string; etiqueta: string } {
 export async function consumoPorPeriodo(tenantId: string, desde: string, hasta: string, agrupar: Agrupar) {
   const ini = new Date(`${desde}T00:00:00Z`), fin = new Date(new Date(`${hasta}T00:00:00Z`).getTime() + DIA);
   const regs = await prisma.feedRecord.findMany({
-    where: { tenantId, recordDate: { gte: ini, lt: fin } },
+    where: { tenantId, recordDate: { gte: ini, lt: fin }, anuladoEn: null },
     orderBy: [{ recordDate: "desc" }, { createdAt: "desc" }],
     select: { id: true, recordDate: true, createdAt: true, quantityKg: true, employeeId: true, feedTypeId: true,
       feedType: { select: { name: true, modulo: true } },

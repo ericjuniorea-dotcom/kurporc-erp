@@ -23,7 +23,7 @@ export async function GET(_req: NextRequest) {
     }),
     prisma.feedRecord.groupBy({
       by: ["feedTypeId"],
-      where: { tenantId, recordDate: { gte: since } },
+      where: { tenantId, recordDate: { gte: since }, anuladoEn: null },
       _sum: { quantityKg: true },
     }),
   ]);
