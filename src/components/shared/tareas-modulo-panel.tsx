@@ -4,6 +4,7 @@ import { IconCheck, IconLoader2, IconListCheck, IconChevronRight, IconPlus, Icon
 import Link from "next/link";
 import { FiltrosTareas, agruparTareas, filtrarTareas } from "@/components/tareas/filtros-tareas";
 import { categoriaTarea, OCULTAS_EN_MODULO, type CategoriaTarea } from "@/lib/tareas/categorias";
+import { DetalleTarea, type DestinoTarea } from "@/components/tareas/detalle-tarea";
 
 interface Task {
   id:                string;
@@ -19,6 +20,8 @@ interface Task {
   responsableKey:    string | null;
   /** Manejo calculado (destete, parto, servicio…): no se tilda, se hace registrando el dato en el módulo */
   enlace?:           string;
+  instrucciones?:    string | null;
+  destino?:          DestinoTarea;
 }
 
 type AccionManejo = { id: string; tipo: string; nivel: "atrasado" | "hoy" | "pronto"; titulo: string; detalle: string; fecha: string; href?: string };
@@ -282,6 +285,8 @@ function TaskRow({ task, completing, onToggle }: {
   const isLoading = completing === task.id;
   const ps        = P_STYLE[task.prioridad as keyof typeof P_STYLE] ?? P_STYLE.programada;
   const emoji     = TIPO_EMOJI[task.tipo] ?? "📋";
+  const [abierta, setAbierta] = useState(false);
+  const conDetalle = !task.enlace && (!!task.descripcion || !!task.instrucciones || !!task.destino);
 
   const due   = new Date(task.fechaVencimiento);
   const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -292,12 +297,10 @@ function TaskRow({ task, completing, onToggle }: {
     : `En ${diff} días`;
 
   return (
+    <div style={{ borderRadius: "var(--radius-md)", background: done ? "transparent" : ps.bg, border: `0.5px solid ${ps.border}`, opacity: done ? 0.55 : 1 }}>
     <div style={{
       display: "flex", alignItems: "center", gap: 8,
       padding: "6px 8px", borderRadius: "var(--radius-md)",
-      background: done ? "transparent" : ps.bg,
-      border: `0.5px solid ${ps.border}`,
-      opacity: done ? 0.55 : 1,
     }}>
       {task.enlace ? (
         <Link href={task.enlace} title="Ir a registrarlo" aria-label={`Ir a registrar: ${task.titulo}`}
@@ -325,7 +328,9 @@ function TaskRow({ task, completing, onToggle }: {
       </button>
       )}
 
-      <span className="kp-tarea-titulo" style={{ fontSize: 12, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      <span className="kp-tarea-titulo" role={conDetalle ? "button" : undefined} tabIndex={conDetalle ? 0 : undefined} aria-expanded={conDetalle ? abierta : undefined}
+        onClick={conDetalle ? () => setAbierta(a => !a) : undefined} onKeyDown={conDetalle ? e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setAbierta(a => !a); } } : undefined}
+        style={{ fontSize: 12, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: conDetalle ? "pointer" : "default" }}>
         <span style={{ marginRight: 4 }}>{emoji}</span>
         <span style={{ fontWeight: done ? 400 : 500, color: done ? "var(--text-muted)" : ps.text, textDecoration: done ? "line-through" : "none" }}>
           {task.titulo}
@@ -362,6 +367,10 @@ function TaskRow({ task, completing, onToggle }: {
       }}>
         {dueLabel}
       </span>
+    </div>
+    {abierta && conDetalle && (
+      <DetalleTarea descripcion={task.descripcion} instrucciones={task.instrucciones} destino={task.destino} hecha={done} ocupado={isLoading} onListo={() => onToggle(task)} />
+    )}
     </div>
   );
 }

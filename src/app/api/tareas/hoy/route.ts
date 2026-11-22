@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db/prisma";
 import { generarTareasDiarias } from "@/lib/tasks/generate";
 import { getPermisos, puede } from "@/lib/permisos/servidor";
 import { categoriaTarea, OCULTAS_EN_MODULO } from "@/lib/tareas/categorias";
+import { destinosTareas } from "@/lib/tareas/destino";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
@@ -37,6 +38,8 @@ export async function GET(req: NextRequest) {
   });
 
   // Alimentación e Instalaciones no se muestran por ahora (ver OCULTAS_EN_MODULO)
+  // A dónde lleva cada orden para hacerla o corregirla (ficha de la cerda, lote o módulo)
+  const destinos = await destinosTareas(tenantId, tasks);
   const result = tasks.filter(t => !OCULTAS_EN_MODULO.includes(categoriaTarea(t))).map(t => {
     let prioridad = t.prioridad;
     if (!t.fechaCompletada) {
@@ -50,6 +53,7 @@ export async function GET(req: NextRequest) {
     return {
       ...t,
       prioridad,
+      destino: destinos.get(t.id) ?? null,
       fechaVencimiento:  t.fechaVencimiento.toISOString(),
       fechaCompletada:   t.fechaCompletada?.toISOString() ?? null,
       createdAt:         t.createdAt.toISOString(),

@@ -282,7 +282,7 @@ export default function GestacionPage() {
   const router = useRouter();
   const [tab,        setTab]        = useState("vision");
   // Abre directo en una pestaña si viene en la dirección (p. ej. «Analizar» desde el Dashboard)
-  useEffect(() => { const t = new URLSearchParams(window.location.search).get("tab"); if (t === "analisis") setTab(t); }, []);
+  useEffect(() => { const t = new URLSearchParams(window.location.search).get("tab"); if (t === "analisis" || t === "ingreso") setTab(t); }, []);
   const [ingresoTab, setIngresoTab] = useState<IngresoSubTab>("servicios");
 
   useEffect(() => {

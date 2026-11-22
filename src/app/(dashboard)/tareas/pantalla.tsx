@@ -6,6 +6,7 @@ import { useSession, usePermisos } from "@/lib/auth/sesion-cliente";
 import { useRouter }        from "next/navigation";
 import { IconClipboardCheck, IconCheck, IconLoader2, IconRefresh, IconPlus, IconX, IconUserSearch } from "@tabler/icons-react";
 import { Topbar }           from "@/components/layout/topbar";
+import { DetalleTarea, type DestinoTarea } from "@/components/tareas/detalle-tarea";
 
 interface Task {
   id:                string;
@@ -21,6 +22,7 @@ interface Task {
   generadaPor:       string;
   responsableNombre: string | null;
   responsableKey:    string | null;
+  destino?:          DestinoTarea;
 }
 
 interface Kpis {
@@ -162,6 +164,8 @@ function TaskCard({
   const ps      = P_STYLE[task.prioridad as keyof typeof P_STYLE] ?? P_STYLE.programada;
   const emoji   = TIPO_EMOJI[task.tipo] ?? "📋";
   const sColor  = SECTOR_COLOR[task.sector] ?? "var(--text-muted)";
+  const [abierta, setAbierta] = useState(false);
+  const conDetalle = !!task.descripcion || !!task.instrucciones || !!task.destino;
 
   const due   = new Date(task.fechaVencimiento);
   const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -172,12 +176,10 @@ function TaskCard({
     : `${due.toLocaleDateString("es-PY", { day: "2-digit", month: "short" })}`;
 
   return (
+    <div style={{ borderRadius: "var(--radius-lg)", background: done ? "transparent" : ps.bg, border: `0.5px solid ${ps.border}`, opacity: done ? 0.6 : 1 }}>
     <div style={{
       display: "flex", alignItems: "center", gap: 10,
       padding: "10px 14px", borderRadius: "var(--radius-lg)",
-      background: done ? "transparent" : ps.bg,
-      border: `0.5px solid ${ps.border}`,
-      opacity: done ? 0.6 : 1,
     }}>
       {/* Checkbox */}
       <button
@@ -200,7 +202,8 @@ function TaskCard({
       <span style={{ fontSize: 16, flexShrink: 0 }}>{emoji}</span>
 
       {/* Content */}
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ flex: 1, minWidth: 0, cursor: conDetalle ? "pointer" : "default" }} role={conDetalle ? "button" : undefined} tabIndex={conDetalle ? 0 : undefined} aria-expanded={conDetalle ? abierta : undefined}
+        onClick={conDetalle ? () => setAbierta(a => !a) : undefined} onKeyDown={conDetalle ? e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setAbierta(a => !a); } } : undefined}>
         <div style={{
           fontSize: 12, fontWeight: 500,
           color: done ? "var(--text-muted)" : "var(--text-primary)",
@@ -213,7 +216,7 @@ function TaskCard({
           <span style={{ color: sColor, fontWeight: 600 }}>
             {SECTOR_LABEL[task.sector] ?? task.sector}
           </span>
-          {task.descripcion && (
+          {task.descripcion && !abierta && (
             <span style={{ opacity: 0.8 }}>{task.descripcion}</span>
           )}
         </div>
@@ -246,6 +249,10 @@ function TaskCard({
       }}>
         {dueLabel}
       </span>
+    </div>
+    {abierta && conDetalle && (
+      <DetalleTarea descripcion={task.descripcion} instrucciones={task.instrucciones} destino={task.destino} hecha={done} ocupado={busy} onListo={() => onToggle(task)} />
+    )}
     </div>
   );
 }
