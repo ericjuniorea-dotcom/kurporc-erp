@@ -596,3 +596,10 @@
   .kp-plantel-lista.con-ficha { display: none; }
   .kp-plantel-ficha { flex: none !important; min-width: 0 !important; overflow: visible !important; }
 }
+
+/* Modo plataforma = solo lectura: no se muestra ningún botón para cargar, guardar, enviar o anular */
+.kp-solo-lectura main .btn-primary,
+.kp-solo-lectura main button[type="submit"],
+.kp-solo-lectura main [data-escribe],
+.kp-solo-lectura main .kp-transfer button,
+.kp-solo-lectura main input[type="checkbox"] + button { display: none !important; }

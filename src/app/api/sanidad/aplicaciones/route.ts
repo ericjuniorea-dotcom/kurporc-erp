@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     puedeAnular: puede(permisos, "sanidad.aplicaciones.anular"),
     filas: filas.map(f => ({
-      id: f.id, fecha: f.fechaAplicacion.toISOString(), vacuna: f.vacuna.nombre, unidad: f.vacuna.unidadMedida, dosis: f.dosisAplicadas,
+      id: f.id, fecha: f.fechaAplicacion.toISOString(), vacuna: f.vacuna.nombre, unidad: f.vacuna.unidadMedida, dosis: Number(f.dosisAplicadas),
       a: f.evento.targetLabel ?? f.evento.sector, responsable: f.responsable, lote: f.loteVacuna?.numeroLote ?? null, observaciones: f.observaciones,
       anulada: f.anuladaEn ? { quien: f.anuladaPor ? nombre.get(f.anuladaPor) ?? null : null, cuando: f.anuladaEn.toISOString(), motivo: f.motivoAnulacion } : null,
     })),

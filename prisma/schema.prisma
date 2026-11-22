@@ -2273,7 +2273,7 @@ model AplicacionVacuna {
   eventoId          String
   loteVacunaId      String?
   vacunaId          String
-  dosisAplicadas    Int
+  dosisAplicadas    Decimal            @db.Decimal(10, 3) // cantidad descontada del lote (ml o dosis) para todo el evento
   fechaAplicacion   DateTime
   responsable       String
   observaciones     String?

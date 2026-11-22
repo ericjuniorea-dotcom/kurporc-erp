@@ -54,7 +54,8 @@ export default async function DashboardLayout({
   return (
     <SesionProvider session={sesionCliente}>
     <PreferenciasProvider ayudaIndicadores={usuario.ayudaIndicadores}>
-      <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--bg-base)" }}>
+      {/* Modo plataforma (solo lectura): se esconden los botones para registrar, guardar o anular */}
+      <div className={plataforma ? "kp-solo-lectura" : undefined} style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--bg-base)" }}>
         <Sidebar
           farmName={session.user.farmName}
           permisos={claves}

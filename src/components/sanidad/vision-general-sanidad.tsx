@@ -274,7 +274,9 @@ function RegistrarAplicacionModal({
   const [loteId, setLoteId] = useState("");
   const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10));
   const [responsable, setResponsable] = useState(session?.user?.name ?? "");
-  const [dosis, setDosis] = useState(String(grupo.animales[0]?.dosisNecesarias ?? 1));
+  // Dosis por animal: la del producto (ml por dosis); nunca la cantidad de lechones de la camada
+  const dosisProtocolo = grupo.unidad === "ML" && grupo.dosisMl ? grupo.dosisMl : 1;
+  const [dosis, setDosis] = useState(String(dosisProtocolo));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aplicadosGrupos, setAplicadosGrupos] = useState(0);
@@ -294,9 +296,21 @@ function RegistrarAplicacionModal({
 
   const loteSeleccionado = lotes.find(l => l.id === loteId);
   const dosisNum = Number(dosis) || 0;
-  const dosisTotales = dosisNum * pendientes.length;
-  const alcanzaPara = loteSeleccionado && dosisNum > 0 ? Math.floor(loteSeleccionado.cantidadActual / dosisNum) : 0;
+  // Animales reales de cada evento (una camada = sus lechones; una cerda = 1)
+  const animalesPorEvento = useMemo(() => Object.fromEntries(grupo.animales.map(a => [a.eventoId, Math.max(1, a.dosisNecesarias || 1)])), [grupo]);
+  const animales = pendientes.reduce((s, id) => s + (animalesPorEvento[id] ?? 1), 0);
+  const teorico = dosisProtocolo * animales;
+  const dosisTotales = Math.round(dosisNum * animales * 1000) / 1000;
+  // Cuántos eventos (en orden) alcanzan con el lote elegido
+  const alcanzaPara = (() => {
+    if (!loteSeleccionado || dosisNum <= 0) return 0;
+    let resto = loteSeleccionado.cantidadActual, n = 0;
+    for (const id of pendientes) { const c = dosisNum * (animalesPorEvento[id] ?? 1); if (c > resto + 1e-9) break; resto -= c; n++; }
+    return n;
+  })();
   const stockInsuficiente = !!loteSeleccionado && loteSeleccionado.cantidadActual < dosisTotales;
+  const unidad = UNIDAD_VG[grupo.unidad] ?? "dosis";
+  const n2 = (v: number) => v.toLocaleString("es-PY", { maximumFractionDigits: 2 });
 
   async function enviar(idsAEnviar: string[]) {
     if (!loteSeleccionado) { setError("Elegí un lote"); return null; }
@@ -382,8 +396,21 @@ function RegistrarAplicacionModal({
               <input className="kp-input" type="date" value={fecha} onChange={e => setFecha(e.target.value)} />
             </div>
             <div>
-              <label className="kp-label">Dosis por animal (ml)</label>
+              <label className="kp-label">Dosis por animal ({unidad})</label>
               <InputNumero className="kp-input" step="0.1" value={dosis} onChange={e => setDosis(e.target.value)} />
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <div style={{ background: "var(--bg-overlay)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-md)", padding: "8px 10px" }}>
+              <div style={{ fontSize: 10.5, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".05em" }}>Teórico (protocolo)</div>
+              <div style={{ fontSize: 17, fontWeight: 600, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>{n2(teorico)} {unidad}</div>
+              <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{n2(dosisProtocolo)} {unidad} × {animales} animal{animales === 1 ? "" : "es"}</div>
+            </div>
+            <div style={{ background: Math.abs(dosisTotales - teorico) > 1e-6 ? "var(--warning-subtle)" : "var(--success-subtle)", border: `0.5px solid ${Math.abs(dosisTotales - teorico) > 1e-6 ? "var(--warning)" : "var(--success)"}`, borderRadius: "var(--radius-md)", padding: "8px 10px" }}>
+              <div style={{ fontSize: 10.5, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".05em" }}>A suministrar</div>
+              <div style={{ fontSize: 17, fontWeight: 600, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>{n2(dosisTotales)} {unidad}</div>
+              <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{n2(dosisNum)} {unidad} × {animales}{Math.abs(dosisTotales - teorico) > 1e-6 ? ` · ${dosisTotales > teorico ? "+" : ""}${n2(dosisTotales - teorico)} vs teórico` : " · igual al teórico"}</div>
             </div>
           </div>
 
@@ -401,7 +428,7 @@ function RegistrarAplicacionModal({
 
           {stockInsuficiente && loteSeleccionado && (
             <div className="kp-alert kp-alert-warning" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <span>Este lote solo alcanza para {alcanzaPara} de {pendientes.length} animales. Elegí otro lote para completar o reducí la selección.</span>
+              <span>Este lote alcanza para {alcanzaPara} de {pendientes.length} (necesitás {n2(dosisTotales)} {unidad} y tiene {n2(loteSeleccionado.cantidadActual)}). Elegí otro lote para completar o reducí la selección.</span>
               <button type="button" className="btn" style={{ fontSize: 11, alignSelf: "flex-start" }} onClick={handleAplicarParcial} disabled={submitting || alcanzaPara === 0}>
                 Aplicar a los primeros {alcanzaPara} y elegir otro lote para el resto
               </button>
@@ -418,7 +445,7 @@ function RegistrarAplicacionModal({
             <div style={{ maxHeight: 140, overflowY: "auto", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-md)" }}>
               {pendientes.map((id, i) => (
                 <div key={id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 10px", borderTop: i > 0 ? "0.5px solid var(--border-subtle)" : "none" }}>
-                  <span style={{ fontSize: 12 }}>{labelPorId[id]}</span>
+                  <span style={{ fontSize: 12 }}>{labelPorId[id]}{(animalesPorEvento[id] ?? 1) > 1 ? ` · ${animalesPorEvento[id]} lechones` : ""} <span style={{ color: "var(--text-muted)" }}>· {n2(dosisNum * (animalesPorEvento[id] ?? 1))} {unidad}</span></span>
                   <button onClick={() => quitarAnimal(id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", display: "flex" }}>
                     <IconX size={12} />
                   </button>

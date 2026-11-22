@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
   const sectorMap = new Map<string, number>();
   for (const a of aplicaciones) {
     const sector = a.evento?.sector ?? "granja";
-    sectorMap.set(sector, (sectorMap.get(sector) ?? 0) + a.dosisAplicadas);
+    sectorMap.set(sector, (sectorMap.get(sector) ?? 0) + Number(a.dosisAplicadas));
   }
   const totalDosisAplicadas = Array.from(sectorMap.values()).reduce((s, v) => s + v, 0);
   const distribucionSector = Array.from(sectorMap.entries())
@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
   const vacunaMap = new Map<string, { nombre: string; codigo: string | null; dosis: number }>();
   for (const a of aplicaciones) {
     const cur = vacunaMap.get(a.vacunaId) ?? { nombre: a.vacuna.nombre, codigo: a.vacuna.codigo, dosis: 0 };
-    cur.dosis += a.dosisAplicadas;
+    cur.dosis += Number(a.dosisAplicadas);
     vacunaMap.set(a.vacunaId, cur);
   }
   const rankingVacunas = Array.from(vacunaMap.entries())

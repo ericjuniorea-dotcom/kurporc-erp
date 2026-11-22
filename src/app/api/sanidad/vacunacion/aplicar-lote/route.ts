@@ -82,9 +82,11 @@ export async function POST(req: NextRequest) {
 
   // Regla 5: stock suficiente (suma de dosis necesarias de todos los eventos,
   // o dosisPorAnimal si el operador editó la dosis precargada del protocolo)
-  const dosisTotales = dosisPorAnimal
-    ? dosisPorAnimal * eventos.length
-    : eventos.reduce((sum, e) => sum + e.dosisNecesarias, 0);
+  // Cada evento lleva «dosis por animal × animales» (una camada son sus lechones; una cerda, 1).
+  // Sin dosis indicada se usa la del producto (ml por dosis) o 1 dosis por animal.
+  const porAnimal = dosisPorAnimal && dosisPorAnimal > 0 ? dosisPorAnimal : (vacuna.unidadMedida === "ML" && Number(vacuna.dosisMl) > 0 ? Number(vacuna.dosisMl) : 1);
+  const cantidadEvento = (e: { dosisNecesarias: number }) => Math.round(porAnimal * Math.max(1, e.dosisNecesarias) * 1000) / 1000;
+  const dosisTotales = Math.round(eventos.reduce((sum, e) => sum + cantidadEvento(e), 0) * 1000) / 1000;
   if (Number(lote.cantidadActual) < dosisTotales) {
     return NextResponse.json({ error: `Stock insuficiente en el lote ${numeroLote}. Disponible: ${Number(lote.cantidadActual)} dosis, se necesitan ${dosisTotales}.` }, { status: 422 });
   }
@@ -136,7 +138,7 @@ export async function POST(req: NextRequest) {
         eventoId:       evento.id,
         loteVacunaId:   lote.id,
         vacunaId:       vacuna.id,
-        dosisAplicadas: dosisPorAnimal ?? evento.dosisNecesarias,
+        dosisAplicadas: cantidadEvento(evento),
         fechaAplicacion: now,
         responsable,
         observaciones,

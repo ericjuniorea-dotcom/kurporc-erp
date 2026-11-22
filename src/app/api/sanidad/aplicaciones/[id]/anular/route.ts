@@ -27,7 +27,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   if (a.anuladaEn) return NextResponse.json({ error: "Esa aplicación ya estaba anulada." }, { status: 409 });
 
   await conActor(session.user.id, async tx => {
-    if (a.loteVacunaId && a.dosisAplicadas > 0) {
+    if (a.loteVacunaId && Number(a.dosisAplicadas) > 0) {
       await tx.loteInventario.update({ where: { id: a.loteVacunaId }, data: { cantidadActual: { increment: a.dosisAplicadas } } });
       await tx.movimientoInventario.create({ data: { tenantId, productoId: a.vacunaId, loteId: a.loteVacunaId, tipo: "ENTRADA", cantidad: a.dosisAplicadas,
         origen: "VACUNACION", referenciaId: a.eventoId, usuarioId: session.user.id, nota: `Aplicación anulada: ${motivo}` } });
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     if (otras === 0) await tx.eventoVacunacion.update({ where: { id: a.eventoId }, data: { estado: a.evento.fecha < new Date() ? "retrasado" : "pendiente" } });
   });
   await registrarAuditoria("MOVIMIENTO_ANULADO", "aplicacion_vacuna", a.id,
-    { motivo, vacuna: a.vacuna.nombre, a: a.evento.targetLabel, dosis: a.dosisAplicadas, fecha: a.fechaAplicacion.toISOString().slice(0, 10) },
+    { motivo, vacuna: a.vacuna.nombre, a: a.evento.targetLabel, dosis: Number(a.dosisAplicadas), fecha: a.fechaAplicacion.toISOString().slice(0, 10) },
     { actorId: session.user.id, organizacionId: tenantId });
   invalidateInventario(tenantId);
   return NextResponse.json({ ok: true });

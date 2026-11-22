@@ -52,11 +52,25 @@ const CABECERA_CSP = process.env.CSP_MODO === "enforce"
   ? "Content-Security-Policy"
   : "Content-Security-Policy-Report-Only";
 
-/** Dueño (sub de Supabase) de la marca «Ver ERP»; null si no se puede leer. */
-function duenioDeMarca(valor: string): string | null {
+/**
+ * Dueño (sub de Supabase) de la marca «Ver ERP», solo si la marca es auténtica (firma HMAC, la misma que valida el
+ * servidor en src/lib/admin/modo-plataforma.ts) y no venció. Una marca vieja, vencida o rota da null y se borra:
+ * así nunca deja a alguien trabado en «solo lectura» sin estar en ese modo.
+ */
+async function duenioDeMarca(valor: string): Promise<string | null> {
   try {
-    const cuerpo = valor.split(".")[0].replace(/-/g, "+").replace(/_/g, "/");
-    const json = JSON.parse(atob(cuerpo + "===".slice((cuerpo.length + 3) % 4)));
+    const [cuerpo, firma] = valor.split(".");
+    if (!cuerpo || !firma) return null;
+    const secreto = process.env.CAMPOS_HMAC_KEY ?? (ES_DEV ? "desarrollo" : null);
+    if (!secreto) return null;
+    const clave = await crypto.subtle.importKey("raw", new TextEncoder().encode(`modo-plataforma:${secreto}`), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const bytes = new Uint8Array(await crypto.subtle.sign("HMAC", clave, new TextEncoder().encode(cuerpo)));
+    let bin = ""; for (const b of bytes) bin += String.fromCharCode(b);
+    const esperada = btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    if (esperada !== firma) return null;
+    const b64 = cuerpo.replace(/-/g, "+").replace(/_/g, "/");
+    const json = JSON.parse(atob(b64 + "=".repeat((4 - (b64.length % 4)) % 4)));
+    if (typeof json.hasta !== "number" || json.hasta <= Date.now()) return null;
     return typeof json.sub === "string" ? json.sub : null;
   } catch { return null; }
 }
@@ -152,7 +166,7 @@ export async function middleware(req: NextRequest) {
   // La marca solo vale para el administrador que la creó: si la sesión es de otra persona (o es una marca vieja
   // sin dueño), se ignora y se borra. La validación completa (firma, nivel) la hace el servidor.
   const marca = req.cookies.get("kp_plataforma")?.value;
-  if (marca && duenioDeMarca(marca) !== data?.claims?.sub) {
+  if (marca && (await duenioDeMarca(marca)) !== data?.claims?.sub) {
     req.cookies.delete("kp_plataforma");
     res.cookies.set("kp_plataforma", "", { path: "/", maxAge: 0 });
   }

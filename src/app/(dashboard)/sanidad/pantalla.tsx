@@ -157,7 +157,8 @@ function EventoRow({ evento, lotesDisp, onApplied }: {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     loteVacunaId: "",
-    dosisAplicadas: evento.dosisNecesarias,
+    // Cantidad a descontar del lote: ml por dosis × animales del evento (una camada = sus lechones)
+    dosisAplicadas: evento.vacuna.dosisMl > 0 ? Math.round(evento.vacuna.dosisMl * Math.max(1, evento.dosisNecesarias) * 1000) / 1000 : Math.max(1, evento.dosisNecesarias),
     responsable: "",
     fechaAplicacion: todayStr(),
     observaciones: "",
@@ -259,10 +260,15 @@ function EventoRow({ evento, lotesDisp, onApplied }: {
               )}
             </div>
             <div>
-              <label className="kp-label">Dosis aplicadas *</label>
-              <InputNumero min="1" className="kp-input"
+              <label className="kp-label">A suministrar (total) *</label>
+              <InputNumero className="kp-input" inputMode="decimal"
                 value={form.dosisAplicadas}
-                onChange={e => setForm(f => ({ ...f, dosisAplicadas: parseInt(e.target.value) || 1 }))} />
+                onChange={e => setForm(f => ({ ...f, dosisAplicadas: parseFloat(e.target.value) || 0 }))} />
+              {evento.vacuna.dosisMl > 0 && (
+                <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 3 }}>
+                  Teórico: {evento.vacuna.dosisMl.toLocaleString("es-PY")} × {Math.max(1, evento.dosisNecesarias)} animal{evento.dosisNecesarias === 1 ? "" : "es"} = {(evento.vacuna.dosisMl * Math.max(1, evento.dosisNecesarias)).toLocaleString("es-PY", { maximumFractionDigits: 2 })}
+                </div>
+              )}
             </div>
           </div>
           <div style={{ marginBottom: 12 }}>
