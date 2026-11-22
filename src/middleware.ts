@@ -165,12 +165,15 @@ export async function middleware(req: NextRequest) {
   // Ingresar, registrarse y recuperar la clave siempre se permiten: la cookie puede quedar de una sesión anterior.
   // La marca solo vale para el administrador que la creó: si la sesión es de otra persona (o es una marca vieja
   // sin dueño), se ignora y se borra. La validación completa (firma, nivel) la hace el servidor.
+  // Solo bloquea una marca auténtica, vigente y de esta misma persona. Cualquier otra (vacía, vieja, de otra
+  // cuenta) se borra y no bloquea nada.
   const marca = req.cookies.get("kp_plataforma")?.value;
-  if (marca && (await duenioDeMarca(marca)) !== data?.claims?.sub) {
+  const marcaValida = !!marca && !!data?.claims?.sub && (await duenioDeMarca(marca)) === data.claims.sub;
+  if (req.cookies.has("kp_plataforma") && !marcaValida) {
     req.cookies.delete("kp_plataforma");
     res.cookies.set("kp_plataforma", "", { path: "/", maxAge: 0 });
   }
-  if (req.cookies.has("kp_plataforma") && !["GET", "HEAD", "OPTIONS"].includes(req.method)
+  if (marcaValida && !["GET", "HEAD", "OPTIONS"].includes(req.method)
     && !pathname.startsWith("/admin") && !pathname.startsWith("/auth/")
     && !["/login", "/registro", "/recuperar"].some(p => pathname === p || pathname.startsWith(`${p}/`))) {
     return NextResponse.json({ error: "Modo plataforma: solo lectura. Salí del modo para hacer cambios." }, { status: 403 });
