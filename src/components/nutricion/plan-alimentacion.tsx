@@ -3,7 +3,8 @@
 // (vacío = a gusto). Se pueden agregar balanceados nuevos a cualquier módulo.
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { IconLoader2, IconPlus, IconTrash } from "@tabler/icons-react";
-import { cargarPlanSugerido, guardarTipoBalanceado, planAlimentacion, quitarTipoBalanceado } from "@/app/acciones/nutricion";
+import { cargarPlanSugerido, guardarTipoBalanceado, quitarTipoBalanceado, type planAlimentacion } from "@/app/acciones/nutricion";
+import { leerPlan } from "@/lib/nutricion/cliente";
 import { mensajeError } from "@/lib/version-vieja";
 import { MODULOS_NUTRICION, ORDEN_MODULOS, type ModuloNutricion } from "@/lib/nutricion/plan";
 
@@ -15,7 +16,7 @@ export function PlanAlimentacion({ puedeConfigurar }: { puedeConfigurar: boolean
   const [msg, setMsg] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
   const cargar = useCallback(() => {
-    planAlimentacion().then(setPlan).catch((e: unknown) => setMsg(mensajeError(e, "No se pudo cargar el plan. Probá de nuevo.", { recargar: true }) || null));
+    leerPlan().then(setPlan).catch((e: unknown) => setMsg(e instanceof Error && e.message ? e.message : "No se pudo cargar el plan."));
   }, []);
   useEffect(() => { cargar(); }, [cargar]);
   const correr = (fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>) => {

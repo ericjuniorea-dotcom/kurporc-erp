@@ -101,6 +101,8 @@ export async function GET() {
       totalAnimales: evs.length,
       disponible: disponibles.get(vacunaId) ?? 0,
       unidad: evs[0].vacuna.unidadMedida,
+      // ml por dosis (Configuración / Inventario del producto): para mostrar cuántas dosis alcanzan
+      dosisMl: Number(evs[0].vacuna.dosisMl ?? 0),
       // Lo que hace falta para las pendientes: dosis por animal × animales de cada evento
       necesario: evs.reduce((s, e) => s + Number(evs[0].vacuna.dosisMl ?? 0) * (e.dosisNecesarias || 1), 0),
       retrasadas: evs.filter(e => e.estado === "retrasado").length,

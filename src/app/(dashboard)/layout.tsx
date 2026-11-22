@@ -12,6 +12,7 @@ import { LatidoUso } from "@/components/layout/latido-uso";
 import { CierreInactividad } from "@/components/layout/cierre-inactividad";
 import { PreferenciasProvider } from "@/components/indicadores/ayuda";
 import { VersionNueva } from "@/components/layout/version-nueva";
+import { DiagnosticoAcciones } from "@/components/layout/diagnostico-acciones";
 
 import { esCuentaDePlataforma } from "@/lib/admin/cuenta-plataforma";
 export const dynamic = "force-dynamic";
@@ -91,6 +92,7 @@ export default async function DashboardLayout({
       {!plataforma && <LatidoUso />}
       <CierreInactividad />
       <VersionNueva />
+      <DiagnosticoAcciones />
     </PreferenciasProvider>
     </SesionProvider>
   );

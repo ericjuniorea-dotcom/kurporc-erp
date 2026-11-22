@@ -6,7 +6,8 @@
 // desde el parto y, al llegar, avisa que hay que pasar al siguiente (si muere un lechón, la meta baja sola).
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { IconArrowRight, IconCheck, IconChevronDown, IconCircleCheck, IconChevronUp, IconLoader2, IconX } from "@tabler/icons-react";
-import { anularConsumo, nutricionDia, registrarConsumo } from "@/app/acciones/nutricion";
+import { anularConsumo, registrarConsumo, type nutricionDia } from "@/app/acciones/nutricion";
+import { leerDia } from "@/lib/nutricion/cliente";
 import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 import type { ModuloNutricion } from "@/lib/nutricion/plan";
 import { mensajeError } from "@/lib/version-vieja";
@@ -29,8 +30,7 @@ export function CargaDiaNutricion() {
   const cargar = useCallback(() => {
     setError(null);
     // Si falla, reintenta una vez; si es porque la pantalla quedó con una versión vieja, recarga sola
-    nutricionDia(fecha).then(setDatos).catch(() => new Promise(r => setTimeout(r, 800)).then(() => nutricionDia(fecha)).then(setDatos)
-      .catch((e: unknown) => { const m = mensajeError(e, "No se pudo cargar.", { recargar: true }); if (m) setError(m); }));
+    leerDia(fecha).then(setDatos).catch((e: unknown) => setError(e instanceof Error && e.message ? e.message : "No se pudo cargar."));
   }, [fecha]);
   useEffect(() => { cargar(); }, [cargar]);
 
