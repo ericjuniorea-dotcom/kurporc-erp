@@ -3,13 +3,13 @@ import { useEffect, useState } from "react";
 import { IconSun, IconMoon } from "@tabler/icons-react";
 
 export function ThemeToggle() {
-  // Siempre inicia en dark — la preferencia se persiste por sesión vía sessionStorage
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  // Siempre inicia en claro (fondo blanco); el botón pasa a oscuro. La preferencia dura la sesión (sessionStorage)
+  const [theme, setTheme] = useState<"dark" | "light">("light");
 
   useEffect(() => {
-    // sessionStorage se limpia al cerrar la pestaña → vuelve a dark por defecto
+    // sessionStorage se limpia al cerrar la pestaña → vuelve a claro por defecto
     const saved = sessionStorage.getItem("kurporc-theme") as "dark" | "light" | null;
-    const resolved: "dark" | "light" = saved === "light" ? "light" : "dark";
+    const resolved: "dark" | "light" = saved === "dark" ? "dark" : "light";
     setTheme(resolved);
     document.documentElement.setAttribute("data-theme", resolved);
   }, []);

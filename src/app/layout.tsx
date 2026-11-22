@@ -23,10 +23,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {/* eslint-disable-next-line no-restricted-syntax -- script fijo del tema (sin datos del usuario), lleva el nonce de la CSP */}
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: `
           try {
-            var t = sessionStorage.getItem('kurporc-theme') || 'dark';
+            var t = sessionStorage.getItem('kurporc-theme') === 'dark' ? 'dark' : 'light';
             document.documentElement.setAttribute('data-theme', t);
           } catch(e) {
-            document.documentElement.setAttribute('data-theme', 'dark');
+            document.documentElement.setAttribute('data-theme', 'light');
           }
         ` }} />
       </head>
