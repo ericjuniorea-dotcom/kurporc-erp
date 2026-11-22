@@ -3,7 +3,7 @@
 // Se actualiza al abrir, cada 90 segundos con la pestaña visible y al volver a la app.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { IconBell, IconTruckDelivery, IconPackageImport } from "@tabler/icons-react";
+import { IconBell, IconTruckDelivery, IconPackageImport, IconBabyCarriage, IconHeartPlus } from "@tabler/icons-react";
 import { misAvisos, type Aviso } from "@/app/acciones/avisos";
 
 type Datos = { total: number; avisos: Aviso[] };
@@ -70,12 +70,12 @@ export function CampanaAvisos({ className }: { className?: string }) {
           ) : (
             <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
               {datos.avisos.map(a => {
-                const Icono = a.tipo === "enviar" ? IconTruckDelivery : IconPackageImport;
+                const Icono = a.tipo === "enviar" ? IconTruckDelivery : a.tipo === "destete" ? IconBabyCarriage : a.tipo === "parto" ? IconHeartPlus : IconPackageImport;
                 return (
                   <li key={a.id} style={{ borderTop: "0.5px solid var(--border-default)" }}>
                     <button type="button" onClick={() => { setAbierta(false); router.push(a.href); }} className="kp-fila-link"
                       style={{ width: "100%", textAlign: "left", background: "none", border: "none", cursor: "pointer", padding: "10px 14px", display: "flex", gap: 10, alignItems: "flex-start", color: "inherit" }}>
-                      <Icono size={17} aria-hidden style={{ color: a.tipo === "enviar" ? "var(--warning)" : "var(--danger)", flexShrink: 0, marginTop: 1 }} />
+                      <Icono size={17} aria-hidden style={{ color: a.tipo === "enviar" || a.tipo === "parto" ? "var(--warning)" : "var(--danger)", flexShrink: 0, marginTop: 1 }} />
                       <span style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
                         <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>{a.titulo}</span>
                         <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{a.detalle}</span>

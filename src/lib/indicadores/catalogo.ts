@@ -212,6 +212,8 @@ export const METAS_CATALOGO: { modulo: string; kpiKey: string; label: string; de
     .filter(([, i]) => i.meta)
     .map(([clave, i]) => ({ modulo: i.meta!.modulo, kpiKey: i.meta!.kpiKey, label: `${i.nombre}${i.unidad ? ` (${i.unidad})` : ""}${i.sentido === "menor" ? " · máximo" : " · mínimo"}`, defecto: i.meta!.defecto, clave })),
   // Parámetros de trabajo (no son indicadores)
+  { modulo: "MATERNIDAD", kpiKey: "dias_aviso_destete", label: "Días antes del destete para avisar (Acciones para hoy y campanita)", defecto: 2 },
+  { modulo: "MATERNIDAD", kpiKey: "dias_aviso_parto", label: "Días antes del parto probable para avisar", defecto: 3 },
   { modulo: "GESTACION", kpiKey: "dias_traslado_maternidad", label: "Días antes del parto para pasar la reproductora a Maternidad (orden de trabajo automática)", defecto: 5 },
 ];
 

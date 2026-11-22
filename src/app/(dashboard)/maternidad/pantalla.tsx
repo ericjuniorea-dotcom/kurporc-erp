@@ -9,6 +9,7 @@ import { Topbar }                    from "@/components/layout/topbar";
 import { IconHeartPlus }             from "@tabler/icons-react";
 import dynamic from "next/dynamic";
 import { PanelTransferencias } from "@/components/transferencias/panel";
+import { AccionesHoyMaternidad } from "@/components/maternidad/acciones-hoy";
 
 // Se bajan recién cuando se abren (la pantalla inicial queda más liviana)
 function Cargando() { return <div className="kp-esqueleto" style={{ height: 220, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" />; }
@@ -26,7 +27,7 @@ export default function MaternidadPage() {
   const router = useRouter();
   const [tab,        setTab]        = useState("vision");
   // Abre directo en una pestaña si viene en la dirección (p. ej. «Analizar» desde el Dashboard)
-  useEffect(() => { const t = new URLSearchParams(window.location.search).get("tab"); if (t === "analisis") setTab(t); }, []);
+  useEffect(() => { const t = new URLSearchParams(window.location.search).get("tab"); if (t === "analisis" || t === "ingreso") setTab(t); }, []);
   const [ingresoTab, setIngresoTab] = useState<"partos" | "datos">("partos");
 
   useEffect(() => {
@@ -70,6 +71,7 @@ export default function MaternidadPage() {
         <div style={{ marginBottom: 14 }}><PanelTransferencias pantalla="MATERNIDAD" /></div>
         {tab === "vision" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <AccionesHoyMaternidad />
             <VisionGeneralMaternidad />
             <TareasModuloPanel sector="maternidad" accentColor="var(--accent)" />
           </div>
