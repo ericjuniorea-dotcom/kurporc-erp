@@ -13,7 +13,10 @@ export const CATEGORIAS_TAREA = {
   OTRA:         { etiqueta: "Otras",              color: "#9A9A9A" },
 } as const;
 
-/** En las Órdenes de trabajo de cada módulo no se muestran (cargan la pantalla y tapan lo importante); siguen en Tareas. */
+/**
+ * Por ahora no se muestran en ninguna Orden de trabajo (módulos ni pantalla Tareas): cargan la pantalla y tapan lo
+ * importante. La alimentación se registra en Sanidad y Nutrición. Para volver a mostrarlas, sacalas de esta lista.
+ */
 export const OCULTAS_EN_MODULO: CategoriaTarea[] = ["ALIMENTACION", "INSTALACIONES"];
 
 export type CategoriaTarea = keyof typeof CATEGORIAS_TAREA;

@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { generarTareasDiarias } from "@/lib/tasks/generate";
 import { getPermisos, puede } from "@/lib/permisos/servidor";
+import { categoriaTarea, OCULTAS_EN_MODULO } from "@/lib/tareas/categorias";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
@@ -35,7 +36,8 @@ export async function GET(req: NextRequest) {
     take: 100,
   });
 
-  const result = tasks.map(t => {
+  // Alimentación e Instalaciones no se muestran por ahora (ver OCULTAS_EN_MODULO)
+  const result = tasks.filter(t => !OCULTAS_EN_MODULO.includes(categoriaTarea(t))).map(t => {
     let prioridad = t.prioridad;
     if (!t.fechaCompletada) {
       const diff = Math.floor((t.fechaVencimiento.getTime() - today.getTime()) / 86400000);
