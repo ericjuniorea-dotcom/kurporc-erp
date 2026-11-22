@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { IconCheck, IconLoader2, IconTruckDelivery, IconX } from "@tabler/icons-react";
 import { aceptarRecepcion, anularRecepcion, rechazarRecepcion, recepciones } from "@/app/acciones/inventario";
+import { InputNumero } from "@/components/ui/input-numero";
 
 type Datos = Awaited<ReturnType<typeof recepciones>>;
 type Fila = Datos["filas"][number];
@@ -102,7 +103,7 @@ function Pendiente({ f, puedeRecibir, esAdmin, onListo }: { f: Fila; puedeRecibi
           style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
           <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 11.5, color: "var(--text-secondary)" }}>
             Cantidad recibida ({u})
-            <input className="kp-input" inputMode="decimal" value={cant} onChange={e => setCant(e.target.value)} style={{ height: 32, width: 140 }} />
+            <InputNumero className="kp-input" inputMode="decimal" value={cant} onChange={e => setCant(e.target.value)} style={{ height: 32, width: 140 }} />
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 11.5, color: "var(--text-secondary)" }}>
             N° de lote

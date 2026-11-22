@@ -5,6 +5,7 @@ import { IconLoader2, IconPlus, IconX } from "@tabler/icons-react";
 import { Aviso } from "@/components/auth/marco-auth";
 import { crearPrestamo } from "@/app/acciones/finanzas";
 import { gs } from "@/lib/finanzas/calculos";
+import { InputNumero } from "@/components/ui/input-numero";
 
 const tarjeta: React.CSSProperties = { background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-lg)" };
 function Campo({ label, children, ancho }: { label: string; children: React.ReactNode; ancho?: number }) {
@@ -41,16 +42,16 @@ export function NuevoPrestamo({ cuentas, hoy }: { cuentas: { id: string; nombre:
         <Campo label="Concepto" ancho={200}><input className="kp-input" value={f.concepto} onChange={e => set("concepto", e.target.value)} required maxLength={160} placeholder="Ej: Préstamo para la paridera" /></Campo>
       </div>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <Campo label="Monto recibido (₲)" ancho={150}><input className="kp-input" inputMode="numeric" value={f.montoRecibidoGs} onChange={e => set("montoRecibidoGs", solo(e.target.value))} required /></Campo>
-        <Campo label="Cuota mensual (₲)" ancho={150}><input className="kp-input" inputMode="numeric" value={f.cuotaMensualGs} onChange={e => set("cuotaMensualGs", solo(e.target.value))} required /></Campo>
-        <Campo label="N° de cuotas" ancho={100}><input className="kp-input" inputMode="numeric" value={f.numeroCuotas} onChange={e => set("numeroCuotas", solo(e.target.value))} required /></Campo>
+        <Campo label="Monto recibido (₲)" ancho={150}><InputNumero className="kp-input" inputMode="numeric" value={f.montoRecibidoGs} onChange={e => set("montoRecibidoGs", solo(e.target.value))} required /></Campo>
+        <Campo label="Cuota mensual (₲)" ancho={150}><InputNumero className="kp-input" inputMode="numeric" value={f.cuotaMensualGs} onChange={e => set("cuotaMensualGs", solo(e.target.value))} required /></Campo>
+        <Campo label="N° de cuotas" ancho={100}><InputNumero className="kp-input" inputMode="numeric" value={f.numeroCuotas} onChange={e => set("numeroCuotas", solo(e.target.value))} required /></Campo>
         <Campo label="Primer vencimiento" ancho={150}><input type="date" className="kp-input" value={f.primerVencimiento} onChange={e => set("primerVencimiento", e.target.value)} required /></Campo>
       </div>
       {total > 0 && <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>Total a pagar {gs(total)}{f.montoRecibidoGs ? ` · costo financiero ${gs(total - Number(f.montoRecibidoGs))}` : ""}</div>}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <Campo label="¿Débito automático?" ancho={150}><select className="kp-input" value={f.debitoAutomatico ? "1" : "0"} onChange={e => set("debitoAutomatico", e.target.value === "1")}><option value="0">No</option><option value="1">Sí</option></select></Campo>
         <Campo label="Cuenta" ancho={170}><select className="kp-input" value={f.cuentaDebitoId} onChange={e => set("cuentaDebitoId", e.target.value)}><option value="">No aplica</option>{cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}</select></Campo>
-        <Campo label="Cuotas ya pagadas" ancho={130}><input className="kp-input" inputMode="numeric" value={f.cuotasYaPagadas} onChange={e => set("cuotasYaPagadas", solo(e.target.value))} /></Campo>
+        <Campo label="Cuotas ya pagadas" ancho={130}><InputNumero className="kp-input" inputMode="numeric" value={f.cuotasYaPagadas} onChange={e => set("cuotasYaPagadas", solo(e.target.value))} /></Campo>
       </div>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
         <Campo label="¿Cargar el ingreso del préstamo en el libro?" ancho={260}><select className="kp-input" value={f.registrarIngreso ? "1" : "0"} onChange={e => set("registrarIngreso", e.target.value === "1")}><option value="1">Sí (si todavía no lo cargaste)</option><option value="0">No, ya está cargado</option></select></Campo>

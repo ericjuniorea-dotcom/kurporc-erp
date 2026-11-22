@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSession } from "@/lib/auth/sesion-cliente";
+import { InputNumero } from "@/components/ui/input-numero";
 import {
   IconChevronDown, IconChevronUp, IconLoader2, IconAlertTriangle,
   IconCircleCheck, IconX, IconTrendingUp, IconTrendingDown, IconMinus,
@@ -382,7 +383,7 @@ function RegistrarAplicacionModal({
             </div>
             <div>
               <label className="kp-label">Dosis por animal (ml)</label>
-              <input className="kp-input" type="number" step="0.1" value={dosis} onChange={e => setDosis(e.target.value)} />
+              <InputNumero className="kp-input" step="0.1" value={dosis} onChange={e => setDosis(e.target.value)} />
             </div>
           </div>
 

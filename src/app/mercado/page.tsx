@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { MarcoMercado, TarjetaPublicacion, tarjetaEstilo } from "@/components/mercado/marco";
 import { buscarPublicaciones, categoriasMercado, POR_PAGINA, type Orden } from "@/lib/mercado/consultas";
 import { DEPARTAMENTOS } from "@/lib/validaciones/paraguay";
+import { InputNumero } from "@/components/ui/input-numero";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -71,7 +72,7 @@ export default async function Mercado({ searchParams }: { searchParams: Promise<
           </select>
         </label>
         <label style={etiqueta}>Precio máximo (Gs)
-          <input name="max" type="number" min={0} step={1000} className="kp-input" defaultValue={sp.max ?? ""} style={{ width: 150 }} />
+          <InputNumero name="max" min={0} step={1000} className="kp-input" defaultValue={sp.max ?? ""} style={{ width: 150 }} />
         </label>
         <label style={etiqueta}>Ordenar
           <select name="orden" className="kp-input" defaultValue={orden}>

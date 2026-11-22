@@ -7,6 +7,7 @@ import { Aviso } from "@/components/auth/marco-auth";
 import { cambiarEstadoEvaluacion, crearEvaluacion } from "@/app/acciones/finanzas";
 import { gs } from "@/lib/finanzas/calculos";
 import { cuotaFrancesa } from "@/lib/finanzas/planificacion";
+import { InputNumero } from "@/components/ui/input-numero";
 
 type Ev = { id: string; fecha: string; concepto: string; categoria: string; montoGs: string; formaPago: string; financiamientoGs: string; plazo: number; tasa: number | null; cuota: number; contado: number; margen: number; margenPlanilla: number; estado: string };
 const tarjeta: React.CSSProperties = { background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-lg)" };
@@ -87,13 +88,13 @@ function Formulario(p: Parameters<typeof PanelEvaluaciones>[0] & { onCerrar: () 
         <Campo label="Categoría" ancho={170}><select className="kp-input" value={f.categoriaId} onChange={e => set("categoriaId", e.target.value)} required><option value="">Elegí…</option>{p.categorias.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}</select></Campo>
       </div>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <Campo label="Cantidad" ancho={90}><input className="kp-input" inputMode="decimal" value={f.cantidad} onChange={e => set("cantidad", e.target.value)} required /></Campo>
-        <Campo label="Monto total (₲)" ancho={150}><input className="kp-input" inputMode="numeric" value={f.montoTotalGs} onChange={e => set("montoTotalGs", e.target.value.replace(/\D/g, ""))} required /></Campo>
+        <Campo label="Cantidad" ancho={90}><InputNumero className="kp-input" inputMode="decimal" value={f.cantidad} onChange={e => set("cantidad", e.target.value)} required /></Campo>
+        <Campo label="Monto total (₲)" ancho={150}><InputNumero className="kp-input" inputMode="numeric" value={f.montoTotalGs} onChange={e => set("montoTotalGs", e.target.value.replace(/\D/g, ""))} required /></Campo>
         <Campo label="Forma de pago" ancho={140}><select className="kp-input" value={f.formaPago} onChange={e => set("formaPago", e.target.value)}><option value="CONTADO">Contado</option><option value="FINANCIADO">Financiado</option><option value="MIXTO">Mixto</option></select></Campo>
         {f.formaPago !== "CONTADO" && <>
-          <Campo label="Financiado (₲)" ancho={140}><input className="kp-input" inputMode="numeric" value={f.financiamientoGs} onChange={e => set("financiamientoGs", e.target.value.replace(/\D/g, ""))} /></Campo>
-          <Campo label="Plazo (meses)" ancho={100}><input className="kp-input" inputMode="numeric" value={f.plazoMeses} onChange={e => set("plazoMeses", e.target.value.replace(/\D/g, ""))} /></Campo>
-          <Campo label="Tasa anual % (opcional)" ancho={130}><input className="kp-input" inputMode="decimal" value={f.tasaAnual} onChange={e => set("tasaAnual", e.target.value)} /></Campo>
+          <Campo label="Financiado (₲)" ancho={140}><InputNumero className="kp-input" inputMode="numeric" value={f.financiamientoGs} onChange={e => set("financiamientoGs", e.target.value.replace(/\D/g, ""))} /></Campo>
+          <Campo label="Plazo (meses)" ancho={100}><InputNumero className="kp-input" inputMode="numeric" value={f.plazoMeses} onChange={e => set("plazoMeses", e.target.value.replace(/\D/g, ""))} /></Campo>
+          <Campo label="Tasa anual % (opcional)" ancho={130}><InputNumero className="kp-input" inputMode="decimal" value={f.tasaAnual} onChange={e => set("tasaAnual", e.target.value)} /></Campo>
         </>}
       </div>
       {f.montoTotalGs && (

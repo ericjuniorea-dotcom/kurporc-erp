@@ -5,6 +5,7 @@ import { IconChartLine, IconLoader2 } from "@tabler/icons-react";
 import { Topbar } from "@/components/layout/topbar";
 import { Aviso } from "@/components/auth/marco-auth";
 import { actualizarLote, registrarTratamientoLote } from "@/app/acciones/engorde";
+import { InputNumero } from "@/components/ui/input-numero";
 
 const tarjeta: React.CSSProperties = { background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-lg)", padding: 16 };
 function Campo({ label, children, ancho }: { label: string; children: React.ReactNode; ancho?: number }) {
@@ -33,16 +34,16 @@ export function FormLote({ id, inicial, curvas }: { id: string; inicial: DatosLo
         {f.modalidad === "INTEGRADO" && <>
           <Campo label="Integrador" ancho={180}><input className="kp-input" value={f.integrador} onChange={e => set("integrador", e.target.value)} maxLength={120} /></Campo>
           <Campo label="Cómo paga" ancho={170}><select className="kp-input" value={f.pagoIntegracion} onChange={e => set("pagoIntegracion", e.target.value)}><option value="">Elegí…</option><option value="POR_KG_PRODUCIDO">Por kg producido</option><option value="POR_ANIMAL_DIA">Por animal-día</option><option value="POR_CABEZA">Por cabeza vendida</option></select></Campo>
-          <Campo label="Tarifa (₲)" ancho={120}><input className="kp-input" inputMode="numeric" value={f.tarifaIntegracionGs} onChange={e => set("tarifaIntegracionGs", solo(e.target.value))} /></Campo>
+          <Campo label="Tarifa (₲)" ancho={120}><InputNumero className="kp-input" inputMode="numeric" value={f.tarifaIntegracionGs} onChange={e => set("tarifaIntegracionGs", solo(e.target.value))} /></Campo>
         </>}
         <Campo label="El alimento lo pone" ancho={150}><select className="kp-input" value={f.alimentoLoProvee} onChange={e => set("alimentoLoProvee", e.target.value)}><option value="PROPIO">La granja</option><option value="INTEGRADOR">El integrador</option></select></Campo>
       </div>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <Campo label="Sexo" ancho={150}><select className="kp-input" value={f.sexo} onChange={e => set("sexo", e.target.value)}><option value="">—</option><option value="MACHOS_CASTRADOS">Machos castrados</option><option value="HEMBRAS">Hembras</option><option value="MIXTO">Mixto</option></select></Campo>
         <Campo label="Genética" ancho={140}><input className="kp-input" value={f.genetica} onChange={e => set("genetica", e.target.value)} maxLength={80} /></Campo>
-        <Campo label="Peso objetivo (kg)" ancho={120}><input className="kp-input" inputMode="decimal" value={f.targetWeightKg} onChange={e => set("targetWeightKg", e.target.value)} /></Campo>
+        <Campo label="Peso objetivo (kg)" ancho={120}><InputNumero className="kp-input" inputMode="decimal" value={f.targetWeightKg} onChange={e => set("targetWeightKg", e.target.value)} /></Campo>
         <Campo label="Curva de crecimiento" ancho={170}><select className="kp-input" value={f.curvaId} onChange={e => set("curvaId", e.target.value)}><option value="">La predeterminada</option>{curvas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}</select></Campo>
-        <Campo label="Lo pagado por los animales (₲)" ancho={190}><input className="kp-input" inputMode="numeric" value={f.costoIngresoGs} onChange={e => set("costoIngresoGs", solo(e.target.value))} placeholder="vacío = precio de referencia" /></Campo>
+        <Campo label="Lo pagado por los animales (₲)" ancho={190}><InputNumero className="kp-input" inputMode="numeric" value={f.costoIngresoGs} onChange={e => set("costoIngresoGs", solo(e.target.value))} placeholder="vacío = precio de referencia" /></Campo>
       </div>
       {msg && <Aviso tipo={msg.tipo}>{msg.texto}</Aviso>}
       <div style={{ display: "flex", justifyContent: "flex-end" }}><button type="submit" className="btn btn-primary" disabled={pendiente}>{pendiente && <IconLoader2 size={14} className="animate-spin" aria-hidden />} Guardar</button></div>
@@ -62,9 +63,9 @@ export function FormTratamiento({ loteId, medicamentos, presentes }: { loteId: s
       style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end", marginTop: 12, paddingTop: 12, borderTop: "0.5px solid var(--border-default)" }}>
       <Campo label="Medicamento" ancho={180}><select className="kp-input" value={f.medicineId} onChange={e => setF(x => ({ ...x, medicineId: e.target.value }))} required><option value="">Elegí…</option>{medicamentos.map(m => <option key={m.id} value={m.id}>{m.name} ({m.withdrawalDays} días de carencia)</option>)}</select></Campo>
       <Campo label="Fecha" ancho={130}><input type="date" className="kp-input" value={f.fecha} onChange={e => setF(x => ({ ...x, fecha: e.target.value }))} required /></Campo>
-      <Campo label="Animales" ancho={90}><input className="kp-input" inputMode="numeric" value={f.animales} onChange={e => setF(x => ({ ...x, animales: e.target.value.replace(/\D/g, "") }))} required /></Campo>
-      <Campo label="ml aplicados" ancho={100}><input className="kp-input" inputMode="decimal" value={f.mlAplicados} onChange={e => setF(x => ({ ...x, mlAplicados: e.target.value }))} /></Campo>
-      <Campo label="Costo (₲)" ancho={110}><input className="kp-input" inputMode="numeric" value={f.costoGs} onChange={e => setF(x => ({ ...x, costoGs: e.target.value.replace(/\D/g, "") }))} /></Campo>
+      <Campo label="Animales" ancho={90}><InputNumero className="kp-input" inputMode="numeric" value={f.animales} onChange={e => setF(x => ({ ...x, animales: e.target.value.replace(/\D/g, "") }))} required /></Campo>
+      <Campo label="ml aplicados" ancho={100}><InputNumero className="kp-input" inputMode="decimal" value={f.mlAplicados} onChange={e => setF(x => ({ ...x, mlAplicados: e.target.value }))} /></Campo>
+      <Campo label="Costo (₲)" ancho={110}><InputNumero className="kp-input" inputMode="numeric" value={f.costoGs} onChange={e => setF(x => ({ ...x, costoGs: e.target.value.replace(/\D/g, "") }))} /></Campo>
       <button type="submit" className="btn btn-primary" disabled={pendiente} style={{ height: 34 }}>{pendiente && <IconLoader2 size={14} className="animate-spin" aria-hidden />} Registrar</button>
       {med && med.withdrawalDays > 0 && <div style={{ width: "100%", fontSize: 11.5, color: "var(--warning-text)" }}>Con {med.name}, el lote no se puede vender por {med.withdrawalDays} días desde la fecha del tratamiento.</div>}
       {msg && <div style={{ width: "100%" }}><Aviso tipo={msg.tipo}>{msg.texto}</Aviso></div>}

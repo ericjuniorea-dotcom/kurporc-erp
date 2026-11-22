@@ -9,6 +9,7 @@ import {
 } from "@/app/acciones/equipo";
 import { MatrizPermisos, resumenPermisos, type PermisoUI } from "./matriz-permisos";
 import { PestanaActividad, PestanaRoles, TransferirPropiedad, type EventoActividad, type RolFila } from "./pestanas-extra";
+import { InputNumero } from "@/components/ui/input-numero";
 
 type Rol = { id: string; codigo: string; nombre: string; descripcion: string; permisos: string[] };
 type Miembro = {
@@ -408,7 +409,7 @@ function FormularioPersona({ props: p, miembro, onCerrar, onListo }: {
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", fontSize: 12 }}>
                   <label style={{ display: "inline-flex", gap: 5 }}><input type="radio" checked={limiteModo === "aprobacion"} onChange={() => setLimiteModo("aprobacion")} style={{ accentColor: "var(--accent)" }} />Toda compra requiere aprobación</label>
                   <label style={{ display: "inline-flex", gap: 5, alignItems: "center" }}><input type="radio" checked={limiteModo === "monto"} onChange={() => setLimiteModo("monto")} style={{ accentColor: "var(--accent)" }} />Hasta Gs
-                    <input value={limite} onChange={e => { setLimite(e.target.value.replace(/\D/g, "")); setLimiteModo("monto"); }} inputMode="numeric" maxLength={13} className="kp-input" style={{ width: 130, height: 28 }} aria-label="Límite por pedido en guaraníes" /> por pedido</label>
+                    <InputNumero value={limite} onChange={e => { setLimite(e.target.value.replace(/\D/g, "")); setLimiteModo("monto"); }} inputMode="numeric" maxLength={13} className="kp-input" style={{ width: 130, height: 28 }} aria-label="Límite por pedido en guaraníes" /> por pedido</label>
                   {p.puedo.sinLimite && <label style={{ display: "inline-flex", gap: 5 }}><input type="radio" checked={limiteModo === "sin"} onChange={() => setLimiteModo("sin")} style={{ accentColor: "var(--accent)" }} />Sin límite</label>}
                 </div>
               </fieldset>

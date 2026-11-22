@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { farrowingEventSchema, type FarrowingEventInput } from "@/lib/validations/maternidad";
+import { InputNumero } from "@/components/ui/input-numero";
 import {
   IconAlertTriangle, IconCircleCheck, IconLoader2, IconSearch,
 } from "@tabler/icons-react";
@@ -232,16 +233,16 @@ export function FormNuevoParto() {
         <div className="kp-grilla-form" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
           <div>
             <label className="kp-label">Nacidos vivos *</label>
-            <input type="number" min={0} className="kp-input" {...register("bornAlive")} />
+            <InputNumero min={0} className="kp-input" {...register("bornAlive")} />
             {errors.bornAlive && <p style={{ fontSize: 11, color: "var(--danger-text)", marginTop: 3 }}>{errors.bornAlive.message}</p>}
           </div>
           <div>
             <label className="kp-label">Nacidos muertos</label>
-            <input type="number" min={0} className="kp-input" {...register("bornDead")} />
+            <InputNumero min={0} className="kp-input" {...register("bornDead")} />
           </div>
           <div>
             <label className="kp-label">Momificados</label>
-            <input type="number" min={0} className="kp-input" {...register("mummified")} />
+            <InputNumero min={0} className="kp-input" {...register("mummified")} />
           </div>
         </div>
 
@@ -268,22 +269,21 @@ export function FormNuevoParto() {
         <div className="kp-grilla-form" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
           <div>
             <label className="kp-label">Hembras vivas</label>
-            <input type="number" min={0} className="kp-input" {...register("femalesBornAlive")} />
+            <InputNumero min={0} className="kp-input" {...register("femalesBornAlive")} />
           </div>
           <div>
             <label className="kp-label">Machos vivos</label>
-            <input type="number" min={0} className="kp-input" {...register("malesBornAlive")} />
+            <InputNumero min={0} className="kp-input" {...register("malesBornAlive")} />
           </div>
           <div>
             <label className="kp-label">Baja viabilidad</label>
-            <input type="number" min={0} className="kp-input" {...register("lowViabilityCount")} />
+            <InputNumero min={0} className="kp-input" {...register("lowViabilityCount")} />
           </div>
         </div>
 
         <div>
           <label className="kp-label">Peso TOTAL de la camada (kg) *</label>
-          <input
-            type="number" step="0.1" min={0} className="kp-input"
+          <InputNumero step="0.1" min={0} className="kp-input"
             placeholder="Pesá todos los lechones juntos en la balanza"
             {...register("totalLitterWeightKg")}
           />

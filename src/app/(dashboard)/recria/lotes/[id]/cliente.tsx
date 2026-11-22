@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { IconBuildingWarehouse, IconLoader2, IconScale } from "@tabler/icons-react";
 import { Topbar } from "@/components/layout/topbar";
+import { InputNumero } from "@/components/ui/input-numero";
 
 export function EncabezadoFicha() {
   return <Topbar title="Iniciación" icon={IconBuildingWarehouse} iconColor="var(--info)" actions={<a href="/recria" className="btn">Volver a Iniciación</a>} configHref="/configuracion?modulo=RECRIA&tab=Metas" />;
@@ -32,8 +33,8 @@ export function CargarPesaje({ loteId, animales }: { loteId: string; animales: n
       });
     }} style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap", background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-lg)", padding: 12 }}>
       <label style={{ fontSize: 11.5, color: "var(--text-muted)", display: "flex", flexDirection: "column", gap: 4 }}>Fecha<input className="kp-input" type="date" value={fecha} max={hoyISO()} onChange={e => setFecha(e.target.value)} required /></label>
-      <label style={{ fontSize: 11.5, color: "var(--text-muted)", display: "flex", flexDirection: "column", gap: 4 }}>Peso promedio (kg)<input className="kp-input" inputMode="decimal" value={promedio} onChange={e => setPromedio(e.target.value)} placeholder="12,5" style={{ width: 110 }} required autoFocus /></label>
-      <label style={{ fontSize: 11.5, color: "var(--text-muted)", display: "flex", flexDirection: "column", gap: 4 }}>Animales pesados<input className="kp-input" type="number" min={1} value={pesados} onChange={e => setPesados(e.target.value)} style={{ width: 110 }} required /></label>
+      <label style={{ fontSize: 11.5, color: "var(--text-muted)", display: "flex", flexDirection: "column", gap: 4 }}>Peso promedio (kg)<InputNumero className="kp-input" inputMode="decimal" value={promedio} onChange={e => setPromedio(e.target.value)} placeholder="12,5" style={{ width: 110 }} required autoFocus /></label>
+      <label style={{ fontSize: 11.5, color: "var(--text-muted)", display: "flex", flexDirection: "column", gap: 4 }}>Animales pesados<InputNumero className="kp-input" min={1} value={pesados} onChange={e => setPesados(e.target.value)} style={{ width: 110 }} required /></label>
       <button type="submit" className="btn btn-primary" style={{ height: 34 }} disabled={pendiente}>{pendiente && <IconLoader2 size={14} className="animate-spin" aria-hidden />} Guardar</button>
       <button type="button" className="btn" style={{ height: 34 }} onClick={() => setAbierto(false)}>Cancelar</button>
       {prom > 0 && n > 0 && <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Total: {(prom * n).toLocaleString("es-PY", { maximumFractionDigits: 1 })} kg</span>}

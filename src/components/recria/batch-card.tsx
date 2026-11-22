@@ -13,6 +13,7 @@ import {
   IconSkull,
 } from "@tabler/icons-react";
 import dynamic from "next/dynamic";
+import { InputNumero } from "@/components/ui/input-numero";
 const GraficoPesoLote = dynamic(() => import("@/components/recria/grafico-peso-lote").then(m => m.GraficoPesoLote), { ssr: false, loading: () => <div className="kp-esqueleto" style={{ height: 140, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" /> });
 
 interface WeightRecord {
@@ -327,13 +328,13 @@ export function BatchCard({ batch, canEdit, onRefresh }: Props) {
                 </div>
                 <div>
                   <label className="kp-label">Cantidad de animales *</label>
-                  <input type="number" className="kp-input" {...regW("animalCount")} />
+                  <InputNumero className="kp-input" {...regW("animalCount")} />
                   {errW.animalCount && <p style={{ fontSize: 11, color: "var(--danger-text)", marginTop: 3 }}>{errW.animalCount.message}</p>}
                 </div>
               </div>
               <div style={{ marginBottom: 16 }}>
                 <label className="kp-label">Peso TOTAL del lote (kg) *</label>
-                <input type="number" step="0.1" className="kp-input" placeholder="Suma de todos los animales pesados" {...regW("totalWeightKg")} />
+                <InputNumero step="0.1" className="kp-input" placeholder="Suma de todos los animales pesados" {...regW("totalWeightKg")} />
                 {errW.totalWeightKg && <p style={{ fontSize: 11, color: "var(--danger-text)", marginTop: 3 }}>{errW.totalWeightKg.message}</p>}
               </div>
               <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
@@ -375,7 +376,7 @@ export function BatchCard({ batch, canEdit, onRefresh }: Props) {
               </div>
               <div style={{ marginBottom: 10 }}>
                 <label className="kp-label">Peso de disparo (kg)</label>
-                <input type="number" step="0.1" className="kp-input" placeholder="Peso medio que disparó el cambio" {...regP("triggerWeightKg")} />
+                <InputNumero step="0.1" className="kp-input" placeholder="Peso medio que disparó el cambio" {...regP("triggerWeightKg")} />
               </div>
               <div style={{ marginBottom: 16 }}>
                 <label className="kp-label">Observaciones</label>
@@ -421,8 +422,7 @@ export function BatchCard({ batch, canEdit, onRefresh }: Props) {
               </div>
               <div>
                 <label className="kp-label">Cantidad *</label>
-                <input
-                  type="number" className="kp-input" min={1} max={batch.currentCount}
+                <InputNumero className="kp-input" min={1} max={batch.currentCount}
                   value={deathQty}
                   onChange={e => setDeathQty(Number(e.target.value))}
                 />

@@ -6,6 +6,7 @@ import { IconLoader2, IconRefresh, IconSettings } from "@tabler/icons-react";
 import { crearSolicitudCotizacion } from "@/app/acciones/compras";
 import { guardarParametroCompra, mejorPublicacion, recalcularNecesidades } from "@/app/acciones/necesidades";
 import { DEPARTAMENTOS } from "@/lib/validaciones/paraguay";
+import { InputNumero } from "@/components/ui/input-numero";
 
 export type Fila = {
   stockItemId: string; nombre: string; categoria: string; unidad: string; productoCatalogoId: string | null; catalogoNombre: string | null;
@@ -119,7 +120,7 @@ export function TablaNecesidades({ filas, productos, departamento, puedeConfigur
                       <td>{fecha(f.fechaQuiebre)}</td>
                       <td><Mini f={f} /></td>
                       <td style={{ textAlign: "right" }}><span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
-                        <input className="kp-input" inputMode="decimal" value={cant[f.stockItemId] ?? ""} onChange={e => setCant({ ...cant, [f.stockItemId]: e.target.value.replace(/[^\d.,]/g, "").replace(",", ".") })} aria-label={`Cantidad a pedir de ${f.nombre}`} style={{ width: 80, textAlign: "right" }} />
+                        <InputNumero className="kp-input" inputMode="decimal" value={cant[f.stockItemId] ?? ""} onChange={e => setCant({ ...cant, [f.stockItemId]: e.target.value.replace(/[^\d.,]/g, "").replace(",", ".") })} aria-label={`Cantidad a pedir de ${f.nombre}`} style={{ width: 80, textAlign: "right" }} />
                         <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{f.unidad}</span></span></td>
                       <td><span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 999, fontSize: 11.5, fontWeight: 600, background: u.bg, color: u.fg }}>{u.t}</span></td>
                       <td style={{ whiteSpace: "nowrap" }}>
@@ -149,7 +150,7 @@ function Configurar({ f, productos, alGuardar }: { f: Fila; productos: Producto[
   const [pendiente, iniciar] = useTransition();
   const lab: React.CSSProperties = { fontSize: 11, color: "var(--text-muted)", display: "flex", flexDirection: "column", gap: 3 };
   const num = (k: "leadTimeDias" | "seguridadDias" | "cicloCompraDias" | "unidadCompra" | "mermaPct", l: string) => (
-    <label style={lab}>{l}<input className="kp-input" inputMode="decimal" value={d[k]} onChange={e => setD({ ...d, [k]: e.target.value })} style={{ width: 110 }} /></label>
+    <label style={lab}>{l}<InputNumero className="kp-input" inputMode="decimal" value={d[k]} onChange={e => setD({ ...d, [k]: e.target.value })} style={{ width: 110 }} /></label>
   );
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "6px 0" }}>

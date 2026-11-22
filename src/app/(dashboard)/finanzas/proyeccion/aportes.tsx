@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Aviso } from "@/components/auth/marco-auth";
 import { borrarAporte, crearAporte } from "@/app/acciones/finanzas";
 import { gs, nombreMes } from "@/lib/finanzas/calculos";
+import { InputNumero } from "@/components/ui/input-numero";
 
 const tarjeta: React.CSSProperties = { background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-lg)" };
 
@@ -36,7 +37,7 @@ export function Aportes({ aportes, editable, desde }: { aportes: { id: string; m
         <form onSubmit={e => { e.preventDefault(); const [y, m] = mes.split("-").map(Number); correr(() => crearAporte({ mes: y * 100 + m, montoGs: monto, descripcion: desc })); }}
           style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
           <label style={{ display: "flex", flexDirection: "column", gap: 4 }}><span className="kp-label">Mes</span><input type="month" className="kp-input" value={mes} onChange={e => setMes(e.target.value)} required /></label>
-          <label style={{ display: "flex", flexDirection: "column", gap: 4 }}><span className="kp-label">Monto (₲)</span><input className="kp-input" inputMode="numeric" value={monto} onChange={e => setMonto(e.target.value.replace(/\D/g, ""))} required /></label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 4 }}><span className="kp-label">Monto (₲)</span><InputNumero className="kp-input" inputMode="numeric" value={monto} onChange={e => setMonto(e.target.value.replace(/\D/g, ""))} required /></label>
           <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1, minWidth: 180 }}><span className="kp-label">Descripción</span><input className="kp-input" value={desc} onChange={e => setDesc(e.target.value)} maxLength={200} /></label>
           <button type="submit" className="btn btn-primary" disabled={pendiente || !monto} style={{ height: 34 }}>Agregar</button>
         </form>

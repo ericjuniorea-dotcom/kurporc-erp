@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { IconLoader2, IconPlus, IconTrash } from "@tabler/icons-react";
 import { Aviso } from "@/components/auth/marco-auth";
 import { guardarCurva } from "@/app/acciones/engorde";
+import { InputNumero } from "@/components/ui/input-numero";
 
 type Punto = { dia: number; pesoKg: number; consumoKgDia?: number };
 type Curva = { id: string; nombre: string; predeterminada: boolean; puntos: Punto[] };
@@ -44,7 +45,7 @@ export function EditorCurvas({ curvas, editable }: { curvas: Curva[]; editable: 
               {edit.puntos.map((p, i) => (
                 <tr key={i}>
                   {(["dia", "pesoKg", "consumoKgDia"] as const).map(k => (
-                    <td key={k} style={{ padding: 2 }}><input className="kp-input" inputMode="decimal" value={p[k]} aria-label={k} style={{ height: 30 }}
+                    <td key={k} style={{ padding: 2 }}><InputNumero className="kp-input" inputMode="decimal" value={p[k]} aria-label={k} style={{ height: 30 }}
                       onChange={e => setEdit({ ...edit, puntos: edit.puntos.map((x, j) => (j === i ? { ...x, [k]: e.target.value } : x)) })} /></td>
                   ))}
                   <td><button type="button" className="btn" aria-label="Quitar punto" style={{ height: 26 }} onClick={() => setEdit({ ...edit, puntos: edit.puntos.filter((_, j) => j !== i) })}><IconTrash size={13} /></button></td>

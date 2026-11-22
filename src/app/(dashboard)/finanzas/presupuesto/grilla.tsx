@@ -6,6 +6,7 @@ import { IconLoader2 } from "@tabler/icons-react";
 import { Aviso } from "@/components/auth/marco-auth";
 import { guardarPresupuesto, herramientaPresupuesto } from "@/app/acciones/finanzas";
 import { gs } from "@/lib/finanzas/calculos";
+import { InputNumero } from "@/components/ui/input-numero";
 
 type Cat = { id: string; nombre: string; tipo: string };
 const MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
@@ -92,7 +93,7 @@ export function GrillaPresupuesto({ anio, mesCorte, editable, categorias, valore
                     <td style={{ position: "sticky", left: 0, background: "var(--bg-surface)", color: "var(--text-primary)" }}>{c.nombre}</td>
                     {v[c.id].map((x, i) => (
                       <td key={i} style={{ padding: 2 }}>
-                        <input value={x ? Number(x).toLocaleString("es-PY") : ""} onChange={e => set(c.id, i, e.target.value)} disabled={!editable} inputMode="numeric" aria-label={`${c.nombre} ${MESES[i]}`}
+                        <InputNumero value={x ? Number(x).toLocaleString("es-PY") : ""} onChange={e => set(c.id, i, e.target.value)} disabled={!editable} inputMode="numeric" aria-label={`${c.nombre} ${MESES[i]}`}
                           style={{ width: 92, textAlign: "right", fontSize: 11.5, padding: "4px 6px", border: `0.5px solid ${sucias.has(`${c.id}:${i}`) ? "var(--accent)" : "var(--border-default)"}`, borderRadius: 4, background: "var(--bg-base)", color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }} />
                       </td>
                     ))}

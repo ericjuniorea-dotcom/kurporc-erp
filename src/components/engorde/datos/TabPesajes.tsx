@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { addDays } from "@/lib/utils";
+import { InputNumero } from "@/components/ui/input-numero";
 
 interface Lote { id: string; batchCode: string; sitio: string | null; targetWeightKg: number }
 
@@ -107,11 +108,11 @@ export function TabPesajes() {
           </div>
           <div>
             <label className="kp-label">Cantidad pesada *</label>
-            <input className="kp-input" type="number" min={1} value={form.animalCount} onChange={e => F("animalCount", e.target.value)} />
+            <InputNumero className="kp-input" min={1} value={form.animalCount} onChange={e => F("animalCount", e.target.value)} />
           </div>
           <div>
             <label className="kp-label">Peso total (kg) *</label>
-            <input className="kp-input" type="number" step="0.1" value={form.totalWeightKg} onChange={e => F("totalWeightKg", e.target.value)} />
+            <InputNumero className="kp-input" step="0.1" value={form.totalWeightKg} onChange={e => F("totalWeightKg", e.target.value)} />
           </div>
           <div>
             <label className="kp-label">Peso medio (kg)</label>

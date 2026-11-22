@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { weaningEventSchema, type WeaningEventInput } from "@/lib/validations/maternidad";
 import { IconAlertTriangle, IconLoader2, IconScale, IconX } from "@tabler/icons-react";
+import { InputNumero } from "@/components/ui/input-numero";
 
 const SOW_DESTINATIONS = [
   { value: "GESTATION", label: "Gestación" },
@@ -127,7 +128,7 @@ export function ModalDestete({ farrowing, onClose, onSaved }: Props) {
             </div>
             <div>
               <label className="kp-label">Lechones destetados *</label>
-              <input className="kp-input" type="number" min={1} max={farrowing.currentStock + 10} {...register("pigletsWeaned")} />
+              <InputNumero className="kp-input" min={1} max={farrowing.currentStock + 10} {...register("pigletsWeaned")} />
               {errors.pigletsWeaned && (
                 <p style={{ fontSize: 11, color: "var(--danger-text)", marginTop: 3 }}>{errors.pigletsWeaned.message}</p>
               )}
@@ -137,9 +138,8 @@ export function ModalDestete({ farrowing, onClose, onSaved }: Props) {
           {/* Peso total */}
           <div style={{ marginBottom: 12 }}>
             <label className="kp-label">Peso TOTAL de la camada (kg) *</label>
-            <input
+            <InputNumero
               className="kp-input"
-              type="number"
               step="0.1"
               min={0}
               placeholder="Ej: 87.5 — peso todos juntos en la balanza"
@@ -173,7 +173,7 @@ export function ModalDestete({ farrowing, onClose, onSaved }: Props) {
               ].map(({ label, field }) => (
                 <div key={field}>
                   <label className="kp-label" style={{ fontSize: 10 }}>{label}</label>
-                  <input className="kp-input" type="number" min={0} {...register(field)} />
+                  <InputNumero className="kp-input" min={0} {...register(field)} />
                 </div>
               ))}
             </div>

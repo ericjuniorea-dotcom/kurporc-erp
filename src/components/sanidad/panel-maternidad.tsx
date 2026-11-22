@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { IconPlus, IconLoader2, IconX, IconAlertTriangle } from "@tabler/icons-react";
 
 import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
+import { InputNumero } from "@/components/ui/input-numero";
 const PROCEDIMIENTOS = [
   { value: "DESCOLMILLADO", label: "Descolmillado" },
   { value: "CORTE_COLA",    label: "Corte de cola" },
@@ -164,11 +165,11 @@ export function PanelMaternidadSanidad() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
                   <label className="kp-label">Lechones procesados *</label>
-                  <input className="kp-input" type="number" min={0} value={cantidad} onChange={e => setCantidad(e.target.value)} />
+                  <InputNumero className="kp-input" min={0} value={cantidad} onChange={e => setCantidad(e.target.value)} />
                 </div>
                 <div>
                   <label className="kp-label">Edad (días) *</label>
-                  <input className="kp-input" type="number" min={0} value={edad} onChange={e => setEdad(e.target.value)} />
+                  <InputNumero className="kp-input" min={0} value={edad} onChange={e => setEdad(e.target.value)} />
                 </div>
               </div>
               <div>

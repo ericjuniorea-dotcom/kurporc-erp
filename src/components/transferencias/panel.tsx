@@ -6,6 +6,7 @@ import { IconArrowRight, IconCheck, IconChevronDown, IconChevronUp, IconLoader2,
 import { enviarTransferencia, panelTransferencias, recibirTransferencia, rechazarTransferencia } from "@/app/acciones/transferencias";
 import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 import { CATEGORIAS } from "@/lib/transferencias/tipos";
+import { InputNumero } from "@/components/ui/input-numero";
 
 type Pantalla = Parameters<typeof panelTransferencias>[0];
 type Datos = Awaited<ReturnType<typeof panelTransferencias>>;
@@ -146,8 +147,8 @@ function TarjetaRecibir({ f, puede, onListo }: { f: Fila; puede: boolean; onList
       {puede ? (
         <>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <label style={etiqueta}>¿Cuántos llegaron?<input className="kp-input" inputMode="numeric" value={cant} onChange={e => setCant(e.target.value)} /></label>
-            {f.categoria === "LECHONES" && <label style={etiqueta}>Peso total (kg, opcional)<input className="kp-input" inputMode="decimal" placeholder={f.pesoTotalKg ? String(f.pesoTotalKg) : "—"} value={peso} onChange={e => setPeso(e.target.value)} /></label>}
+            <label style={etiqueta}>¿Cuántos llegaron?<InputNumero className="kp-input" inputMode="numeric" value={cant} onChange={e => setCant(e.target.value)} /></label>
+            {f.categoria === "LECHONES" && <label style={etiqueta}>Peso total (kg, opcional)<InputNumero className="kp-input" inputMode="decimal" placeholder={f.pesoTotalKg ? String(f.pesoTotalKg) : "—"} value={peso} onChange={e => setPeso(e.target.value)} /></label>}
             <label style={{ ...etiqueta, flex: "2 1 180px" }}>¿Dónde quedan?<input className="kp-input" placeholder={f.destino === "MATERNIDAD" ? "Sala / jaula" : "Galpón / corral"} value={ubic} onChange={e => setUbic(e.target.value)} /></label>
           </div>
           <label style={etiqueta}>Nota (opcional)<input className="kp-input" placeholder="Ej.: llegó una renga" value={nota} onChange={e => setNota(e.target.value)} /></label>

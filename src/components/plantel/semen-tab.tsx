@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { IconPlus, IconSearch, IconAlertCircle, IconLoader2 } from "@tabler/icons-react";
+import { InputNumero } from "@/components/ui/input-numero";
 
 interface GeneticaOption {
   id: string; nombre: string; empresa?: string | null;
@@ -231,11 +232,11 @@ export function SemenTab() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
                   <label className="kp-label">Cantidad de dosis (pajuelas) *</label>
-                  <input className="kp-input" type="number" min="1" value={form.totalDoses} onChange={e => F("totalDoses", e.target.value)} placeholder="Ej: 50" />
+                  <InputNumero className="kp-input" min="1" value={form.totalDoses} onChange={e => F("totalDoses", e.target.value)} placeholder="Ej: 50" />
                 </div>
                 <div>
                   <label className="kp-label">Precio por dosis (₲) *</label>
-                  <input className="kp-input" type="number" value={form.pricePerDoseGs} onChange={e => F("pricePerDoseGs", e.target.value)} placeholder="Ej: 75000" />
+                  <InputNumero className="kp-input" value={form.pricePerDoseGs} onChange={e => F("pricePerDoseGs", e.target.value)} placeholder="Ej: 75000" />
                 </div>
               </div>
 

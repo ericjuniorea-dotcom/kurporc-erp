@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { IconLoader2, IconPlus, IconX } from "@tabler/icons-react";
 import { crearProducto } from "@/app/acciones/inventario";
+import { InputNumero } from "@/components/ui/input-numero";
 
 const CATEGORIAS = [
   { id: "VACUNA", label: "Vacuna", unidad: "ML" },
@@ -57,7 +58,7 @@ export function NuevoProducto({ onCreado }: { onCreado: () => void }) {
         </label>
         <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 11.5, color: "var(--text-secondary)", flex: "0 1 130px" }}>
           Stock mínimo
-          <input className="kp-input" inputMode="numeric" value={minimo} onChange={e => setMinimo(e.target.value.replace(/\D/g, ""))} placeholder="opcional" style={{ height: 32 }} />
+          <InputNumero className="kp-input" inputMode="numeric" value={minimo} onChange={e => setMinimo(e.target.value.replace(/\D/g, ""))} placeholder="opcional" style={{ height: 32 }} />
         </label>
         <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 11.5, color: "var(--text-secondary)", flex: "1 1 180px" }}>
           Para qué es

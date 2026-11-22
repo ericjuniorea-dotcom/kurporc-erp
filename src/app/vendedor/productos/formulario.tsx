@@ -6,6 +6,7 @@ import { IconLoader2, IconPhotoPlus, IconX } from "@tabler/icons-react";
 import { cambiarEstadoPublicacion, guardarPublicacion, proponerProducto, subirFoto } from "@/app/acciones/vendedor";
 import { textoPrecioBase, UNIDAD_CORTA, UNIDADES, type UnidadBase } from "@/lib/mercado/calculo";
 import { DEPARTAMENTOS } from "@/lib/validaciones/paraguay";
+import { InputNumero } from "@/components/ui/input-numero";
 
 type Categoria = { id: string; nombre: string; animales: boolean };
 type Producto = { id: string; codigo: string; nombre: string; categoriaId: string; unidadBase: string; requiereReceta: boolean; aprobado: boolean };
@@ -146,10 +147,10 @@ export function FormularioPublicacion({ inicial, categorias, productos, verifica
             <input className="kp-input" value={d.unidadVenta} maxLength={60} onChange={e => set("unidadVenta", e.target.value)} placeholder="Bolsa 40 kg" />
           </label>
           <label style={etiqueta}>Precio (Gs)
-            <input className="kp-input" inputMode="numeric" value={d.precioGs} onChange={e => set("precioGs", e.target.value.replace(/[^\d]/g, ""))} placeholder="94000" />
+            <InputNumero className="kp-input" inputMode="numeric" value={d.precioGs} onChange={e => set("precioGs", e.target.value.replace(/[^\d]/g, ""))} placeholder="94000" />
           </label>
           <label style={etiqueta}>Contiene
-            <input className="kp-input" inputMode="decimal" value={d.contenidoBase} onChange={e => set("contenidoBase", e.target.value)} placeholder="40" />
+            <InputNumero className="kp-input" inputMode="decimal" value={d.contenidoBase} onChange={e => set("contenidoBase", e.target.value)} placeholder="40" />
           </label>
           <label style={etiqueta}>Unidad
             <select className="kp-input" value={d.unidadBase} onChange={e => set("unidadBase", e.target.value as UnidadBase)} disabled={!!producto}>
@@ -160,13 +161,13 @@ export function FormularioPublicacion({ inicial, categorias, productos, verifica
         <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>Precio por {UNIDAD_CORTA[d.unidadBase]}: <strong style={{ color: "var(--text-primary)" }}>{base ?? "—"}</strong> (así comparan los productores).</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
           <label style={etiqueta}>Pedido mínimo
-            <input className="kp-input" type="number" min={1} value={d.pedidoMinimo} onChange={e => set("pedidoMinimo", e.target.value)} />
+            <InputNumero className="kp-input" min={1} value={d.pedidoMinimo} onChange={e => set("pedidoMinimo", e.target.value)} />
           </label>
           <label style={etiqueta}>Disponibles (opcional)
-            <input className="kp-input" type="number" min={0} value={d.stockDisponible} onChange={e => set("stockDisponible", e.target.value)} />
+            <InputNumero className="kp-input" min={0} value={d.stockDisponible} onChange={e => set("stockDisponible", e.target.value)} />
           </label>
           <label style={etiqueta}>Plazo de entrega (días)
-            <input className="kp-input" type="number" min={0} max={120} value={d.plazoEntregaDias} onChange={e => set("plazoEntregaDias", e.target.value)} />
+            <InputNumero className="kp-input" min={0} max={120} value={d.plazoEntregaDias} onChange={e => set("plazoEntregaDias", e.target.value)} />
           </label>
         </div>
         {producto?.requiereReceta && <div style={{ fontSize: 12.5, color: "var(--warning-text)" }}>Este producto se muestra con el aviso «Venta sujeta a receta veterinaria; responsabilidad del vendedor».</div>}

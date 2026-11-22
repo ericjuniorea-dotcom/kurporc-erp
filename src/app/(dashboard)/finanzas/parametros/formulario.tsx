@@ -5,6 +5,7 @@ import { IconLoader2 } from "@tabler/icons-react";
 import { Aviso } from "@/components/auth/marco-auth";
 import { guardarParametros } from "@/app/acciones/finanzas";
 import { PARAMETROS } from "@/lib/finanzas/parametros";
+import { InputNumero } from "@/components/ui/input-numero";
 
 const tarjeta: React.CSSProperties = { background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-lg)" };
 
@@ -31,7 +32,7 @@ export function FormularioParametros({ valores, editable }: { valores: Record<st
               ) : p.tipo === "sel" ? (
                 <select className="kp-input" value={v[p.clave]} onChange={e => set(p.clave, e.target.value)}>{Object.entries(p.opciones ?? {}).map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select>
               ) : (
-                <input className="kp-input" inputMode="decimal" value={v[p.clave]} onChange={e => set(p.clave, e.target.value)} placeholder={p.opcional ? "Vacío" : undefined} />
+                <InputNumero className="kp-input" inputMode="decimal" value={v[p.clave]} onChange={e => set(p.clave, e.target.value)} placeholder={p.opcional ? "Vacío" : undefined} />
               )}
               {p.ayuda && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{p.ayuda}</span>}
             </label>

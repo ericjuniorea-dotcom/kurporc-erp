@@ -5,6 +5,7 @@ import { IconArrowLeft, IconBuildingStore, IconBuildingWarehouse, IconKey, IconL
 import { Aviso } from "@/components/auth/marco-auth";
 import { consultarRuc, crearMiOrganizacion, guardarDatosPersonales, pedirUnirme, terminarComoComprador } from "@/app/acciones/onboarding";
 import { CATEGORIAS_VENTA, DEPARTAMENTOS, SISTEMAS_PRODUCTIVOS } from "@/lib/validaciones/paraguay";
+import { InputNumero } from "@/components/ui/input-numero";
 
 type Tipo = "COMPRADOR" | "INDIVIDUAL" | "EMPRESA" | "VENDEDOR";
 type Opcion = Tipo | "UNIRME";
@@ -215,7 +216,7 @@ export function Asistente({ tipoInicial, perfil, acuerdos }: {
           {tipo !== "VENDEDOR" ? (
             <div style={grid2}>
               <div><label className="kp-label" htmlFor="madresAprox">Madres (aprox.)</label>
-                <input id="madresAprox" name="madresAprox" type="number" min={0} max={100000} inputMode="numeric" className="kp-input" /></div>
+                <InputNumero id="madresAprox" name="madresAprox" min={0} max={100000} inputMode="numeric" className="kp-input" /></div>
               <div><label className="kp-label" htmlFor="sistemaProductivo">Sistema</label>
                 <select id="sistemaProductivo" name="sistemaProductivo" defaultValue="" className="kp-input">
                   <option value="">—</option>

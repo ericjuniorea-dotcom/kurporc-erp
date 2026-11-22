@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { IconLoader2, IconStar, IconStarFilled, IconTrash } from "@tabler/icons-react";
 import { aceptarRespuesta, aceptarTerminosMercado, aprobarPedido, cancelarPedido, crearSolicitudCotizacion, dejarResena, enviarBorrador, pedirDirecto, recibirPedido } from "@/app/acciones/compras";
 import { DEPARTAMENTOS } from "@/lib/validaciones/paraguay";
+import { InputNumero } from "@/components/ui/input-numero";
 
 type Res = { ok: true } | { ok: false; error: string; terminos?: boolean };
 const etiqueta: React.CSSProperties = { fontSize: 11.5, color: "var(--text-muted)", display: "flex", flexDirection: "column", gap: 4 };
@@ -75,7 +76,7 @@ export function FormPedidoDirecto({ publicacion, granjas, terminosPendientes, ca
       style={{ ...tarjeta, maxWidth: 640 }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10 }}>
         <label style={etiqueta}>Cantidad ({publicacion.unidadVenta})
-          <input className="kp-input" type="number" min={publicacion.pedidoMinimo} max={publicacion.stock ?? undefined} value={cantidad} onChange={e => setCantidad(e.target.value)} required />
+          <InputNumero className="kp-input" min={publicacion.pedidoMinimo} max={publicacion.stock ?? undefined} value={cantidad} onChange={e => setCantidad(e.target.value)} required />
         </label>
         <label style={etiqueta}>Forma de pago
           <select className="kp-input" value={metodo} onChange={e => setMetodo(e.target.value)}>{METODOS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
@@ -167,14 +168,14 @@ export function FormRecepcion({ pedidoId, items, productos, unidades, cuentas, p
             return (
               <tr key={it.id}>
                 <td style={{ fontSize: 12.5 }}>{it.descripcion}<div style={{ fontSize: 11, color: "var(--text-muted)" }}>Pedido: {it.cantidad}</div></td>
-                <td><input className="kp-input" type="number" min={0} max={it.cantidad} step="any" value={f.cantidadRecibida} onChange={e => set(i, "cantidadRecibida", e.target.value)} style={{ width: 80 }} /></td>
+                <td><InputNumero className="kp-input" min={0} max={it.cantidad} step="any" value={f.cantidadRecibida} onChange={e => set(i, "cantidadRecibida", e.target.value)} style={{ width: 80 }} /></td>
                 <td>
                   <select className="kp-input" value={f.productoInventarioId} onChange={e => set(i, "productoInventarioId", e.target.value)} style={{ minWidth: 200 }}>
                     <option value="">No entra a stock (equipo o servicio)</option>
                     {productos.map(p => <option key={p.id} value={p.id}>{p.nombre} ({p.unidad.toLowerCase()})</option>)}
                   </select>
                 </td>
-                <td><input className="kp-input" type="number" min={0} step="any" value={f.cantidadStock} disabled={!f.productoInventarioId} onChange={e => set(i, "cantidadStock", e.target.value)} style={{ width: 100 }} />
+                <td><InputNumero className="kp-input" min={0} step="any" value={f.cantidadStock} disabled={!f.productoInventarioId} onChange={e => set(i, "cantidadStock", e.target.value)} style={{ width: 100 }} />
                   {prod && <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 4 }}>{prod.unidad.toLowerCase()}</span>}</td>
                 <td><input className="kp-input" value={f.lote} disabled={!f.productoInventarioId} required={!!san} onChange={e => set(i, "lote", e.target.value)} placeholder={san ? "Obligatorio" : "Opcional"} style={{ width: 110 }} /></td>
                 <td><input className="kp-input" type="date" value={f.vencimiento} disabled={!f.productoInventarioId} required={!!san} onChange={e => set(i, "vencimiento", e.target.value)} /></td>
@@ -274,7 +275,7 @@ export function FormSolicitud({ productos, granjas, departamentoDefecto, inicial
             return (
               <tr key={it.productoCatalogoId}>
                 <td style={{ fontSize: 13 }}>{p?.nombre ?? "—"}</td>
-                <td><span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><input className="kp-input" inputMode="decimal" required value={it.cantidadBase} onChange={e => setItems(items.map((x, j) => (j === i ? { ...x, cantidadBase: e.target.value } : x)))} style={{ width: 100 }} /> <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{p?.unidad.toLowerCase()}</span></span></td>
+                <td><span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><InputNumero className="kp-input" inputMode="decimal" required value={it.cantidadBase} onChange={e => setItems(items.map((x, j) => (j === i ? { ...x, cantidadBase: e.target.value } : x)))} style={{ width: 100 }} /> <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{p?.unidad.toLowerCase()}</span></span></td>
                 <td><input className="kp-input" value={it.nota} maxLength={300} onChange={e => setItems(items.map((x, j) => (j === i ? { ...x, nota: e.target.value } : x)))} placeholder="Marca preferida, presentación…" /></td>
                 <td><button type="button" aria-label="Quitar" className="btn" style={{ height: 28 }} onClick={() => setItems(items.filter((_, j) => j !== i))}><IconTrash size={13} /></button></td>
               </tr>

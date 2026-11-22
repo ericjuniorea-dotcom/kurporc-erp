@@ -11,6 +11,7 @@ import { leerDia } from "@/lib/nutricion/cliente";
 import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 import type { ModuloNutricion } from "@/lib/nutricion/plan";
 import { mensajeError } from "@/lib/version-vieja";
+import { InputNumero } from "@/components/ui/input-numero";
 
 type Datos = Awaited<ReturnType<typeof nutricionDia>>;
 type Tipo = Datos["tipos"][number];
@@ -196,7 +197,7 @@ function ModuloTotal({ titulo, animales, detalle, tipos, fecha, regsDe, onGuarda
                 {meta != null ? <>Teórico: <strong style={{ fontWeight: 500, color: "var(--text-secondary)" }}>{kg(meta)}</strong> ({t.kgPorAnimal} kg × {animales})</> : "A gusto (sin meta)"} · <Stock t={t} />
               </div>
             </div>
-            <input className="kp-input" inputMode="decimal" aria-label={`kg entregados de ${t.nombre}`} placeholder="0 kg" value={valores[t.id] ?? ""}
+            <InputNumero className="kp-input" inputMode="decimal" aria-label={`kg entregados de ${t.nombre}`} placeholder="0 kg" value={valores[t.id] ?? ""}
               onChange={e => setValores(v => ({ ...v, [t.id]: e.target.value }))} style={{ height: 32, width: 110 }} />
             <div style={{ flex: "1 1 220px", minWidth: 0 }}><Cargas regs={regsDe(t.id, null)} onCambio={onGuardado} /></div>
           </div>
@@ -245,7 +246,7 @@ function FilaCerda({ c, hembra, lechones, fecha, regsDe, onGuardado }: {
         {hembra ? (
           <>
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <input className="kp-input" inputMode="decimal" aria-label="kg entregados a la reproductora" placeholder="0 kg" value={kgH} onChange={e => setKgH(e.target.value)} style={{ height: 40, width: 120 }} />
+              <InputNumero className="kp-input" inputMode="decimal" aria-label="kg entregados a la reproductora" placeholder="0 kg" value={kgH} onChange={e => setKgH(e.target.value)} style={{ height: 40, width: 120 }} />
               {hembra.kgPorAnimal != null && <span style={{ fontSize: 12, color: "var(--text-muted)" }}>teórico {kg(hembra.kgPorAnimal)}</span>}
             </div>
             <Cargas regs={regsDe(hembra.id, c.farrowingId)} onCambio={onGuardado} />
@@ -260,7 +261,7 @@ function FilaCerda({ c, hembra, lechones, fecha, regsDe, onGuardado }: {
               <select className="kp-input" aria-label="Balanceado de los lechones" value={tipoL} onChange={e => setTipoL(e.target.value)} style={{ height: 40, flex: "1 1 140px", minWidth: 0 }}>
                 {lechones.map(t => <option key={t.id} value={t.id}>{t.nombre}</option>)}
               </select>
-              <input className="kp-input" inputMode="decimal" aria-label="kg entregados a los lechones" placeholder="0 kg" value={kgL} onChange={e => setKgL(e.target.value)} style={{ height: 40, width: 120 }} />
+              <InputNumero className="kp-input" inputMode="decimal" aria-label="kg entregados a los lechones" placeholder="0 kg" value={kgL} onChange={e => setKgL(e.target.value)} style={{ height: 40, width: 120 }} />
             </div>
             {tL && <AvanceFase t={tL} c={c} siguiente={lechones[lechones.indexOf(tL) + 1]} onPasar={setTipoL} />}
             <Cargas regs={regsL} onCambio={onGuardado} />

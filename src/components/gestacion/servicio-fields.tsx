@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { serviceEventSchema, type ServiceEventInput } from "@/lib/validations/gestacion";
 import { IconAlertTriangle, IconCircleCheck, IconLoader2, IconRefresh, IconLock, IconShieldCheck } from "@tabler/icons-react";
+import { InputNumero } from "@/components/ui/input-numero";
 
 // Super Admin (1), Admin de granja (2), Veterinario Jefe (4) — únicos roles
 // que pueden forzar una inseminación pese a bloqueos de elegibilidad.
@@ -436,9 +437,8 @@ export function ServicioFields({
           {/* Peso actual — se pide siempre fresco acá, no se usa el peso de ingreso */}
           <div style={{ marginTop: 10 }}>
             <label className="kp-label" htmlFor="currentWeightKg">Peso actual (kg) *</label>
-            <input
+            <InputNumero
               id="currentWeightKg"
-              type="number"
               step="0.1"
               className="kp-input"
               style={{ maxWidth: 160 }}
@@ -556,7 +556,7 @@ export function ServicioFields({
           </div>
           <div style={{ maxWidth: 200 }}>
             <label className="kp-label">Duración (minutos)</label>
-            <input className="kp-input" type="number" min={0} placeholder="Ej: 4" {...register("durationMinutes")} />
+            <InputNumero className="kp-input" min={0} placeholder="Ej: 4" {...register("durationMinutes")} />
           </div>
         </Section>
 

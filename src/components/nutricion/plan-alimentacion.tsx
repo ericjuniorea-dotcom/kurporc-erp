@@ -7,6 +7,7 @@ import { cargarPlanSugerido, guardarTipoBalanceado, quitarTipoBalanceado, type p
 import { leerPlan } from "@/lib/nutricion/cliente";
 import { mensajeError } from "@/lib/version-vieja";
 import { MODULOS_NUTRICION, ORDEN_MODULOS, type ModuloNutricion } from "@/lib/nutricion/plan";
+import { InputNumero } from "@/components/ui/input-numero";
 
 type Plan = Awaited<ReturnType<typeof planAlimentacion>>;
 const tarjeta: React.CSSProperties = { background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-lg)" };
@@ -67,7 +68,7 @@ function Modulo({ modulo, plan, puedeConfigurar, correr, pendiente }: {
             <option value="">Agregar balanceado…</option>
             {plan.productos.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
           </select>
-          <input className="kp-input" inputMode="decimal" aria-label="kg por animal por día" placeholder={info.por === "TOTAL" ? "a gusto" : info.por === "LECHON" ? "kg/fase" : "kg/día"} value={nuevoKg} onChange={e => setNuevoKg(e.target.value)} style={{ height: 30, width: 100 }} />
+          <InputNumero className="kp-input" inputMode="decimal" aria-label="kg por animal por día" placeholder={info.por === "TOTAL" ? "a gusto" : info.por === "LECHON" ? "kg/fase" : "kg/día"} value={nuevoKg} onChange={e => setNuevoKg(e.target.value)} style={{ height: 30, width: 100 }} />
           <button type="button" className="btn" style={{ height: 30, fontSize: 12, gap: 4 }} disabled={pendiente || !nuevoProd}
             onClick={() => { correr(() => guardarTipoBalanceado({ modulo, productoId: nuevoProd, kgPorAnimal: nuevoKg ? Number(nuevoKg.replace(",", ".")) : null })); setNuevoProd(""); setNuevoKg(""); }}>
             <IconPlus size={13} aria-hidden /> Agregar
@@ -92,7 +93,7 @@ function FilaTipo({ t, modulo, plan, unidad, puedeConfigurar, correr, pendiente 
         {!t.productoId && <option value="">{t.nombre} (sin producto)</option>}
         {plan.productos.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
       </select>
-      <input className="kp-input" inputMode="decimal" aria-label={unidad} value={kgTxt} disabled={!puedeConfigurar} onChange={e => setKgTxt(e.target.value)} placeholder="a gusto" style={{ height: 30, width: 100 }} />
+      <InputNumero className="kp-input" inputMode="decimal" aria-label={unidad} value={kgTxt} disabled={!puedeConfigurar} onChange={e => setKgTxt(e.target.value)} placeholder="a gusto" style={{ height: 30, width: 100 }} />
       <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{unidad}</span>
       {puedeConfigurar && cambio && prod && (
         <button type="button" className="btn btn-primary" style={{ height: 28, fontSize: 12 }} disabled={pendiente}

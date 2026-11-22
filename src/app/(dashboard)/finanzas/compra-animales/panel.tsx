@@ -8,6 +8,7 @@ import { registrarCompraAnimales } from "@/app/acciones/transferencias";
 import { CATEGORIAS, DESTINOS_COMPRA, ESTADOS, MODULOS_TRANSFERENCIA, type CategoriaAnimal } from "@/lib/transferencias/tipos";
 import { gs } from "@/lib/finanzas/calculos";
 import { MEDIOS } from "../movimientos/libro";
+import { InputNumero } from "@/components/ui/input-numero";
 
 type Compra = { id: string; fecha: string; categoria: string; destino: string; proveedor: string | null; cantidad: number; cantidadRecibida: number | null;
   pesoTotalKg: number | null; costoGs: number | null; estado: string; nota: string | null; cargo: string | null; recibio: string | null };
@@ -112,10 +113,10 @@ export function PanelCompraAnimales(p: { hoy: string; compras: Compra[]; proveed
           <div className="kp-form-compra">
             <label style={etiqueta}>Fecha de compra<input type="date" className="kp-input" value={fecha} max={p.hoy} onChange={e => setFecha(e.target.value)} /></label>
             <label style={etiqueta}>Granja de origen<input className="kp-input" list="proveedores-animales" value={proveedor} onChange={e => setProveedor(e.target.value)} placeholder="Ej.: Granja San José" /></label>
-            <label style={etiqueta}>Cantidad<input className="kp-input" inputMode="numeric" value={cantidad} onChange={e => { setCantidad(e.target.value); if (porAnimal) ajustarFilas(num(e.target.value)); }} placeholder="Ej.: 50" /></label>
+            <label style={etiqueta}>Cantidad<InputNumero className="kp-input" inputMode="numeric" value={cantidad} onChange={e => { setCantidad(e.target.value); if (porAnimal) ajustarFilas(num(e.target.value)); }} placeholder="Ej.: 50" /></label>
             <label style={etiqueta}>Factura N° (opcional)<input className="kp-input" value={factura} onChange={e => setFactura(e.target.value)} /></label>
-            {!porAnimal && <label style={etiqueta}>Peso total en kg (si tenés)<input className="kp-input" inputMode="decimal" value={pesoTotal} onChange={e => setPesoTotal(e.target.value)} placeholder="Ej.: 350" /></label>}
-            {!porAnimal && <label style={etiqueta}>Edad promedio en días (si sabés)<input className="kp-input" inputMode="numeric" value={edad} onChange={e => setEdad(e.target.value)} placeholder="Ej.: 28" /></label>}
+            {!porAnimal && <label style={etiqueta}>Peso total en kg (si tenés)<InputNumero className="kp-input" inputMode="decimal" value={pesoTotal} onChange={e => setPesoTotal(e.target.value)} placeholder="Ej.: 350" /></label>}
+            {!porAnimal && <label style={etiqueta}>Edad promedio en días (si sabés)<InputNumero className="kp-input" inputMode="numeric" value={edad} onChange={e => setEdad(e.target.value)} placeholder="Ej.: 28" /></label>}
             <label style={etiqueta}>¿Dónde van a quedar? (opcional)<input className="kp-input" value={ubicacion} onChange={e => setUbicacion(e.target.value)} placeholder="Galpón / corral" /></label>
           </div>
           <datalist id="proveedores-animales">{p.proveedores.map(x => <option key={x} value={x} />)}</datalist>
@@ -133,7 +134,7 @@ export function PanelCompraAnimales(p: { hoy: string; compras: Compra[]; proveed
                   <span style={{ fontSize: 12, color: "var(--text-muted)", alignSelf: "center" }}>{i + 1}</span>
                   <input className="kp-input" aria-label={`Caravana ${i + 1}`} placeholder="Caravana *" value={f.caravana} onChange={e => setFila(i, "caravana", e.target.value)} />
                   <input className="kp-input" aria-label={`Genética ${i + 1}`} placeholder="Genética" value={f.genetica} onChange={e => setFila(i, "genetica", e.target.value)} />
-                  <input className="kp-input" aria-label={`Peso ${i + 1}`} inputMode="decimal" placeholder="Peso kg" value={f.pesoKg} onChange={e => setFila(i, "pesoKg", e.target.value)} />
+                  <InputNumero className="kp-input" aria-label={`Peso ${i + 1}`} inputMode="decimal" placeholder="Peso kg" value={f.pesoKg} onChange={e => setFila(i, "pesoKg", e.target.value)} />
                   <input className="kp-input" aria-label={`Nacimiento ${i + 1}`} type="date" value={f.nacimiento} onChange={e => setFila(i, "nacimiento", e.target.value)} />
                 </div>
               ))}
@@ -141,7 +142,7 @@ export function PanelCompraAnimales(p: { hoy: string; compras: Compra[]; proveed
           )}
 
           <div className="kp-form-compra">
-            <label style={etiqueta}>Total pagado (₲)<input className="kp-input" inputMode="numeric" value={monto} onChange={e => setMonto(e.target.value)} placeholder="Ej.: 21750000" />
+            <label style={etiqueta}>Total pagado (₲)<InputNumero className="kp-input" inputMode="numeric" value={monto} onChange={e => setMonto(e.target.value)} placeholder="Ej.: 21750000" />
               {monto.replace(/\D/g, "") && <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{gs(monto.replace(/\D/g, ""))}{num(cantidad) > 0 ? ` · ${gs(String(Math.round(Number(monto.replace(/\D/g, "")) / num(cantidad))))} por animal` : ""}</span>}
             </label>
             <label style={etiqueta}>¿Ya se pagó?

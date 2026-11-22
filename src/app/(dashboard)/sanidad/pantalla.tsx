@@ -11,6 +11,7 @@ import {
 import { usePermisos } from "@/lib/auth/sesion-cliente";
 import { VisionGeneralSanidad } from "@/components/sanidad/vision-general-sanidad";
 import dynamic from "next/dynamic";
+import { InputNumero } from "@/components/ui/input-numero";
 
 // Se bajan recién cuando se abren (la pantalla inicial queda más liviana)
 function Cargando() { return <div className="kp-esqueleto" style={{ height: 220, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" />; }
@@ -258,7 +259,7 @@ function EventoRow({ evento, lotesDisp, onApplied }: {
             </div>
             <div>
               <label className="kp-label">Dosis aplicadas *</label>
-              <input type="number" min="1" className="kp-input"
+              <InputNumero min="1" className="kp-input"
                 value={form.dosisAplicadas}
                 onChange={e => setForm(f => ({ ...f, dosisAplicadas: parseInt(e.target.value) || 1 }))} />
             </div>
@@ -607,7 +608,7 @@ export default function SanidadPage() {
                       </div>
                       <div>
                         <label className="kp-label">Cantidad ({UNIDAD_LABEL[productoSeleccionado?.unidadMedida ?? "DOSIS"]}) *</label>
-                        <input type="number" min="1" className="kp-input" placeholder="100" value={loteForm.cantidad} onChange={e => setLoteForm(f => ({ ...f, cantidad: e.target.value }))} />
+                        <InputNumero min="1" className="kp-input" placeholder="100" value={loteForm.cantidad} onChange={e => setLoteForm(f => ({ ...f, cantidad: e.target.value }))} />
                       </div>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -622,7 +623,7 @@ export default function SanidadPage() {
                     </div>
                     <div>
                       <label className="kp-label">Costo unitario (₲ por {UNIDAD_LABEL[productoSeleccionado?.unidadMedida ?? "DOSIS"]})</label>
-                      <input type="number" min="0" step="1" className="kp-input" placeholder="Opcional — para ver cuánto sale este producto en Inventario" value={loteForm.costoUnitario} onChange={e => setLoteForm(f => ({ ...f, costoUnitario: e.target.value }))} />
+                      <InputNumero min="0" step="1" className="kp-input" placeholder="Opcional — para ver cuánto sale este producto en Inventario" value={loteForm.costoUnitario} onChange={e => setLoteForm(f => ({ ...f, costoUnitario: e.target.value }))} />
                     </div>
                     <div>
                       <label className="kp-label">Observaciones</label>
@@ -716,7 +717,7 @@ export default function SanidadPage() {
                       </div>
                       <div>
                         <label className="kp-label">Dosis (ml)</label>
-                        <input type="number" min="0.1" step="0.1" className="kp-input" value={vacForm.dosisMl} onChange={e => setVacForm(f => ({ ...f, dosisMl: e.target.value }))} />
+                        <InputNumero min="0.1" step="0.1" className="kp-input" value={vacForm.dosisMl} onChange={e => setVacForm(f => ({ ...f, dosisMl: e.target.value }))} />
                       </div>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -738,7 +739,7 @@ export default function SanidadPage() {
                       ) : (
                         <div>
                           <label className="kp-label">Stock mínimo</label>
-                          <input type="number" min="0" className="kp-input" placeholder="Alerta si el stock cae debajo de esto" value={vacForm.stockMinimo} onChange={e => setVacForm(f => ({ ...f, stockMinimo: e.target.value }))} />
+                          <InputNumero min="0" className="kp-input" placeholder="Alerta si el stock cae debajo de esto" value={vacForm.stockMinimo} onChange={e => setVacForm(f => ({ ...f, stockMinimo: e.target.value }))} />
                         </div>
                       )}
                     </div>

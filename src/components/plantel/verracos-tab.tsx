@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { IconPlus, IconSearch, IconSkull, IconAlertTriangle, IconLoader2 } from "@tabler/icons-react";
 import { EstadoBadgeBoar } from "./estado-badge";
+import { InputNumero } from "@/components/ui/input-numero";
 
 const BOAR_STATES = [
   { value: "", label: "Todos los estados" },
@@ -267,7 +268,7 @@ export function VerracosTab() {
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div><label className="kp-label">Fecha de nacimiento *</label><input className="kp-input" type="date" value={form.birthDate} onChange={e => F("birthDate", e.target.value)} /></div>
-                <div><label className="kp-label">Peso al ingreso (kg) *</label><input className="kp-input" type="number" step="0.1" value={form.entryWeightKg} onChange={e => F("entryWeightKg", e.target.value)} /></div>
+                <div><label className="kp-label">Peso al ingreso (kg) *</label><InputNumero className="kp-input" step="0.1" value={form.entryWeightKg} onChange={e => F("entryWeightKg", e.target.value)} /></div>
               </div>
               <div style={{ fontSize: 12, color: "var(--text-secondary)", background: "var(--bg-overlay)", borderRadius: "var(--radius-md)", padding: "8px 10px" }}>
                 Solo para reproductores <strong>criados en tu granja</strong>. Si lo compraste a otra granja, cargalo en{" "}

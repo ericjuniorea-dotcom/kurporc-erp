@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { IconLoader2 } from "@tabler/icons-react";
 import { decidirVendedor, descartarDenuncia, guardarConfiguracion, guardarIncidente, marcarAprobadoAsesor, moderarPublicacion, publicarDocumento, responderPrivacidad, revisarProductoPropuesto } from "@/app/acciones/admin-plataforma";
+import { InputNumero } from "@/components/ui/input-numero";
 
 type R = { ok: true } | { ok: false; error: string };
 
@@ -78,7 +79,7 @@ export function FormIncidente({ inicial, titulo }: { inicial?: Incidente; titulo
         <select className="kp-input" {...campo("estado")}><option value="ABIERTO">Abierto</option><option value="CONTENIDO">Contenido</option><option value="CERRADO">Cerrado</option></select>
       </label>
       <label style={etiqueta}>Personas afectadas
-        <input type="number" min={0} className="kp-input" {...campo("personasAfectadas")} />
+        <InputNumero min={0} className="kp-input" {...campo("personasAfectadas")} />
       </label>
       <label style={{ ...etiqueta, gridColumn: "1 / -1" }}>Qué pasó
         <textarea className="kp-input" rows={3} required minLength={10} style={{ height: "auto", padding: 8 }} {...campo("descripcion")} />

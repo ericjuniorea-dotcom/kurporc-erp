@@ -5,6 +5,7 @@ import {
   IconLoader2, IconChevronDown, IconX,
 } from "@tabler/icons-react";
 import { EstadoBadgeSow } from "./estado-badge";
+import { InputNumero } from "@/components/ui/input-numero";
 
 const SOW_STATES = [
   { value: "", label: "Activas (todos los estados)" },
@@ -550,7 +551,7 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
                 </div>
                 <div>
                   <label className="kp-label">Peso al ingreso (kg) *</label>
-                  <input className="kp-input" type="number" step="0.1" value={form.entryWeightKg} onChange={e => F("entryWeightKg", e.target.value)} placeholder="Ej: 135.0" />
+                  <InputNumero className="kp-input" step="0.1" value={form.entryWeightKg} onChange={e => F("entryWeightKg", e.target.value)} placeholder="Ej: 135.0" />
                 </div>
               </div>
               <div style={{ fontSize: 12, color: "var(--text-secondary)", background: "var(--bg-overlay)", borderRadius: "var(--radius-md)", padding: "8px 10px" }}>
@@ -761,7 +762,7 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                   <div>
                     <label className="kp-label">Peso (kg)</label>
-                    <input className="kp-input" type="number" step="0.1" value={discardForm.pesoKg} onChange={e => DF("pesoKg", e.target.value)} placeholder="Ej: 285.0" />
+                    <InputNumero className="kp-input" step="0.1" value={discardForm.pesoKg} onChange={e => DF("pesoKg", e.target.value)} placeholder="Ej: 285.0" />
                   </div>
                   <div>
                     <label className="kp-label">Condición corporal (1–5)</label>
@@ -805,23 +806,23 @@ export function HembrasTab({ selectedSowId, onSelectSow }: HembrasTabProps = {})
                 <div className="kp-grilla-form" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
                   <div>
                     <label className="kp-label">N° parto al descarte</label>
-                    <input className="kp-input" type="number" min="0" value={discardForm.numeroParto} onChange={e => DF("numeroParto", e.target.value)} placeholder="Ej: 5" />
+                    <InputNumero className="kp-input" min="0" value={discardForm.numeroParto} onChange={e => DF("numeroParto", e.target.value)} placeholder="Ej: 5" />
                   </div>
                   <div>
                     <label className="kp-label">Días desde último parto</label>
-                    <input className="kp-input" type="number" min="0" value={discardForm.diasUltimoParto} onChange={e => DF("diasUltimoParto", e.target.value)} placeholder="Ej: 21" />
+                    <InputNumero className="kp-input" min="0" value={discardForm.diasUltimoParto} onChange={e => DF("diasUltimoParto", e.target.value)} placeholder="Ej: 21" />
                   </div>
                   <div>
                     <label className="kp-label">Días desde último servicio</label>
-                    <input className="kp-input" type="number" min="0" value={discardForm.diasUltimoServicio} onChange={e => DF("diasUltimoServicio", e.target.value)} placeholder="Ej: 115" />
+                    <InputNumero className="kp-input" min="0" value={discardForm.diasUltimoServicio} onChange={e => DF("diasUltimoServicio", e.target.value)} placeholder="Ej: 115" />
                   </div>
                   <div>
                     <label className="kp-label">N° servicios realizados</label>
-                    <input className="kp-input" type="number" min="0" value={discardForm.numeroServicios} onChange={e => DF("numeroServicios", e.target.value)} placeholder="Ej: 12" />
+                    <InputNumero className="kp-input" min="0" value={discardForm.numeroServicios} onChange={e => DF("numeroServicios", e.target.value)} placeholder="Ej: 12" />
                   </div>
                   <div>
                     <label className="kp-label">Lechones destetados (últ. parto)</label>
-                    <input className="kp-input" type="number" min="0" value={discardForm.lechonesDestetados} onChange={e => DF("lechonesDestetados", e.target.value)} placeholder="Ej: 10" />
+                    <InputNumero className="kp-input" min="0" value={discardForm.lechonesDestetados} onChange={e => DF("lechonesDestetados", e.target.value)} placeholder="Ej: 10" />
                   </div>
                 </div>
               </FormSection>

@@ -7,6 +7,7 @@ import { Aviso } from "@/components/auth/marco-auth";
 import { anularVenta, crearVenta } from "@/app/acciones/finanzas";
 import { gs } from "@/lib/finanzas/calculos";
 import { MEDIOS } from "../movimientos/libro";
+import { InputNumero } from "@/components/ui/input-numero";
 
 type Venta = { id: string; fecha: string; tipo: string; cantidad: number; kg: number; importeGs: string; destino: string; cliente: string; edad: number | null; remito: string; estado: string };
 type Lote = { id: string; batchCode: string; currentCount: number };
@@ -138,18 +139,18 @@ function FormularioVenta(p: Parameters<typeof PanelVentas>[0] & { onCerrar: () =
         )}
       </div>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <Campo label="Cantidad" ancho={100}><input className="kp-input" inputMode="numeric" value={f.cantidad} onChange={e => set("cantidad", e.target.value.replace(/\D/g, ""))} required /></Campo>
-        <Campo label="Kg totales (balanza)" ancho={140}><input className="kp-input" inputMode="decimal" value={f.kgTotales} onChange={e => set("kgTotales", e.target.value)} required /></Campo>
+        <Campo label="Cantidad" ancho={100}><InputNumero className="kp-input" inputMode="numeric" value={f.cantidad} onChange={e => set("cantidad", e.target.value.replace(/\D/g, ""))} required /></Campo>
+        <Campo label="Kg totales (balanza)" ancho={140}><InputNumero className="kp-input" inputMode="decimal" value={f.kgTotales} onChange={e => set("kgTotales", e.target.value)} required /></Campo>
         <Campo label="Precio" ancho={130}>
           <select className="kp-input" value={f.modoPrecio} onChange={e => set("modoPrecio", e.target.value)}><option value="POR_KG">Por kg vivo</option><option value="POR_KG_CANAL">Por kg de canal</option><option value="POR_CABEZA">Por cabeza</option></select>
         </Campo>
-        {f.modoPrecio === "POR_KG_CANAL" && <Campo label="Rendimiento de canal (%)" ancho={130}><input className="kp-input" inputMode="decimal" value={f.rendimientoPct} onChange={e => set("rendimientoPct", e.target.value)} placeholder="Ej: 78" required /></Campo>}
-        <Campo label={f.modoPrecio === "POR_CABEZA" ? "₲ por cabeza" : f.modoPrecio === "POR_KG_CANAL" ? "₲ por kg de canal" : "₲ por kg vivo"} ancho={130}><input className="kp-input" inputMode="numeric" value={f.precioGs} onChange={e => set("precioGs", e.target.value.replace(/\D/g, ""))} required /></Campo>
+        {f.modoPrecio === "POR_KG_CANAL" && <Campo label="Rendimiento de canal (%)" ancho={130}><InputNumero className="kp-input" inputMode="decimal" value={f.rendimientoPct} onChange={e => set("rendimientoPct", e.target.value)} placeholder="Ej: 78" required /></Campo>}
+        <Campo label={f.modoPrecio === "POR_CABEZA" ? "₲ por cabeza" : f.modoPrecio === "POR_KG_CANAL" ? "₲ por kg de canal" : "₲ por kg vivo"} ancho={130}><InputNumero className="kp-input" inputMode="numeric" value={f.precioGs} onChange={e => set("precioGs", e.target.value.replace(/\D/g, ""))} required /></Campo>
       </div>
       {f.tipoVenta === "CERDO_TERMINADO" && (
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <Campo label="Descuentos por tipificación (₲)" ancho={170}><input className="kp-input" inputMode="numeric" value={f.descuentosGs} onChange={e => set("descuentosGs", e.target.value.replace(/\D/g, ""))} /></Campo>
-          <Campo label="Flete (₲, queda como gasto pendiente)" ancho={200}><input className="kp-input" inputMode="numeric" value={f.fleteGs} onChange={e => set("fleteGs", e.target.value.replace(/\D/g, ""))} /></Campo>
+          <Campo label="Descuentos por tipificación (₲)" ancho={170}><InputNumero className="kp-input" inputMode="numeric" value={f.descuentosGs} onChange={e => set("descuentosGs", e.target.value.replace(/\D/g, ""))} /></Campo>
+          <Campo label="Flete (₲, queda como gasto pendiente)" ancho={200}><InputNumero className="kp-input" inputMode="numeric" value={f.fleteGs} onChange={e => set("fleteGs", e.target.value.replace(/\D/g, ""))} /></Campo>
         </div>
       )}
       {cant > 0 && kg > 0 && precio > 0 && (

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { IconArrowsLeftRight, IconLoader2, IconX, IconAlertTriangle, IconSearch } from "@tabler/icons-react";
+import { InputNumero } from "@/components/ui/input-numero";
 
 interface ActiveFarrowing {
   id:           string;
@@ -202,8 +203,8 @@ export function ModalAdopcion({ farrowing, onClose, onSaved }: Props) {
           </div>
           <div>
             <label className="kp-label">Cantidad *</label>
-            <input
-              className="kp-input" type="number" min={1} max={maxQty}
+            <InputNumero
+              className="kp-input" min={1} max={maxQty}
               value={quantity}
               onChange={e => setQuantity(Number(e.target.value))}
             />

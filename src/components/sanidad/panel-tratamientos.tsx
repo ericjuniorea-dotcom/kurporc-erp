@@ -4,6 +4,7 @@ import { IconPlus, IconLoader2, IconX, IconAlertTriangle } from "@tabler/icons-r
 import { SowPicker } from "./sow-picker";
 
 import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
+import { InputNumero } from "@/components/ui/input-numero";
 const DIAGNOSIS_TYPES = [
   { value: "DIARRHEA",  label: "Diarrea" },
   { value: "ARTHRITIS", label: "Artritis" },
@@ -225,7 +226,7 @@ export function PanelTratamientos() {
                 </div>
                 <div>
                   <label className="kp-label">Dosis (ml) *</label>
-                  <input className="kp-input" type="number" step="0.1" value={doseMl} onChange={e => setDoseMl(e.target.value)} />
+                  <InputNumero className="kp-input" step="0.1" value={doseMl} onChange={e => setDoseMl(e.target.value)} />
                 </div>
               </div>
               <div>
@@ -239,7 +240,7 @@ export function PanelTratamientos() {
                 </div>
                 <div>
                   <label className="kp-label">Días de carencia</label>
-                  <input className="kp-input" type="number" min={0} value={withdrawalDays} onChange={e => setWithdrawalDays(e.target.value)} />
+                  <InputNumero className="kp-input" min={0} value={withdrawalDays} onChange={e => setWithdrawalDays(e.target.value)} />
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>

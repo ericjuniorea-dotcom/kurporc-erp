@@ -13,6 +13,7 @@ import VacunasTab from "@/components/configuracion/vacunas-tab";
 import { METAS_CATALOGO } from "@/lib/indicadores/catalogo";
 import { AyudaIndicador } from "@/components/indicadores/ayuda";
 import { PanelGenerales } from "@/components/configuracion/generales";
+import { InputNumero } from "@/components/ui/input-numero";
 
 /* ─── Constantes de módulo ─────────────────────────────────────── */
 
@@ -178,9 +179,8 @@ function MetasTab({ modulo }: { modulo: ModuleKey }) {
                 </td>
                 <td style={{ fontFamily: "monospace", fontSize: 10, color: "var(--text-muted)" }}>{m.kpiKey}</td>
                 <td>
-                  <input
+                  <InputNumero
                     className="kp-input"
-                    type="number"
                     step="0.01"
                     value={editVal ?? m.valor}
                     onChange={e => setEditing(p => ({ ...p, [m.kpiKey]: e.target.value }))}
@@ -356,8 +356,8 @@ function GeneticaTab() {
               </div>
               <div>
                 <label className="kp-label">Meta nacidos vivos{form.funcion === "PATERNA" ? " (no aplica a genética paterna)" : ""}</label>
-                <input
-                  className="kp-input" type="number" step="0.1"
+                <InputNumero
+                  className="kp-input" step="0.1"
                   value={form.metaNacidosVivos}
                   disabled={form.funcion === "PATERNA"}
                   onChange={e => F("metaNacidosVivos", e.target.value)}
@@ -455,9 +455,8 @@ function AlertasTab({ modulo }: { modulo: ModuleKey }) {
               <td style={{ fontFamily: "monospace", fontSize: 10, color: "var(--text-muted)" }}>{a.eventoKey}</td>
               <td>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <input
+                  <InputNumero
                     className="kp-input"
-                    type="number"
                     step="0.1"
                     value={editVal ?? (a.umbral ?? "")}
                     onChange={e => setEditingUmbral(p => ({ ...p, [a.eventoKey]: e.target.value }))}
@@ -768,9 +767,8 @@ function ProcesosTab({ modulo }: { modulo: ModuleKey }) {
                     <div key={paramKey}>
                       <label className="kp-label">{paramDef.label}</label>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <input
+                        <InputNumero
                           className="kp-input"
-                          type="number"
                           min={paramDef.min}
                           max={paramDef.max}
                           value={String(v[paramKey] ?? paramDef.defaultVal)}

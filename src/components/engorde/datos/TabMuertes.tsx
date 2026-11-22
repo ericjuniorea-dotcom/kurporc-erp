@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { InputNumero } from "@/components/ui/input-numero";
 
 const CAUSAS = [
   { value: "RESPIRATORY",   label: "Enfermedad respiratoria" },
@@ -83,11 +84,11 @@ export function TabMuertes() {
           </div>
           <div>
             <label className="kp-label">Cantidad *</label>
-            <input className="kp-input" type="number" min={1} value={form.count} onChange={e => F("count", e.target.value)} />
+            <InputNumero className="kp-input" min={1} value={form.count} onChange={e => F("count", e.target.value)} />
           </div>
           <div>
             <label className="kp-label">Peso estimado (kg)</label>
-            <input className="kp-input" type="number" step="0.5" value={form.estimatedWeightKg} onChange={e => F("estimatedWeightKg", e.target.value)} placeholder="Opcional" />
+            <InputNumero className="kp-input" step="0.5" value={form.estimatedWeightKg} onChange={e => F("estimatedWeightKg", e.target.value)} placeholder="Opcional" />
           </div>
         </div>
 

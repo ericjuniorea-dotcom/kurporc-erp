@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { IconPlus, IconX } from "@tabler/icons-react";
 import { formatDate } from "@/lib/utils";
+import { InputNumero } from "@/components/ui/input-numero";
 
 interface Lote {
   id: string;
@@ -172,11 +173,11 @@ export function TabLotes() {
                 </div>
                 <div>
                   <label className="kp-label">Cantidad inicial *</label>
-                  <input className="kp-input" type="number" min={1} value={form.currentCount} onChange={e => F("currentCount", e.target.value)} placeholder="466" />
+                  <InputNumero className="kp-input" min={1} value={form.currentCount} onChange={e => F("currentCount", e.target.value)} placeholder="466" />
                 </div>
                 <div>
                   <label className="kp-label">Peso total ingreso (kg) *</label>
-                  <input className="kp-input" type="number" step="0.1" value={form.entryWeightKg} onChange={e => F("entryWeightKg", e.target.value)} placeholder="23750" />
+                  <InputNumero className="kp-input" step="0.1" value={form.entryWeightKg} onChange={e => F("entryWeightKg", e.target.value)} placeholder="23750" />
                 </div>
                 <div>
                   <label className="kp-label">Peso medio ingreso (kg)</label>
@@ -184,11 +185,11 @@ export function TabLotes() {
                 </div>
                 <div>
                   <label className="kp-label">Edad media al ingreso (días)</label>
-                  <input className="kp-input" type="number" min={0} value={form.avgAgeAtEntryDays} onChange={e => F("avgAgeAtEntryDays", e.target.value)} placeholder="63" />
+                  <InputNumero className="kp-input" min={0} value={form.avgAgeAtEntryDays} onChange={e => F("avgAgeAtEntryDays", e.target.value)} placeholder="63" />
                 </div>
                 <div>
                   <label className="kp-label">Peso objetivo de salida (kg)</label>
-                  <input className="kp-input" type="number" step="0.5" value={form.targetWeightKg} onChange={e => F("targetWeightKg", e.target.value)} placeholder="120" />
+                  <InputNumero className="kp-input" step="0.5" value={form.targetWeightKg} onChange={e => F("targetWeightKg", e.target.value)} placeholder="120" />
                 </div>
                 <div>
                   <label className="kp-label">Responsable (ID empleado)</label>

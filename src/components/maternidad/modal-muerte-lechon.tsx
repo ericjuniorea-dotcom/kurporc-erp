@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { pigletDeathSchema, type PigletDeathInput } from "@/lib/validations/maternidad";
 import { IconAlertTriangle, IconLoader2, IconX } from "@tabler/icons-react";
+import { InputNumero } from "@/components/ui/input-numero";
 
 const CAUSES = [
   { value: "WEAKNESS",    label: "Flaqueza"          },
@@ -100,7 +101,7 @@ export function ModalMuerteLechon({ farrowing, onClose, onSaved }: Props) {
             </div>
             <div>
               <label className="kp-label">Cantidad *</label>
-              <input className="kp-input" type="number" min={1} max={farrowing.currentStock} {...register("quantity")} />
+              <InputNumero className="kp-input" min={1} max={farrowing.currentStock} {...register("quantity")} />
               {Number(quantity) > farrowing.currentStock && (
                 <p style={{ fontSize: 11, color: "var(--danger-text)", marginTop: 3 }}>
                   Supera el stock disponible ({farrowing.currentStock})

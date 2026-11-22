@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { IconLoader2 } from "@tabler/icons-react";
 import { responderCotizacion } from "@/app/acciones/vendedor-pedidos";
 import { unidadesParaCubrir, type ItemRespuesta } from "@/lib/pedidos/reglas";
+import { InputNumero } from "@/components/ui/input-numero";
 
 type Item = { id: string; nombre: string; unidadBase: string; cantidadBase: number; nota: string | null; productoId: string };
 type Pub = { id: string; titulo: string; productoId: string; precioGs: number; unidadVenta: string; contenidoBase: number; pedidoMinimo: number; plazo: number };
@@ -62,10 +63,10 @@ export function FormRespuesta({ solicitudId, items, publicaciones, previa, abier
                       {mias.map(p => <option key={p.id} value={p.id}>{p.titulo} · {p.unidadVenta}</option>)}
                     </select>
                   </td>
-                  <td><input className="kp-input" inputMode="numeric" value={f.precio} disabled={!f.cotiza} required={f.cotiza} onChange={e => set(i, { precio: e.target.value.replace(/\D/g, "") })} style={cel} /></td>
+                  <td><InputNumero className="kp-input" inputMode="numeric" value={f.precio} disabled={!f.cotiza} required={f.cotiza} onChange={e => set(i, { precio: e.target.value.replace(/\D/g, "") })} style={cel} /></td>
                   <td><input className="kp-input" value={f.unidadVenta} disabled={!f.cotiza} required={f.cotiza} onChange={e => set(i, { unidadVenta: e.target.value, descripcion: f.publicacionId ? f.descripcion : `${it.nombre} · ${e.target.value}` })} placeholder="Bolsa 40 kg" style={{ width: 120 }} /></td>
-                  <td><span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}><input className="kp-input" inputMode="decimal" value={f.contenido} disabled={!f.cotiza} required={f.cotiza} onChange={e => set(i, { contenido: e.target.value, cantidad: String(unidadesParaCubrir(it.cantidadBase, Number(e.target.value.replace(",", ".")) || 0)) })} style={{ width: 70 }} /><span style={{ fontSize: 11, color: "var(--text-muted)" }}>{it.unidadBase.toLowerCase()}</span></span></td>
-                  <td><input className="kp-input" type="number" min={0} step="any" value={f.cantidad} disabled={!f.cotiza} required={f.cotiza} onChange={e => set(i, { cantidad: e.target.value })} style={{ width: 80 }} /></td>
+                  <td><span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}><InputNumero className="kp-input" inputMode="decimal" value={f.contenido} disabled={!f.cotiza} required={f.cotiza} onChange={e => set(i, { contenido: e.target.value, cantidad: String(unidadesParaCubrir(it.cantidadBase, Number(e.target.value.replace(",", ".")) || 0)) })} style={{ width: 70 }} /><span style={{ fontSize: 11, color: "var(--text-muted)" }}>{it.unidadBase.toLowerCase()}</span></span></td>
+                  <td><InputNumero className="kp-input" min={0} step="any" value={f.cantidad} disabled={!f.cotiza} required={f.cotiza} onChange={e => set(i, { cantidad: e.target.value })} style={{ width: 80 }} /></td>
                   <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{f.cotiza ? `Gs ${((Number(f.precio) || 0) * (Number(f.cantidad) || 0)).toLocaleString("es-PY")}` : "—"}</td>
                 </tr>
               );
@@ -74,7 +75,7 @@ export function FormRespuesta({ solicitudId, items, publicaciones, previa, abier
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10 }}>
           {([["Envío (Gs)", envio, setEnvio, "numeric"], ["Plazo de entrega (días)", plazo, setPlazo, "numeric"]] as const).map(([l, v, s]) => (
-            <label key={l} style={{ fontSize: 11.5, color: "var(--text-muted)", display: "flex", flexDirection: "column", gap: 4 }}>{l}<input className="kp-input" inputMode="numeric" value={v} onChange={e => s(e.target.value.replace(/\D/g, ""))} /></label>
+            <label key={l} style={{ fontSize: 11.5, color: "var(--text-muted)", display: "flex", flexDirection: "column", gap: 4 }}>{l}<InputNumero className="kp-input" inputMode="numeric" value={v} onChange={e => s(e.target.value.replace(/\D/g, ""))} /></label>
           ))}
           <label style={{ fontSize: 11.5, color: "var(--text-muted)", display: "flex", flexDirection: "column", gap: 4 }}>Válida hasta<input className="kp-input" type="date" value={valida} onChange={e => setValida(e.target.value)} required /></label>
         </div>

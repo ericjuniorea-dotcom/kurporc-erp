@@ -6,6 +6,7 @@ import { IconLoader2, IconLock, IconPlus, IconX } from "@tabler/icons-react";
 import { Aviso } from "@/components/auth/marco-auth";
 import { anularMovimiento, crearMovimiento, registrarPago } from "@/app/acciones/finanzas";
 import { gs, nombreMes } from "@/lib/finanzas/calculos";
+import { InputNumero } from "@/components/ui/input-numero";
 
 type Mov = {
   id: string; fecha: string; vencimiento: string | null; tipo: string; concepto: string; categoria: string; subcategoria: string;
@@ -257,7 +258,7 @@ function FormularioMovimiento(p: Props & { onCerrar: () => void; onListo: (t: st
           <input className="kp-input" list="subcats" value={f.subcategoria} onChange={e => set("subcategoria", e.target.value)} maxLength={80} />
           <datalist id="subcats">{cat?.subcategorias.map(s => <option key={s} value={s} />)}</datalist>
         </Campo>
-        <Campo label="Cantidad" ancho={110}><input className="kp-input" inputMode="decimal" value={f.cantidad} onChange={e => set("cantidad", e.target.value)} placeholder="opcional" /></Campo>
+        <Campo label="Cantidad" ancho={110}><InputNumero className="kp-input" inputMode="decimal" value={f.cantidad} onChange={e => set("cantidad", e.target.value)} placeholder="opcional" /></Campo>
         <Campo label="Unidad" ancho={100}>
           <input className="kp-input" list="umedidas" value={f.unidadMedida} onChange={e => set("unidadMedida", e.target.value)} maxLength={20} placeholder="kg, unidad…" />
           <datalist id="umedidas">{["kg", "Unidad", "Gl", "frasco", "dosis", "litro", "bolsa"].map(u => <option key={u} value={u} />)}</datalist>
@@ -271,7 +272,7 @@ function FormularioMovimiento(p: Props & { onCerrar: () => void; onListo: (t: st
               {p.productos.filter(x => x.categoria === "VACUNA" || x.categoria === "MEDICAMENTO").map(x => <option key={x.id} value={x.id}>{x.nombre}</option>)}
             </select>
           </Campo>
-          <Campo label="ml por unidad (frasco)" ancho={140}><input className="kp-input" inputMode="decimal" value={f.mlPorUnidad} onChange={e => set("mlPorUnidad", e.target.value)} /></Campo>
+          <Campo label="ml por unidad (frasco)" ancho={140}><InputNumero className="kp-input" inputMode="decimal" value={f.mlPorUnidad} onChange={e => set("mlPorUnidad", e.target.value)} /></Campo>
         </div>
       )}
       {esCompra && (
@@ -291,7 +292,7 @@ function FormularioMovimiento(p: Props & { onCerrar: () => void; onListo: (t: st
                 </select>
               </Campo>
               <Campo label={`Cantidad que entra${prodInv ? ` (${UNIDAD[prodInv.unidadMedida] ?? prodInv.unidadMedida})` : ""}`} ancho={160}>
-                <input className="kp-input" inputMode="decimal" value={f.inventarioCantidad} onChange={e => set("inventarioCantidad", e.target.value)} required placeholder={prodInv ? `en ${UNIDAD[prodInv.unidadMedida] ?? "unidades"}` : ""} />
+                <InputNumero className="kp-input" inputMode="decimal" value={f.inventarioCantidad} onChange={e => set("inventarioCantidad", e.target.value)} required placeholder={prodInv ? `en ${UNIDAD[prodInv.unidadMedida] ?? "unidades"}` : ""} />
               </Campo>
               {prodInv && f.montoGs && Number(f.inventarioCantidad.replace(",", ".")) > 0 && (
                 <div style={{ alignSelf: "flex-end", fontSize: 11.5, color: "var(--text-muted)", paddingBottom: 9 }}>
@@ -309,7 +310,7 @@ function FormularioMovimiento(p: Props & { onCerrar: () => void; onListo: (t: st
           <datalist id="contrapartes">{p.contrapartes.map(c => <option key={c.nombre} value={c.nombre} />)}</datalist>
         </Campo>
         <Campo label="Monto (₲)" ancho={150}>
-          <input className="kp-input" inputMode="numeric" value={f.montoGs} onChange={e => set("montoGs", e.target.value.replace(/[^\d]/g, ""))} required placeholder="Ej: 3500000" style={{ fontVariantNumeric: "tabular-nums" }} />
+          <InputNumero className="kp-input" inputMode="numeric" value={f.montoGs} onChange={e => set("montoGs", e.target.value.replace(/[^\d]/g, ""))} required placeholder="Ej: 3500000" style={{ fontVariantNumeric: "tabular-nums" }} />
         </Campo>
         {precio !== null && <div style={{ alignSelf: "flex-end", fontSize: 11.5, color: "var(--text-muted)", paddingBottom: 9 }}>{gs(precio)} por {f.unidadMedida || "unidad"}</div>}
         {p.unidades.length > 1 && (
@@ -384,7 +385,7 @@ export function FormularioPago({ mov, cuentas, hoy, onCerrar, onListo }: { mov: 
       <div style={{ fontSize: 13.5, fontWeight: 500, color: "var(--text-primary)" }}>{esCobro ? "Registrar cobro" : "Registrar pago"}: {mov.concepto}</div>
       <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>Monto {gs(mov.montoGs)} · ya {esCobro ? "cobrado" : "pagado"} {gs(mov.pagadoGs)} · saldo <strong>{gs(saldo)}</strong></div>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <Campo label="Monto (₲)" ancho={150}><input className="kp-input" inputMode="numeric" value={monto} onChange={e => setMonto(e.target.value.replace(/\D/g, ""))} required /></Campo>
+        <Campo label="Monto (₲)" ancho={150}><InputNumero className="kp-input" inputMode="numeric" value={monto} onChange={e => setMonto(e.target.value.replace(/\D/g, ""))} required /></Campo>
         <Campo label="Fecha" ancho={140}><input type="date" className="kp-input" value={fecha} onChange={e => setFecha(e.target.value)} required /></Campo>
         <Campo label="Caja / banco" ancho={170}>
           <select className="kp-input" value={cuenta} onChange={e => setCuenta(e.target.value)}>

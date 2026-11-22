@@ -6,6 +6,7 @@ import { IconLoader2, IconPlus } from "@tabler/icons-react";
 import { Aviso } from "@/components/auth/marco-auth";
 import { cambiarEstadoCuenta, crearCuenta, declararSaldo } from "@/app/acciones/finanzas";
 import { gs } from "@/lib/finanzas/calculos";
+import { InputNumero } from "@/components/ui/input-numero";
 
 type Cuenta = {
   id: string; nombre: string; tipo: string; activa: boolean; numero: string; saldoGs: string; montoAsignadoGs: string | null;
@@ -109,9 +110,9 @@ function NuevaCuenta({ onCerrar, onListo }: { onCerrar: () => void; onListo: (t:
         <Campo label="N° de cuenta (se guarda cifrado)" ancho={180}><input className="kp-input" value={f.numero} onChange={e => set("numero", e.target.value)} maxLength={40} autoComplete="off" /></Campo>
       </div>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <Campo label="Saldo inicial (₲)" ancho={150}><input className="kp-input" inputMode="numeric" value={f.saldoInicialGs} onChange={e => set("saldoInicialGs", e.target.value.replace(/[^\d-]/g, ""))} /></Campo>
+        <Campo label="Saldo inicial (₲)" ancho={150}><InputNumero className="kp-input" inputMode="numeric" value={f.saldoInicialGs} onChange={e => set("saldoInicialGs", e.target.value.replace(/[^\d-]/g, ""))} /></Campo>
         <Campo label="Fecha del saldo inicial" ancho={150}><input type="date" className="kp-input" value={f.fechaSaldoInicial} onChange={e => set("fechaSaldoInicial", e.target.value)} /></Campo>
-        {f.tipo === "CAJA_CHICA" && <Campo label="Monto asignado (₲)" ancho={150}><input className="kp-input" inputMode="numeric" value={f.montoAsignadoGs} onChange={e => set("montoAsignadoGs", e.target.value.replace(/\D/g, ""))} /></Campo>}
+        {f.tipo === "CAJA_CHICA" && <Campo label="Monto asignado (₲)" ancho={150}><InputNumero className="kp-input" inputMode="numeric" value={f.montoAsignadoGs} onChange={e => set("montoAsignadoGs", e.target.value.replace(/\D/g, ""))} /></Campo>}
       </div>
       {error && <Aviso tipo="error">{error}</Aviso>}
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
@@ -135,7 +136,7 @@ function DeclararSaldo({ cuenta, hoy, onCerrar, onListo }: { cuenta: Cuenta; hoy
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <Campo label="Fecha" ancho={140}><input type="date" className="kp-input" value={fechaD} max={hoy} onChange={e => setFecha(e.target.value)} required /></Campo>
         <Campo label={cuenta.tipo === "BANCO" || cuenta.tipo === "COOPERATIVA" ? "Saldo del extracto (₲)" : "Lo que contaste (₲)"} ancho={170}>
-          <input className="kp-input" inputMode="numeric" value={saldo} onChange={e => setSaldo(e.target.value.replace(/[^\d-]/g, ""))} required />
+          <InputNumero className="kp-input" inputMode="numeric" value={saldo} onChange={e => setSaldo(e.target.value.replace(/[^\d-]/g, ""))} required />
         </Campo>
         <Campo label="Observación" ancho={200}><input className="kp-input" value={obs} onChange={e => setObs(e.target.value)} maxLength={200} /></Campo>
       </div>

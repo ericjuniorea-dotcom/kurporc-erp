@@ -6,6 +6,7 @@ import {
   IconShieldCheck, IconX,
 } from "@tabler/icons-react";
 import { LABORATORIOS, buscarMarcas } from "@/lib/config/catalogo-marcas";
+import { InputNumero } from "@/components/ui/input-numero";
 
 type ModuleKey = "GESTACION" | "MATERNIDAD" | "RECRIA" | "ENGORDE" | "PLANTEL" | "BALANCEADO";
 type Paridad = "NULIPARA" | "MULTIPARA" | "AMBAS";
@@ -616,7 +617,7 @@ function AgregarVacunaModal({
                     <label className="kp-label" style={{ fontSize: 10 }}>
                       {esMaternidad ? (sujeto === "LECHON" ? "Día de vida" : "Día post-parto") : "Día de gestación"}
                     </label>
-                    <input className="kp-input" type="number" min="0" value={d.diaGestacion}
+                    <InputNumero className="kp-input" min="0" value={d.diaGestacion}
                       onChange={e => updateDosis(tabActivo, d.key, { diaGestacion: e.target.value })} placeholder={esMaternidad ? "Ej: 21" : "Ej: 70"} />
                   </div>
                   <div>
@@ -629,12 +630,12 @@ function AgregarVacunaModal({
                   </div>
                   <div>
                     <label className="kp-label" style={{ fontSize: 10 }}>Dosis (ml) *</label>
-                    <input className="kp-input" type="number" step="0.1" min="0" value={d.dosisMl}
+                    <InputNumero className="kp-input" step="0.1" min="0" value={d.dosisMl}
                       onChange={e => updateDosis(tabActivo, d.key, { dosisMl: e.target.value })} />
                   </div>
                   <div>
                     <label className="kp-label" style={{ fontSize: 10 }}>Espera servicio (d)</label>
-                    <input className="kp-input" type="number" min="0" value={d.diasEsperaServicio}
+                    <InputNumero className="kp-input" min="0" value={d.diasEsperaServicio}
                       onChange={e => updateDosis(tabActivo, d.key, { diasEsperaServicio: e.target.value })} />
                   </div>
                   <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10.5, paddingBottom: 8, whiteSpace: "nowrap" }}>
