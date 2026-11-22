@@ -16,3 +16,19 @@ export function recargarSiVersionVieja(e: unknown): boolean {
   window.location.reload();
   return true;
 }
+
+/**
+ * Mensaje en castellano para un error al llamar al servidor desde una pantalla.
+ * · Desvío (sesión cerrada): Next.js ya está llevando a la persona a ingresar → sin mensaje.
+ * · Versión vieja: al cargar datos recarga sola; al guardar avisa (para no perder lo escrito).
+ * · Cualquier otro: el mensaje por defecto (nunca el texto técnico en inglés).
+ */
+export function mensajeError(e: unknown, porDefecto: string, { recargar = false } = {}): string {
+  const m = e instanceof Error ? e.message : String(e ?? "");
+  if (m === "NEXT_REDIRECT" || (e as { digest?: string })?.digest?.startsWith?.("NEXT_REDIRECT")) return "";
+  if (esVersionVieja(e)) {
+    if (recargar && recargarSiVersionVieja(e)) return "Actualizando la pantalla…";
+    return "La pantalla quedó desactualizada o se cortó la conexión. Tocá «Recargar» (o deslizá hacia abajo) y probá de nuevo.";
+  }
+  return porDefecto;
+}

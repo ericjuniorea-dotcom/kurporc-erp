@@ -9,7 +9,7 @@ import { IconArrowRight, IconCheck, IconChevronDown, IconCircleCheck, IconChevro
 import { anularConsumo, nutricionDia, registrarConsumo } from "@/app/acciones/nutricion";
 import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 import type { ModuloNutricion } from "@/lib/nutricion/plan";
-import { recargarSiVersionVieja } from "@/lib/version-vieja";
+import { mensajeError } from "@/lib/version-vieja";
 
 type Datos = Awaited<ReturnType<typeof nutricionDia>>;
 type Tipo = Datos["tipos"][number];
@@ -30,7 +30,7 @@ export function CargaDiaNutricion() {
     setError(null);
     // Si falla, reintenta una vez; si es porque la pantalla quedó con una versión vieja, recarga sola
     nutricionDia(fecha).then(setDatos).catch(() => new Promise(r => setTimeout(r, 800)).then(() => nutricionDia(fecha)).then(setDatos)
-      .catch((e: unknown) => { if (!recargarSiVersionVieja(e)) setError("No se pudo cargar."); }));
+      .catch((e: unknown) => { const m = mensajeError(e, "No se pudo cargar.", { recargar: true }); if (m) setError(m); }));
   }, [fecha]);
   useEffect(() => { cargar(); }, [cargar]);
 
@@ -110,7 +110,7 @@ function Cargas({ regs, onCambio }: { regs: Reg[]; onCambio: () => void }) {
     if (!window.confirm(`¿Anular la carga de ${kg(r.kg)} de las ${hora(r.hora)}? El balanceado vuelve al inventario.`)) return;
     setMsg(null);
     iniciar(async () => {
-      const res = await anularConsumo(r.id).catch(() => ({ ok: false as const, error: "No se pudo anular. Recargá la página." }));
+      const res = await anularConsumo(r.id).catch((e: unknown) => ({ ok: false as const, error: mensajeError(e, "No se pudo anular. Probá de nuevo.") }));
       if (!res.ok) setMsg(res.error); else onCambio();
     });
   };
@@ -153,7 +153,7 @@ function useGuardar(onGuardado: () => void) {
     iniciar(async () => {
       const avisos: string[] = [], guardados: string[] = [];
       for (const it of items) {
-        const r = await registrarConsumo(it).catch(() => ({ ok: false as const, error: "No se pudo guardar. Recargá la página." }));
+        const r = await registrarConsumo(it).catch((e: unknown) => ({ ok: false as const, error: mensajeError(e, "No se pudo guardar. Probá de nuevo.") }));
         if (!r.ok) { alGuardar(guardados); setMsg({ tipo: "error", texto: r.error }); onGuardado(); return; }
         guardados.push(it.feedTypeId);
         if (r.aviso) avisos.push(r.aviso);

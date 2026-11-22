@@ -124,6 +124,13 @@ export async function middleware(req: NextRequest) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";
     url.search = `?next=${encodeURIComponent(pathname + search)}${porInactividad ? "&error=inactividad" : ""}`;
+    // Pedido de una acción de la pantalla (botón, carga de datos): un desvío común le devuelve la página de ingreso
+    // y la pantalla muestra «An unexpected response…». Con esta cabecera Next.js lleva a la persona a ingresar.
+    if (req.headers.has("next-action")) {
+      const r = new NextResponse(null, { status: 200, headers: { "x-action-redirect": `${url.pathname}${url.search};replace`, "content-type": "text/plain" } });
+      res.cookies.getAll().forEach(c => r.cookies.set(c));
+      return r;
+    }
     const redir = NextResponse.redirect(url);
     res.cookies.getAll().forEach(c => redir.cookies.set(c));
     return redir;

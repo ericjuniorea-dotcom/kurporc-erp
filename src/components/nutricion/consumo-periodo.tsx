@@ -6,6 +6,7 @@ import { IconLoader2 } from "@tabler/icons-react";
 import { consumoPeriodo } from "@/app/acciones/nutricion";
 import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 import { MODULOS_NUTRICION, ORDEN_MODULOS } from "@/lib/nutricion/plan";
+import { mensajeError } from "@/lib/version-vieja";
 
 type Datos = Awaited<ReturnType<typeof consumoPeriodo>>;
 type Agrupar = "dia" | "semana" | "mes" | "anio";
@@ -34,7 +35,9 @@ export function ConsumoPeriodo() {
 
   const cargar = useCallback(() => {
     setCargando(true); setError(null);
-    consumoPeriodo({ desde, hasta, agrupar }).then(setDatos).catch((e: unknown) => setError(e instanceof Error && e.message ? e.message : "No se pudo cargar.")).finally(() => setCargando(false));
+    // Si falla, reintenta una vez; si la pantalla quedó con una versión vieja, recarga sola
+    consumoPeriodo({ desde, hasta, agrupar }).catch(() => new Promise(r => setTimeout(r, 800)).then(() => consumoPeriodo({ desde, hasta, agrupar })))
+      .then(setDatos).catch((e: unknown) => setError(mensajeError(e, "No se pudo cargar el consumo. Probá de nuevo.", { recargar: true }) || null)).finally(() => setCargando(false));
   }, [desde, hasta, agrupar]);
   useEffect(() => { cargar(); }, [cargar]);
 
@@ -60,7 +63,13 @@ export function ConsumoPeriodo() {
         </label>
         {cargando && <IconLoader2 size={16} className="animate-spin" style={{ color: "var(--text-muted)", marginBottom: 8 }} aria-label="Cargando" />}
       </div>
-      {error && <div role="alert" style={{ fontSize: 13, color: "var(--danger-text)" }}>{error}</div>}
+      {error && (
+        <div role="alert" style={{ fontSize: 13, color: "var(--danger-text)", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          {error}
+          <button type="button" className="btn" onClick={cargar}>Reintentar</button>
+          <button type="button" className="btn" onClick={() => window.location.reload()}>Recargar</button>
+        </div>
+      )}
 
       {datos && (
         <>

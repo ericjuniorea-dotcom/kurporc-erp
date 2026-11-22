@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { IconLoader2, IconPlus, IconTrash } from "@tabler/icons-react";
 import { cargarPlanSugerido, guardarTipoBalanceado, planAlimentacion, quitarTipoBalanceado } from "@/app/acciones/nutricion";
+import { mensajeError } from "@/lib/version-vieja";
 import { MODULOS_NUTRICION, ORDEN_MODULOS, type ModuloNutricion } from "@/lib/nutricion/plan";
 
 type Plan = Awaited<ReturnType<typeof planAlimentacion>>;
@@ -13,12 +14,14 @@ export function PlanAlimentacion({ puedeConfigurar }: { puedeConfigurar: boolean
   const [plan, setPlan] = useState<Plan | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
-  const cargar = useCallback(() => { planAlimentacion().then(setPlan).catch(() => setMsg("No se pudo cargar. Recargá la página.")); }, []);
+  const cargar = useCallback(() => {
+    planAlimentacion().then(setPlan).catch((e: unknown) => setMsg(mensajeError(e, "No se pudo cargar el plan. Probá de nuevo.", { recargar: true }) || null));
+  }, []);
   useEffect(() => { cargar(); }, [cargar]);
   const correr = (fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>) => {
     setMsg(null);
     iniciar(async () => {
-      const r: { ok: boolean; error?: string; aviso?: string } = await fn().catch(() => ({ ok: false, error: "No se pudo. Recargá la página." }));
+      const r: { ok: boolean; error?: string; aviso?: string } = await fn().catch((e: unknown) => ({ ok: false, error: mensajeError(e, "No se pudo guardar. Probá de nuevo.") }));
       if (!r.ok) setMsg(r.error ?? "No se pudo."); else { if (r.aviso) setMsg(r.aviso); cargar(); }
     });
   };
