@@ -13,6 +13,7 @@ import {
 } from "@tabler/icons-react";
 
 import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
+import { Paginador, usePaginas } from "@/components/ui/paginador";
 import dynamic from "next/dynamic";
 import { PanelTransferencias } from "@/components/transferencias/panel";
 
@@ -58,6 +59,7 @@ type ModalType = "prenadas" | "servidas" | "disponibles" | null;
 function VisionGeneralGestacion({ onOpenLotes }: { onOpenLotes: () => void }) {
   const [kpis,            setKpis]            = useState<GestKpis | null>(null);
   const [inconsistencias, setInconsistencias] = useState<Inconsistencia[]>([]);
+  const pagInc = usePaginas(inconsistencias, 4);
   const [distribucion,    setDistribucion]    = useState<Distribucion[]>([]);
   const [loadingKpis,     setLoadingKpis]     = useState(true);
   const [loadingVision,   setLoadingVision]   = useState(true);
@@ -200,7 +202,7 @@ function VisionGeneralGestacion({ onOpenLotes }: { onOpenLotes: () => void }) {
           </div>
         </div>
 
-        <div style={{ background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-lg)", overflow: "hidden", minWidth: 0 }}>
+        <div style={{ background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-lg)", overflow: "hidden", minWidth: 0, display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 18px", borderBottom: "0.5px solid var(--border-default)" }}>
             <IconAlertTriangle size={15} style={{ color: "var(--warning)" }} aria-hidden />
             <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-primary)", textTransform: "uppercase", letterSpacing: "0.06em", flex: 1 }}>Inconsistencias</span>
@@ -218,6 +220,7 @@ function VisionGeneralGestacion({ onOpenLotes }: { onOpenLotes: () => void }) {
               Sin inconsistencias detectadas
             </div>
           ) : (
+            <>
             <div style={{ overflowX: "auto" }}>
                   <table className="kp-table" style={{ width: "100%" }}>
                     <thead>
@@ -230,7 +233,7 @@ function VisionGeneralGestacion({ onOpenLotes }: { onOpenLotes: () => void }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {inconsistencias.map(inc => {
+                      {pagInc.visibles.map(inc => {
                         const isDanger = inc.diasGestacion >= 120;
                         const color    = isDanger ? "var(--danger-text)" : "var(--warning-text)";
                         return (
@@ -253,6 +256,8 @@ function VisionGeneralGestacion({ onOpenLotes }: { onOpenLotes: () => void }) {
                     </tbody>
                   </table>
             </div>
+            <Paginador {...pagInc} />
+            </>
           )}
         </div>
       </div>

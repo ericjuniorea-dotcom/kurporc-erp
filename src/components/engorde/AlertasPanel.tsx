@@ -1,4 +1,5 @@
 "use client";
+import { Paginador, usePaginas } from "@/components/ui/paginador";
 
 interface Alerta {
   tipo: "danger" | "warning" | "info" | "ok";
@@ -18,6 +19,8 @@ interface Props {
 }
 
 export function AlertasPanel({ alertas, loading }: Props) {
+  // Muchas alertas: de a 5 por página para no estirar la pantalla
+  const pag = usePaginas(alertas, 5);
   if (loading) return (
     <div style={{ height: 80, background: "var(--bg-overlay)", borderRadius: "var(--radius-lg)" }} />
   );
@@ -36,7 +39,7 @@ export function AlertasPanel({ alertas, loading }: Props) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      {alertas.map((a, i) => {
+      {pag.visibles.map((a, i) => {
         const c = COLOR[a.tipo];
         return (
           <div
@@ -59,6 +62,7 @@ export function AlertasPanel({ alertas, loading }: Props) {
           </div>
         );
       })}
+      <Paginador {...pag} />
     </div>
   );
 }

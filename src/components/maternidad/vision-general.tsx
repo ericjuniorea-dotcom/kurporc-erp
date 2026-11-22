@@ -10,6 +10,7 @@ import {
 import { HembrasMaternidadModal } from "@/components/maternidad/kpi-modals";
 
 import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
+import { Paginador, usePaginas } from "@/components/ui/paginador";
 interface KpiData {
   hembras:         number;
   lechones:        number;
@@ -65,6 +66,7 @@ export function VisionGeneralMaternidad() {
   const [data,       setData]       = useState<KpiData | null>(null);
   const [loading,    setLoading]    = useState(true);
   const [showModal,  setShowModal]  = useState(false);
+  const pag = usePaginas(data?.inconsistencias ?? [], 5);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -141,12 +143,15 @@ export function VisionGeneralMaternidad() {
           )}
         </div>
 
-        {/* Inconsistencias */}
+        {/* Inconsistencias (paginadas: el recuadro mantiene el alto del gráfico) */}
         <div style={{
           background:   "var(--bg-surface)",
           border:       "0.5px solid var(--border-default)",
           borderRadius: "var(--radius-lg)",
           overflow:     "hidden",
+          display:      "flex",
+          flexDirection: "column",
+          minWidth:     0,
         }}>
           <div style={{
             padding:      "12px 16px",
@@ -180,7 +185,8 @@ export function VisionGeneralMaternidad() {
               <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Sin inconsistencias detectadas</div>
             </div>
           ) : (
-            <div style={{ overflowY: "auto", maxHeight: 260 }}>
+            <>
+            <div style={{ overflowX: "auto" }}>
               <table className="kp-table" style={{ width: "100%" }}>
                 <thead>
                   <tr>
@@ -191,7 +197,7 @@ export function VisionGeneralMaternidad() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.inconsistencias.map((inc) => (
+                  {pag.visibles.map((inc) => (
                     <tr key={inc.farrowingId}>
                       <td style={{ fontWeight: 500 }}><CaravanaFicha sowId={inc.sowId} caravana={inc.sowCode} /></td>
                       <td style={{ color: "var(--text-muted)" }}>
@@ -218,6 +224,8 @@ export function VisionGeneralMaternidad() {
                 </tbody>
               </table>
             </div>
+            <Paginador {...pag} />
+            </>
           )}
         </div>
       </div>
