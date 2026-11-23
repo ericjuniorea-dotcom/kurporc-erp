@@ -16,6 +16,7 @@ import { ModalGrupoPlantel, type GrupoPlantel } from "@/components/plantel/modal
 import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 import dynamic from "next/dynamic";
 import { PanelTransferencias } from "@/components/transferencias/panel";
+import { CampanaAvisos } from "@/components/layout/campana-avisos";
 
 // Se bajan recién cuando se abren (la pantalla inicial queda más liviana)
 function Cargando() { return <div className="kp-esqueleto" style={{ height: 220, borderRadius: "var(--radius-lg)" }} aria-busy="true" aria-label="Cargando" />; }
@@ -175,6 +176,8 @@ export default function PlantelPage() {
                   Registro central de reproductoras, reproductores y material genético
                 </p>
               </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <CampanaAvisos className="campana-escritorio" />
               <Link
                 href="/configuracion?modulo=PLANTEL&tab=Procesos"
                 title="Configuración del módulo"
@@ -187,6 +190,7 @@ export default function PlantelPage() {
               >
                 <IconSettings size={14} aria-hidden />
               </Link>
+              </div>
             </div>
 
             <div className="kp-grilla-tarjetas kp-plantel-stats" style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 10, marginBottom: 20 }}>

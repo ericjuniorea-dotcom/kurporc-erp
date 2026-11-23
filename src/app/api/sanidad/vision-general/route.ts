@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { MODULOS_FIJOS, computeStockAlertas } from "@/lib/sanidad/vision-general";
 import { getPermisos, puedeAlguno } from "@/lib/permisos/servidor";
+import { animalesVivos } from "@/lib/sanidad/animales-vivos";
 
 export async function GET() {
   const session = await getSession();
@@ -27,6 +28,7 @@ export async function GET() {
     }),
     computeStockAlertas(tenantId, "VACUNA"),
   ]);
+  const vivos = await animalesVivos(tenantId, eventos.filter(e => e.estado !== "aplicado"));
   // Disponible de cada producto (lotes sin vencer): se muestra al lado de cada vacuna
   const disponibles = new Map((await prisma.loteInventario.groupBy({
     by: ["vacunaId"], where: { tenantId, cantidadActual: { gt: 0 }, fechaVencimiento: { gte: new Date() } }, _sum: { cantidadActual: true },
@@ -104,13 +106,14 @@ export async function GET() {
       // ml por dosis (Configuración / Inventario del producto): para mostrar cuántas dosis alcanzan
       dosisMl: Number(evs[0].vacuna.dosisMl ?? 0),
       // Lo que hace falta para las pendientes: dosis por animal × animales de cada evento
-      necesario: evs.reduce((s, e) => s + Number(evs[0].vacuna.dosisMl ?? 0) * (e.dosisNecesarias || 1), 0),
+      necesario: evs.reduce((s, e) => s + Number(evs[0].vacuna.dosisMl ?? 0) * (vivos.get(e.id) ?? (e.dosisNecesarias || 1)), 0),
       retrasadas: evs.filter(e => e.estado === "retrasado").length,
       animales: evs.map(e => ({
         eventoId:        e.id,
         targetLabel:     e.targetLabel,
         fecha:           e.fecha.toISOString(),
-        dosisNecesarias: e.dosisNecesarias,
+        // Animales vivos hoy (si murió un lechón, ya no cuenta)
+        dosisNecesarias: vivos.get(e.id) ?? e.dosisNecesarias,
         estado:          e.estado,
         diasRestantes:   Math.floor((e.fecha.getTime() - today.getTime()) / 86400000),
       })),

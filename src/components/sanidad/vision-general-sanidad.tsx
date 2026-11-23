@@ -277,6 +277,8 @@ function RegistrarAplicacionModal({
   // Dosis por animal: la del producto (ml por dosis); nunca la cantidad de lechones de la camada
   const dosisProtocolo = grupo.unidad === "ML" && grupo.dosisMl ? grupo.dosisMl : 1;
   const [dosis, setDosis] = useState(String(dosisProtocolo));
+  // Total a suministrar escrito a mano (null = dosis por animal × animales)
+  const [totalManual, setTotalManual] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aplicadosGrupos, setAplicadosGrupos] = useState(0);
@@ -295,12 +297,14 @@ function RegistrarAplicacionModal({
   }, [grupo]);
 
   const loteSeleccionado = lotes.find(l => l.id === loteId);
-  const dosisNum = Number(dosis) || 0;
+  const dosisEscrita = Number(dosis) || 0;
   // Animales reales de cada evento (una camada = sus lechones; una cerda = 1)
   const animalesPorEvento = useMemo(() => Object.fromEntries(grupo.animales.map(a => [a.eventoId, Math.max(1, a.dosisNecesarias || 1)])), [grupo]);
   const animales = pendientes.reduce((s, id) => s + (animalesPorEvento[id] ?? 1), 0);
   const teorico = dosisProtocolo * animales;
-  const dosisTotales = Math.round(dosisNum * animales * 1000) / 1000;
+  const dosisTotales = totalManual !== null ? Math.max(0, Number(totalManual) || 0) : Math.round(dosisEscrita * animales * 1000) / 1000;
+  // Dosis por animal efectiva: si se escribió el total, se reparte entre los animales
+  const dosisNum = totalManual !== null ? (animales > 0 ? dosisTotales / animales : 0) : dosisEscrita;
   // Cuántos eventos (en orden) alcanzan con el lote elegido
   const alcanzaPara = (() => {
     if (!loteSeleccionado || dosisNum <= 0) return 0;
@@ -397,7 +401,7 @@ function RegistrarAplicacionModal({
             </div>
             <div>
               <label className="kp-label">Dosis por animal ({unidad})</label>
-              <InputNumero className="kp-input" step="0.1" value={dosis} onChange={e => setDosis(e.target.value)} />
+              <InputNumero className="kp-input" step="0.1" value={dosis} onChange={e => { setDosis(e.target.value); setTotalManual(null); }} />
             </div>
           </div>
 
@@ -409,7 +413,11 @@ function RegistrarAplicacionModal({
             </div>
             <div style={{ background: Math.abs(dosisTotales - teorico) > 1e-6 ? "var(--warning-subtle)" : "var(--success-subtle)", border: `0.5px solid ${Math.abs(dosisTotales - teorico) > 1e-6 ? "var(--warning)" : "var(--success)"}`, borderRadius: "var(--radius-md)", padding: "8px 10px" }}>
               <div style={{ fontSize: 10.5, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".05em" }}>A suministrar</div>
-              <div style={{ fontSize: 17, fontWeight: 600, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>{n2(dosisTotales)} {unidad}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <InputNumero className="kp-input" inputMode="decimal" aria-label="Total a suministrar" value={totalManual ?? String(dosisTotales)} onChange={e => setTotalManual(e.target.value)}
+                  style={{ height: 34, fontSize: 16, fontWeight: 600, width: "100%", maxWidth: 140, background: "var(--bg-surface)" }} />
+                <span style={{ fontSize: 14, fontWeight: 600 }}>{unidad}</span>
+              </div>
               <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{n2(dosisNum)} {unidad} × {animales}{Math.abs(dosisTotales - teorico) > 1e-6 ? ` · ${dosisTotales > teorico ? "+" : ""}${n2(dosisTotales - teorico)} vs teórico` : " · igual al teórico"}</div>
             </div>
           </div>

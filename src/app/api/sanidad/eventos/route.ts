@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { getPermisos, puede, puedeAlguno } from "@/lib/permisos/servidor";
+import { animalesVivos } from "@/lib/sanidad/animales-vivos";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
@@ -39,6 +40,8 @@ export async function GET(req: NextRequest) {
     take: 300,
   });
 
+  // Animales vivos hoy de cada evento pendiente (si murió un lechón, ya no cuenta)
+  const vivos = await animalesVivos(session.user.tenantId, eventos.filter(e => e.estado !== "aplicado"));
   // Recalculate estado for display
   const result = eventos.map(e => {
     let estado = e.estado;
@@ -53,6 +56,7 @@ export async function GET(req: NextRequest) {
       createdAt: e.createdAt.toISOString(),
       updatedAt: e.updatedAt.toISOString(),
       vacuna: { ...e.vacuna, dosisMl: Number(e.vacuna.dosisMl) },
+      dosisNecesarias: vivos.get(e.id) ?? e.dosisNecesarias,
       diasRestantes: Math.floor((e.fecha.getTime() - today.getTime()) / 86400000),
     };
   });

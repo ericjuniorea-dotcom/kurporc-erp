@@ -2,6 +2,7 @@
 import { useSession } from "@/lib/auth/sesion-cliente";
 import Link from "next/link";
 import { ThemeToggle } from "./theme-toggle";
+import { CampanaAvisos } from "./campana-avisos";
 import { IconSettings } from "@tabler/icons-react";
 import type { TablerIcon } from "@tabler/icons-react";
 
@@ -109,6 +110,7 @@ export function Topbar({ title, icon: Icon, iconColor, tabs, activeTab, onTabCha
       )}
 
       {/* Theme toggle (solo desktop — en mobile vive en la barra fija superior) */}
+      <CampanaAvisos className="campana-escritorio" />
       <span className="topbar-theme-desktop">
         <ThemeToggle />
       </span>

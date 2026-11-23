@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db/prisma";
 import { getPermisos, puedeAlguno } from "@/lib/permisos/servidor";
 
 import { idsCamadasAbiertas } from "@/lib/maternidad/camadas";
+import { stockCamada } from "@/lib/auditoria/granja";
 export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -22,6 +23,9 @@ export async function GET() {
           galponAssigned: true, corralAssigned: true,
         },
       },
+      deaths: { select: { quantity: true } },
+      movementsAsOrigin: { select: { quantity: true } },
+      movementsAsDestination: { select: { quantity: true } },
     },
     orderBy: { startDatetime: "asc" },
   });
@@ -50,7 +54,8 @@ export async function GET() {
       diasEnMaternidad:  diasEnMat,
       fechaDestesteEst:  desteteEst.toISOString().slice(0, 10),
       estado,
-      lechonesVivos:     f.bornAlive,
+      // Los que quedan hoy: nacidos vivos + recibidos − donados − muertos
+      lechonesVivos:     stockCamada(f),
     };
   });
 

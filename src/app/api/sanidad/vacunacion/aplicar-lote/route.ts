@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { invalidateInventario } from "@/lib/cache";
 import { getPermisos, puede } from "@/lib/permisos/servidor";
+import { animalesVivos } from "@/lib/sanidad/animales-vivos";
 
 /**
  * Aplica una vacuna a varios EventoVacunacion a la vez (incluso de distintos
@@ -85,7 +86,9 @@ export async function POST(req: NextRequest) {
   // Cada evento lleva «dosis por animal × animales» (una camada son sus lechones; una cerda, 1).
   // Sin dosis indicada se usa la del producto (ml por dosis) o 1 dosis por animal.
   const porAnimal = dosisPorAnimal && dosisPorAnimal > 0 ? dosisPorAnimal : (vacuna.unidadMedida === "ML" && Number(vacuna.dosisMl) > 0 ? Number(vacuna.dosisMl) : 1);
-  const cantidadEvento = (e: { dosisNecesarias: number }) => Math.round(porAnimal * Math.max(1, e.dosisNecesarias) * 1000) / 1000;
+  // Animales vivos hoy de cada evento (si murió un lechón después de programar la vacuna, ya no cuenta)
+  const vivos = await animalesVivos(tenantId, eventos);
+  const cantidadEvento = (e: { id: string; dosisNecesarias: number }) => Math.round(porAnimal * Math.max(1, vivos.get(e.id) ?? e.dosisNecesarias) * 1000) / 1000;
   const dosisTotales = Math.round(eventos.reduce((sum, e) => sum + cantidadEvento(e), 0) * 1000) / 1000;
   if (Number(lote.cantidadActual) < dosisTotales) {
     return NextResponse.json({ error: `Stock insuficiente en el lote ${numeroLote}. Disponible: ${Number(lote.cantidadActual)} dosis, se necesitan ${dosisTotales}.` }, { status: 422 });

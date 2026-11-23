@@ -603,3 +603,11 @@
 .kp-solo-lectura main [data-escribe],
 .kp-solo-lectura main .kp-transfer button,
 .kp-solo-lectura main input[type="checkbox"] + button { display: none !important; }
+
+/* Carga de pantalla: línea roja fina arriba que avanza (estilo apps modernas) */
+.kp-barra-carga { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 400; overflow: hidden; background: rgba(163,22,33,.10); }
+.kp-barra-carga::before { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, #A31621, #D63A47); transform-origin: left; animation: kp-barra-avanza 2.4s cubic-bezier(.1,.7,.3,1) forwards; }
+.kp-barra-carga::after { content: ""; position: absolute; top: 0; bottom: 0; width: 30%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.7), transparent); animation: kp-barra-brillo 1.2s ease-in-out infinite; }
+@keyframes kp-barra-avanza { 0% { transform: scaleX(0) } 100% { transform: scaleX(.92) } }
+@keyframes kp-barra-brillo { 0% { transform: translateX(-100%) } 100% { transform: translateX(400%) } }
+@media (prefers-reduced-motion: reduce) { .kp-barra-carga::before, .kp-barra-carga::after { animation: none; } .kp-barra-carga::before { transform: scaleX(.6); } }

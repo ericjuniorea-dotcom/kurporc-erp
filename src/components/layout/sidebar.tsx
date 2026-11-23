@@ -130,7 +130,6 @@ export function Sidebar({ farmName, permisos, organizacionActiva, membresias, es
                 : farmName}
             </div>
           </div>
-          <CampanaAvisos className="campana-escritorio" />
           <button
             type="button"
             aria-label="Cerrar menú"
