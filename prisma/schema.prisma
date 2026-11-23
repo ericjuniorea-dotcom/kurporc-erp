@@ -1301,17 +1301,17 @@ model FeedType {
 }
 
 model FeedRecord {
-  id             String   @id @default(cuid())
-  tenantId       String
-  feedTypeId     String
-  farrowingId    String? // Para cerdas en maternidad / lechones pre-starter
-  nurseryBatchId String? // Para lotes de recría
-  growingBatchId String? // Para lotes de engorde
-  recordDate     DateTime
-  quantityKg     Decimal  @db.Decimal(10, 3)
-  employeeId     String?
-  isSynced       Boolean  @default(true) // false = pendiente de sync offline
-  createdAt      DateTime @default(now())
+  id              String    @id @default(cuid())
+  tenantId        String
+  feedTypeId      String
+  farrowingId     String? // Para cerdas en maternidad / lechones pre-starter
+  nurseryBatchId  String? // Para lotes de recría
+  growingBatchId  String? // Para lotes de engorde
+  recordDate      DateTime
+  quantityKg      Decimal   @db.Decimal(10, 3)
+  employeeId      String?
+  isSynced        Boolean   @default(true) // false = pendiente de sync offline
+  createdAt       DateTime  @default(now())
   // Anulación (nunca se borra): queda quién, cuándo y por qué; no cuenta en consumos ni costos
   anuladoEn       DateTime? @map("anulado_en")
   anuladoPor      String?   @map("anulado_por")
@@ -2113,8 +2113,8 @@ model ProductoInventario {
   recepciones           RecepcionInventario[]
 
   // Costeo por etapa: a qué subcategoría de gasto pertenece y en qué etapa se consume por defecto
-  subcategoriaGastoId   String?                @map("subcategoria_gasto_id") @db.Uuid
-  etapaConsumoCodigo    String?                @map("etapa_consumo_codigo")
+  subcategoriaGastoId String? @map("subcategoria_gasto_id") @db.Uuid
+  etapaConsumoCodigo  String? @map("etapa_consumo_codigo")
 
   @@index([tenantId])
   @@index([tenantId, categoria])
@@ -2904,19 +2904,31 @@ model Movimiento {
   motivoAnulacion     String?             @map("motivo_anulacion")
   anuladoPor          String?             @map("anulado_por")
   anuladoEn           DateTime?           @map("anulado_en")
+  // costeo por etapa (Fase 2): qué es, dónde se consumió o para qué proyecto; la categoría anterior se conserva
+  subcategoriaGastoId String?             @map("subcategoria_gasto_id") @db.Uuid
+  etapaCodigo         String?             @map("etapa_codigo") // GES | MAT | … | CMP (a repartir); null = va al inventario
+  proyectoId          String?             @map("proyecto_id") @db.Uuid
+  revisionPendiente   Boolean             @default(false) @map("revision_pendiente")
+  motivoRevision      String?             @map("motivo_revision")
+  clasificadoPor      String?             @map("clasificado_por")
+  clasificadoEn       DateTime?           @map("clasificado_en")
   creadoPor           String              @map("creado_por")
   createdAt           DateTime            @default(now()) @map("created_at")
   updatedAt           DateTime            @updatedAt @map("updated_at")
 
-  organizacion Tenant                @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
-  categoria    CategoriaFinanciera   @relation(fields: [categoriaId], references: [id])
-  contraparte  Contraparte?          @relation(fields: [contraparteId], references: [id])
-  pagos        PagoMovimiento[]
-  recepciones  RecepcionInventario[]
+  organizacion      Tenant                @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  categoria         CategoriaFinanciera   @relation(fields: [categoriaId], references: [id])
+  contraparte       Contraparte?          @relation(fields: [contraparteId], references: [id])
+  pagos             PagoMovimiento[]
+  recepciones       RecepcionInventario[]
+  subcategoriaGasto SubcategoriaGasto?    @relation(fields: [subcategoriaGastoId], references: [id], onDelete: SetNull)
+  proyecto          ProyectoInversion?    @relation(fields: [proyectoId], references: [id], onDelete: SetNull)
 
   @@index([organizacionId, mes])
   @@index([organizacionId, categoriaId, mes])
   @@index([organizacionId, estado])
+  @@index([organizacionId, revisionPendiente])
+  @@index([organizacionId, etapaCodigo, mes])
   @@map("movimiento")
 }
 
@@ -3807,6 +3819,7 @@ model SubcategoriaGasto {
   orden             Int            @default(0)
   activa            Boolean        @default(true)
   categoria         CategoriaGasto @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
+  movimientos       Movimiento[]
 
   @@unique([organizacionId, codigo])
   @@index([categoriaId])
@@ -3815,19 +3828,20 @@ model SubcategoriaGasto {
 
 // Para qué proyecto (solo inversiones): no entra al costo del mes y se deprecia
 model ProyectoInversion {
-  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organizacionId String    @map("organizacion_id")
-  granjaId       String?   @map("granja_id")
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizacionId String       @map("organizacion_id")
+  granjaId       String?      @map("granja_id")
   nombre         String
-  estado         String    @default("PLANIFICADO") // PLANIFICADO | EN_CURSO | TERMINADO | CANCELADO
-  presupuestoGs  BigInt?   @map("presupuesto_gs")
-  fechaInicio    DateTime  @map("fecha_inicio") @db.Date
-  fechaFin       DateTime? @map("fecha_fin") @db.Date
-  vidaUtilMeses  Int?      @map("vida_util_meses")
-  etapaCodigo    String?   @map("etapa_codigo") // etapa donde se usa (para la depreciación)
+  estado         String       @default("PLANIFICADO") // PLANIFICADO | EN_CURSO | TERMINADO | CANCELADO
+  presupuestoGs  BigInt?      @map("presupuesto_gs")
+  fechaInicio    DateTime     @map("fecha_inicio") @db.Date
+  fechaFin       DateTime?    @map("fecha_fin") @db.Date
+  vidaUtilMeses  Int?         @map("vida_util_meses")
+  etapaCodigo    String?      @map("etapa_codigo") // etapa donde se usa (para la depreciación)
   notas          String?
-  activo         Boolean   @default(true)
-  createdAt      DateTime  @default(now()) @map("created_at")
+  activo         Boolean      @default(true)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  movimientos    Movimiento[]
 
   @@index([organizacionId])
   @@map("proyecto_inversion")
