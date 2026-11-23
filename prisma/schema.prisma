@@ -2112,6 +2112,10 @@ model ProductoInventario {
   movimientos           MovimientoInventario[]
   recepciones           RecepcionInventario[]
 
+  // Costeo por etapa: a qué subcategoría de gasto pertenece y en qué etapa se consume por defecto
+  subcategoriaGastoId   String?                @map("subcategoria_gasto_id") @db.Uuid
+  etapaConsumoCodigo    String?                @map("etapa_consumo_codigo")
+
   @@index([tenantId])
   @@index([tenantId, categoria])
   @@map("vacunas")
@@ -3751,4 +3755,80 @@ model TransferenciaAnimal {
   @@index([tenantId, destino, estado])
   @@index([sowId])
   @@map("transferencias_animales")
+}
+
+// ================================================================
+// FINANZAS · COSTEO POR ETAPA (Fase 1: catálogos). Cada organización tiene los suyos; el seed es el punto de partida.
+// ================================================================
+
+// Centro de costo: dónde se consumió el gasto (Gestación, Maternidad… Apoyo, Estructura, Financieros, Inversión, CMP)
+model EtapaCosto {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizacionId String   @map("organizacion_id")
+  codigo         String // GES | MAT | DES | ENG | MAN | VER | BIO | EST | FIN | INV | CMP
+  nombre         String
+  tipo           String // PRODUCTIVA | APOYO | ESTRUCTURA | FINANCIERA | INVERSION | PENDIENTE_REPARTO
+  incluye        String   @default("")
+  unidadCosteo   String   @default("") @map("unidad_costeo")
+  rolResponsable String   @default("") @map("rol_responsable")
+  orden          Int      @default(0)
+  activa         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@unique([organizacionId, codigo])
+  @@map("etapa_costo")
+}
+
+// Qué es el gasto (su naturaleza, nunca la etapa): Alimentación, Sanidad, Mano de obra…
+model CategoriaGasto {
+  id             String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizacionId String              @map("organizacion_id")
+  codigo         String // ALI | SAN | GEN | ANI | MOB | ENE | INS | LOG | EST | COM | FIN | INV | OTR
+  nombre         String
+  orden          Int                 @default(0)
+  activa         Boolean             @default(true)
+  subcategorias  SubcategoriaGasto[]
+
+  @@unique([organizacionId, codigo])
+  @@map("categoria_gasto")
+}
+
+model SubcategoriaGasto {
+  id                String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizacionId    String         @map("organizacion_id")
+  categoriaId       String         @map("categoria_id") @db.Uuid
+  codigo            String // ALI-01, SAN-01…
+  nombre            String
+  modo              String // INVENTARIO | DIRECTO | REPARTO | INVERSION
+  etapaRegla        String         @default("") @map("etapa_regla") // cómo se imputa, en palabras
+  etapaCodigo       String?        @map("etapa_codigo") // etapa por defecto cuando es única
+  notaControl       String?        @map("nota_control")
+  nombresAnteriores String[]       @default([]) @map("nombres_anteriores") // categorías viejas (migración, Fase 2)
+  orden             Int            @default(0)
+  activa            Boolean        @default(true)
+  categoria         CategoriaGasto @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
+
+  @@unique([organizacionId, codigo])
+  @@index([categoriaId])
+  @@map("subcategoria_gasto")
+}
+
+// Para qué proyecto (solo inversiones): no entra al costo del mes y se deprecia
+model ProyectoInversion {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizacionId String    @map("organizacion_id")
+  granjaId       String?   @map("granja_id")
+  nombre         String
+  estado         String    @default("PLANIFICADO") // PLANIFICADO | EN_CURSO | TERMINADO | CANCELADO
+  presupuestoGs  BigInt?   @map("presupuesto_gs")
+  fechaInicio    DateTime  @map("fecha_inicio") @db.Date
+  fechaFin       DateTime? @map("fecha_fin") @db.Date
+  vidaUtilMeses  Int?      @map("vida_util_meses")
+  etapaCodigo    String?   @map("etapa_codigo") // etapa donde se usa (para la depreciación)
+  notas          String?
+  activo         Boolean   @default(true)
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@index([organizacionId])
+  @@map("proyecto_inversion")
 }

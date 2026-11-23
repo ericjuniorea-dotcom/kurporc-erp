@@ -34,6 +34,7 @@ const SECCIONES: (SeccionFinanzas & { permiso: string })[] = [
   { grupo: "Control", href: "/finanzas/cierre", label: "Cierre de mes", permiso: "finanzas.cierre.cerrar" },
   { grupo: "Control", href: "/finanzas/recomendaciones", label: "Recomendaciones", permiso: "finanzas.recomendaciones.ver" },
   { grupo: "Control", href: "/finanzas/buenas-practicas", label: "Buenas prácticas", permiso: "finanzas.tablero.ver" },
+  { grupo: "Control", href: "/finanzas/catalogos", label: "Catálogos de costos", permiso: "finanzas.movimientos.ver" },
   { grupo: "Control", href: "/finanzas/parametros", label: "Parámetros", permiso: "finanzas.parametros.ver" },
   { grupo: "Control", href: "/finanzas/importacion", label: "Importación", permiso: "finanzas.importar.ejecutar" },
 ];
