@@ -20,6 +20,18 @@ export interface SowGestacionState {
   checkResult:   string | null;
 }
 
+/** Repetición de celo registrada (la de un servicio anterior queda vinculada a ese servicio). */
+export type RepeticionCelo = { repeatDate: Date; serviceEventId: string | null };
+
+/**
+ * ¿Este servicio repitió celo? Solo si la repetición es de ESTE servicio, o (registros viejos sin vínculo) si es
+ * estrictamente posterior. Al servir de nuevo se anota la repetición del servicio ANTERIOR con la fecha del nuevo:
+ * antes se comparaba con ≥ y el servicio nuevo quedaba como «repitió» → la cerda volvía a Disponibles.
+ */
+export function repitioCelo(reps: RepeticionCelo[] | undefined, ev: { id: string; serviceDate: Date }): boolean {
+  return !!reps?.some(r => (r.serviceEventId ? r.serviceEventId === ev.id : r.repeatDate > ev.serviceDate));
+}
+
 export async function getGestacionStates(tenantId: string): Promise<SowGestacionState[]> {
   const today  = new Date();
   const cutoff = new Date(today.getTime() - 120 * 86400000);
@@ -62,14 +74,11 @@ export async function getGestacionStates(tenantId: string): Promise<SowGestacion
   const heatRepeats = sowIds.length > 0
     ? await prisma.heatRepeat.findMany({
         where:  { tenantId, sowId: { in: sowIds } },
-        select: { sowId: true, repeatDate: true },
+        select: { sowId: true, repeatDate: true, serviceEventId: true },
       })
     : [];
-  const lastHeatRepeat = new Map<string, Date>();
-  for (const hr of heatRepeats) {
-    const curr = lastHeatRepeat.get(hr.sowId);
-    if (!curr || hr.repeatDate > curr) lastHeatRepeat.set(hr.sowId, hr.repeatDate);
-  }
+  const lastHeatRepeat = new Map<string, RepeticionCelo[]>();
+  for (const hr of heatRepeats) lastHeatRepeat.set(hr.sowId, [...(lastHeatRepeat.get(hr.sowId) ?? []), hr]);
 
   // 4. Clasificar cada cerda
   const result: SowGestacionState[] = [];
@@ -86,8 +95,7 @@ export async function getGestacionStates(tenantId: string): Promise<SowGestacion
     const isPreñada = checkResult === "PREGNANT" || plantelState === "PREGNANT";
 
     // REPETICIÓN DE CELO: existe HeatRepeat posterior al servicio activo
-    const hrDate     = lastHeatRepeat.get(sowId);
-    const tuvoRepCelo = !!(hrDate && hrDate >= ev.serviceDate);
+    const tuvoRepCelo = repitioCelo(lastHeatRepeat.get(sowId), ev);
 
     let estado: SowGestacionState["estado"];
     if (isPreñada) {
@@ -142,14 +150,11 @@ export async function getGestacionDetail(tenantId: string) {
   const heatRepeats = sowIds.length > 0
     ? await prisma.heatRepeat.findMany({
         where:  { tenantId, sowId: { in: sowIds } },
-        select: { sowId: true, repeatDate: true },
+        select: { sowId: true, repeatDate: true, serviceEventId: true },
       })
     : [];
-  const lastHeatRepeat = new Map<string, Date>();
-  for (const hr of heatRepeats) {
-    const curr = lastHeatRepeat.get(hr.sowId);
-    if (!curr || hr.repeatDate > curr) lastHeatRepeat.set(hr.sowId, hr.repeatDate);
-  }
+  const lastHeatRepeat = new Map<string, RepeticionCelo[]>();
+  for (const hr of heatRepeats) lastHeatRepeat.set(hr.sowId, [...(lastHeatRepeat.get(hr.sowId) ?? []), hr]);
 
   return { latestBySow, lastHeatRepeat, today };
 }

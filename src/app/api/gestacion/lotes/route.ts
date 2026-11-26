@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { addDays } from "@/lib/utils";
+import { repitioCelo, type RepeticionCelo } from "@/lib/gestacion/sow-state";
 import { getPermisos, puedeAlguno } from "@/lib/permisos/servidor";
 
 // Gestación estándar usada para proyectar la fecha de parto del lote a
@@ -50,7 +51,7 @@ export async function GET() {
     allSowIds.length > 0
       ? prisma.heatRepeat.findMany({
           where:  { tenantId, sowId: { in: allSowIds } },
-          select: { sowId: true, repeatDate: true },
+          select: { sowId: true, repeatDate: true, serviceEventId: true },
         })
       : Promise.resolve([]),
     allSowIds.length > 0
@@ -62,11 +63,8 @@ export async function GET() {
       : Promise.resolve([]),
   ]);
 
-  const lastHeatRepeatBySow = new Map<string, Date>();
-  for (const hr of heatRepeats) {
-    const curr = lastHeatRepeatBySow.get(hr.sowId);
-    if (!curr || hr.repeatDate > curr) lastHeatRepeatBySow.set(hr.sowId, hr.repeatDate);
-  }
+  const lastHeatRepeatBySow = new Map<string, RepeticionCelo[]>();
+  for (const hr of heatRepeats) lastHeatRepeatBySow.set(hr.sowId, [...(lastHeatRepeatBySow.get(hr.sowId) ?? []), hr]);
   const lastVacunaBySow = new Map<string, { nombre: string | null; fecha: string }>();
   for (const v of vacunaciones) {
     if (!v.sowId || lastVacunaBySow.has(v.sowId)) continue;
@@ -94,8 +92,7 @@ export async function GET() {
         ? { fecha: ev.farrowing.weaning.weaningDate.toISOString().slice(0, 10), pigletsWeaned: ev.farrowing.weaning.pigletsWeaned }
         : null;
 
-      const hrDate       = lastHeatRepeatBySow.get(sow.id);
-      const tuvoRepCelo   = !!(hrDate && hrDate >= ev.serviceDate && !ev.farrowing);
+      const tuvoRepCelo   = !ev.farrowing && repitioCelo(lastHeatRepeatBySow.get(sow.id), ev);
       const esDescartada  = sow.plantelState === "CULLED" || sow.plantelState === "DEAD";
 
       let estadoGeneral: Estado;

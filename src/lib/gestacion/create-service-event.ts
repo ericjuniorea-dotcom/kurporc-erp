@@ -60,7 +60,8 @@ export async function createServiceEventForSow(
     sowId, serviceDate, serviceType, boarCode, doseCode,
     elaborationDate, expiryDate, durationMinutes, notes, currentWeightKg,
   } = input;
-  const date = new Date(serviceDate);
+  // Fecha del servicio al mediodía UTC (como los registros históricos): así se ve el mismo día en Paraguay
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(String(serviceDate)) ? new Date(`${serviceDate}T12:00:00Z`) : new Date(serviceDate);
 
   // ── Verificar elegibilidad de la cerda ────────────────────────────
   const [sowData, requisitosConfig, vacunasRequeridas] = await Promise.all([

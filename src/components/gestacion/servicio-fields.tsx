@@ -85,7 +85,7 @@ function RepeatCeloModal({
 }) {
   const dias = diasDesde(previousService.serviceDate, fechaNueva);
   const fechaAnterior = new Date(previousService.serviceDate).toLocaleDateString("es-PY", {
-    day: "2-digit", month: "2-digit", year: "numeric",
+    day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC",
   });
 
   return (
@@ -547,7 +547,7 @@ export function ServicioFields({
                 Esta cerda fue servida el{" "}
                 <strong>
                   {new Date(previousService.serviceDate).toLocaleDateString("es-PY", {
-                    day: "2-digit", month: "2-digit", year: "numeric",
+                    day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC",
                   })}
                 </strong>{" "}
                 (Lote {previousService.serviceBatch.weekLabel}), hace{" "}
