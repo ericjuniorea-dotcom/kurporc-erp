@@ -11,6 +11,7 @@ import { ErrorPermiso, puede, requirePermiso, type Permisos } from "@/lib/permis
 import { ipDe, registrarAuditoria, userAgentDe } from "@/lib/seguridad/auditoria";
 import { cifrar } from "@/lib/seguridad/cifrado";
 import { fechaISO, gs } from "@/lib/finanzas/calculos";
+import { resolverCosteo } from "@/lib/finanzas/costeo/al-guardar";
 
 type R<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
@@ -58,6 +59,11 @@ const movimientoSchema = z.object({
   // Compra que entra al inventario: se crea una recepción pendiente para que Inventario la acepte
   inventarioProductoId: z.string().max(40).optional().default(""),
   inventarioCantidad: z.string().trim().regex(/^(\d{1,9}([.,]\d{1,3})?)?$/, "Cantidad para el inventario inválida").optional().default(""),
+  // Costeo por etapa (Fase 3): qué es, dónde se consumió (o dividido entre etapas) y, si es inversión, el proyecto
+  subcategoriaGastoId: z.string().uuid().or(z.literal("")).optional().default(""),
+  etapaCodigo: z.string().regex(/^[A-Z]{2,5}$/).or(z.literal("")).optional().default(""),
+  proyectoId: z.string().uuid().or(z.literal("")).optional().default(""),
+  division: z.array(z.object({ etapaCodigo: z.string().regex(/^[A-Z]{2,5}$/, "Elegí la etapa"), porcentaje: z.number().min(0).max(100) })).max(12).optional().default([]),
 }).strict();
 
 const dec = (v: string) => (v ? v.replace(",", ".") : null);
@@ -138,6 +144,12 @@ export async function crearMovimiento(datos: z.input<typeof movimientoSchema>): 
       if (!(cant > 0)) throw new Error("•Escribí cuánto entra al inventario (en la unidad del producto).");
       alInventario = { productoId: prod.id, cantidad: cant };
     }
+    let esVacuna = false;
+    if (d.productoSanitarioId || d.inventarioProductoId) {
+      esVacuna = !!(await prisma.productoInventario.findFirst({ where: { id: d.productoSanitarioId || d.inventarioProductoId, tenantId: org, categoria: "VACUNA" }, select: { id: true } }));
+    }
+    const costeo = await resolverCosteo(org, { tipo: d.tipo, categoriaNombre: cat.nombre, montoGs: monto, esVacuna,
+      subcategoriaGastoId: d.subcategoriaGastoId || undefined, etapaCodigo: d.etapaCodigo || undefined, proyectoId: d.proyectoId || undefined, division: d.division });
     const id = await conActor(session.user.id, async tx => {
       const m = await tx.movimiento.create({
         data: {
@@ -150,9 +162,13 @@ export async function crearMovimiento(datos: z.input<typeof movimientoSchema>): 
           productoSanitarioId: esSanidad && d.productoSanitarioId ? d.productoSanitarioId : null,
           mlPorUnidad: esSanidad ? dec(d.mlPorUnidad) : null,
           creadoPor: session.user.id,
+          ...costeo.datos, ...(costeo.datos.subcategoriaGastoId ? { clasificadoPor: session.user.id, clasificadoEn: new Date() } : {}),
         },
         select: { id: true },
       });
+      if (costeo.division.length) {
+        await tx.movimientoEtapa.createMany({ data: costeo.division.map(x => ({ organizacionId: org, movimientoId: m.id, ...x })) });
+      }
       if (alInventario) {
         await tx.recepcionInventario.create({
           data: {

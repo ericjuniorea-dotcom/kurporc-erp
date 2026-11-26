@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/config";
 import { getPermisos, puede } from "@/lib/permisos/servidor";
 import { categoriasDe, unidadesDe } from "@/lib/finanzas/datos";
 import { hoyUTC, mesDe } from "@/lib/finanzas/calculos";
+import { asegurarCatalogoCostos } from "@/lib/finanzas/costeo/catalogo";
 import { LibroMovimientos } from "./libro";
 
 export const metadata = { title: "Movimientos · Finanzas · KurPorc" };
@@ -16,7 +17,8 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
   const mes = /^\d{6}$/.test(sp.mes ?? "") ? Number(sp.mes) : mesDe(hoyUTC());
   const unidadesPermitidas = permisos.unidades === "TODAS" ? undefined : { in: permisos.unidades };
 
-  const [movs, categorias, cuentas, unidades, productos, contrapartes] = await Promise.all([
+  if ((await prisma.etapaCosto.count({ where: { organizacionId: org } })) === 0) await asegurarCatalogoCostos(org);
+  const [movs, categorias, cuentas, unidades, productos, contrapartes, subsCosteo, etapasCosteo, proyectos] = await Promise.all([
     prisma.movimiento.findMany({
       where: { organizacionId: org, mes, ...(unidadesPermitidas ? { unidadId: unidadesPermitidas } : {}) },
       orderBy: [{ fecha: "desc" }, { createdAt: "desc" }],
@@ -33,6 +35,10 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
     unidadesDe(org),
     prisma.productoInventario.findMany({ where: { tenantId: org, isActive: true }, orderBy: [{ categoria: "asc" }, { nombre: "asc" }], select: { id: true, nombre: true, categoria: true, unidadMedida: true } }),
     prisma.contraparte.findMany({ where: { organizacionId: org, activa: true }, orderBy: { nombre: "asc" }, select: { nombre: true, tipo: true } }),
+    prisma.subcategoriaGasto.findMany({ where: { organizacionId: org, activa: true }, orderBy: { orden: "asc" },
+      select: { id: true, codigo: true, nombre: true, modo: true, etapaCodigo: true, nombresAnteriores: true, categoria: { select: { nombre: true } } } }),
+    prisma.etapaCosto.findMany({ where: { organizacionId: org, activa: true, codigo: { not: "INV" } }, orderBy: { orden: "asc" }, select: { codigo: true, nombre: true } }),
+    prisma.proyectoInversion.findMany({ where: { organizacionId: org, activo: true, estado: { not: "CANCELADO" } }, orderBy: { fechaInicio: "desc" }, select: { id: true, nombre: true } }),
   ]);
   const idsAnul = Array.from(new Set(movs.map(m => m.anuladoPor).filter((x): x is string => !!x)));
   const anuladores = new Map((idsAnul.length ? await prisma.user.findMany({ where: { id: { in: idsAnul } }, select: { id: true, name: true } }) : []).map(u => [u.id, u.name]));
@@ -71,6 +77,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
       unidades={unidades.filter(u => permisos.unidades === "TODAS" || permisos.unidades.includes(u.id)).map(u => ({ id: u.id, codigo: u.codigo, nombre: u.nombre, tipo: u.tipo }))}
       productos={productos}
       contrapartes={contrapartes}
+      costeo={{ subcategorias: subsCosteo.map(s => ({ ...s, categoria: s.categoria.nombre })), etapas: etapasCosteo, proyectos }}
     />
   );
 }

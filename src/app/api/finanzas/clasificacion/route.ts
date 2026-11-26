@@ -24,7 +24,7 @@ export async function GET() {
       where: { organizacionId: org, estado: { not: "ANULADO" }, OR: [{ tipo: { in: ["GASTO", "INVERSION"] } }, { subcategoriaGastoId: { not: null } }] },
       orderBy: [{ fecha: "desc" }, { createdAt: "desc" }],
       select: { id: true, fecha: true, tipo: true, concepto: true, montoGs: true, subcategoriaGastoId: true, etapaCodigo: true, proyectoId: true,
-        revisionPendiente: true, motivoRevision: true, categoria: { select: { nombre: true } } },
+        revisionPendiente: true, motivoRevision: true, categoria: { select: { nombre: true } }, division: { select: { etapaCodigo: true, porcentaje: true } } },
     }),
     prisma.movimiento.count({ where: { organizacionId: org, subcategoriaGastoId: null, tipo: { in: ["GASTO", "INVERSION"] }, estado: { not: "ANULADO" } } }),
     prisma.subcategoriaGasto.findMany({ where: { organizacionId: org }, orderBy: { orden: "asc" }, select: { id: true, codigo: true, nombre: true, modo: true, etapaCodigo: true, activa: true } }),
@@ -32,7 +32,7 @@ export async function GET() {
     prisma.proyectoInversion.findMany({ where: { organizacionId: org }, orderBy: { fechaInicio: "desc" }, select: { id: true, nombre: true, activo: true } }),
   ]);
   return NextResponse.json({
-    movimientos: movs.map(m => ({ ...m, montoGs: m.montoGs.toString(), fecha: m.fecha.toISOString().slice(0, 10), categoriaAnterior: m.categoria.nombre, categoria: undefined })),
+    movimientos: movs.map(m => ({ ...m, division: m.division.map(x => ({ etapaCodigo: x.etapaCodigo, porcentaje: Number(x.porcentaje) })), montoGs: m.montoGs.toString(), fecha: m.fecha.toISOString().slice(0, 10), categoriaAnterior: m.categoria.nombre, categoria: undefined })),
     sinClasificar, subcategorias: subs, etapas, proyectos, puedeEditar: puede(permisos, CLASIFICAR),
   }, { headers: { "Cache-Control": "no-store" } });
 }
@@ -72,10 +72,14 @@ export async function POST(req: NextRequest) {
       if (!etapa) return NextResponse.json({ error: "Elegí la etapa donde se consumió." }, { status: 400 });
       if (!(await prisma.etapaCosto.count({ where: { organizacionId: org, codigo: etapa } }))) return NextResponse.json({ error: "Esa etapa no existe." }, { status: 400 });
     }
-    const r = await prisma.movimiento.updateMany({ where: { id: { in: d.ids }, organizacionId: org, estado: { not: "ANULADO" } }, data: {
-      subcategoriaGastoId: d.subcategoriaGastoId, etapaCodigo: etapa, proyectoId: proyecto,
-      revisionPendiente: false, motivoRevision: null, clasificadoPor: session.user.id, clasificadoEn: new Date(),
-    } });
+    // Reclasificar reemplaza una división anterior entre etapas
+    const r = await prisma.$transaction(async tx => {
+      await tx.movimientoEtapa.deleteMany({ where: { organizacionId: org, movimientoId: { in: d.ids } } });
+      return tx.movimiento.updateMany({ where: { id: { in: d.ids }, organizacionId: org, estado: { not: "ANULADO" } }, data: {
+        subcategoriaGastoId: d.subcategoriaGastoId, etapaCodigo: etapa, proyectoId: proyecto,
+        revisionPendiente: false, motivoRevision: null, clasificadoPor: session.user.id, clasificadoEn: new Date(),
+      } });
+    });
     return NextResponse.json({ ok: true, aviso: `${r.count.toLocaleString("es-PY")} ${r.count === 1 ? "movimiento clasificado" : "movimientos clasificados"}.` });
   } catch (e) {
     console.error("[clasificacion-costos]", e);

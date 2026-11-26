@@ -7,6 +7,8 @@ import { Aviso } from "@/components/auth/marco-auth";
 import { anularMovimiento, crearMovimiento, registrarPago } from "@/app/acciones/finanzas";
 import { gs, nombreMes } from "@/lib/finanzas/calculos";
 import { InputNumero } from "@/components/ui/input-numero";
+import { sugerirSubcategoria } from "@/lib/finanzas/costeo/sugerir";
+import { BloqueCosteo, COSTEO_VACIO, costeoParaGuardar, sumaDivision, type CatalogoCosteo, type ValorCosteo } from "./bloque-costeo";
 
 type Mov = {
   id: string; fecha: string; vencimiento: string | null; tipo: string; concepto: string; categoria: string; subcategoria: string;
@@ -23,6 +25,7 @@ type Props = {
   unidades: { id: string; codigo: string; nombre: string; tipo: string }[];
   productos: { id: string; nombre: string; categoria: string; unidadMedida: string }[];
   contrapartes: { nombre: string; tipo: string }[];
+  costeo: CatalogoCosteo;
 };
 
 export const TIPOS = [
@@ -197,6 +200,7 @@ function FormularioMovimiento(p: Props & { onCerrar: () => void; onListo: (t: st
     inventarioProductoId: "", inventarioCantidad: "",
   });
   const [alInventario, setAlInventario] = useState(false);
+  const [costeo, setCosteo] = useState<ValorCosteo>(COSTEO_VACIO);
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
   const set = (k: keyof typeof f, v: string | boolean) => setF(x => ({ ...x, [k]: v }));
@@ -215,15 +219,26 @@ function FormularioMovimiento(p: Props & { onCerrar: () => void; onListo: (t: st
     const va = !!c && (!!sugerido || c.nombre === "Sanidad" || /balanceado|vilo|inicial/i.test(c.nombre));
     setAlInventario(va);
     setF(x => ({ ...x, categoriaId: id, subcategoria: "", inventarioProductoId: sugerido?.id ?? (va ? x.inventarioProductoId : ""), inventarioCantidad: va ? x.inventarioCantidad || x.cantidad : "" }));
+    const s = c ? sugerirSubcategoria(p.costeo.subcategorias, f.tipo, c.nombre, sugerido?.categoria === "VACUNA") : null;
+    setCosteo(s ? { ...COSTEO_VACIO, subId: s.id, etapa: s.modo === "DIRECTO" || s.modo === "REPARTO" ? (s.etapaCodigo ?? (s.modo === "REPARTO" ? "CMP" : "")) : "",
+      proyectoId: s.modo === "INVERSION" && p.costeo.proyectos.length === 1 ? p.costeo.proyectos[0].id : "" } : COSTEO_VACIO);
+    if (s?.modo === "INVENTARIO") setAlInventario(true);
+  }
+  function cambiarCosteo(v: ValorCosteo) {
+    const s = p.costeo.subcategorias.find(x => x.id === v.subId);
+    if (s?.modo === "INVENTARIO" && v.subId !== costeo.subId) setAlInventario(true);
+    if (s?.modo === "INVERSION" && !v.proyectoId && p.costeo.proyectos.length === 1) v = { ...v, proyectoId: p.costeo.proyectos[0].id };
+    setCosteo(v);
   }
   const precio = f.cantidad && f.montoGs && Number(f.cantidad.replace(",", ".")) > 0 ? Math.round(Number(f.montoGs) / Number(f.cantidad.replace(",", "."))) : null;
 
   function guardar(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (esCompra && costeo.dividir && sumaDivision(costeo.filas) !== 100) { setError("Los porcentajes de la división tienen que sumar 100 %."); return; }
     iniciar(async () => {
       const r = await crearMovimiento({
-        ...f, inventarioProductoId: alInventario && esCompra ? f.inventarioProductoId : "", inventarioCantidad: alInventario && esCompra ? f.inventarioCantidad : "",
+        ...f, ...(esCompra ? costeoParaGuardar(costeo) : {}), inventarioProductoId: alInventario && esCompra ? f.inventarioProductoId : "", inventarioCantidad: alInventario && esCompra ? f.inventarioCantidad : "",
         tipo: f.tipo as "GASTO", medioPago: (f.medioPago || null) as never, cuentaFondosId: f.cuentaFondosId || null, unidadId: f.unidadId || null,
         montoGs: f.montoGs.replace(/\D/g, ""), fechaPago: f.pagado ? f.fechaPago : undefined,
       });
@@ -241,7 +256,7 @@ function FormularioMovimiento(p: Props & { onCerrar: () => void; onListo: (t: st
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <Campo label="Fecha" ancho={140}><input type="date" className="kp-input" value={f.fecha} onChange={e => set("fecha", e.target.value)} required /></Campo>
         <Campo label="Tipo" ancho={140}>
-          <select className="kp-input" value={f.tipo} onChange={e => setF(x => ({ ...x, tipo: e.target.value, categoriaId: "", subcategoria: "" }))}>
+          <select className="kp-input" value={f.tipo} onChange={e => { setF(x => ({ ...x, tipo: e.target.value, categoriaId: "", subcategoria: "" })); setCosteo(COSTEO_VACIO); }}>
             {TIPOS.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
           </select>
         </Campo>
@@ -275,6 +290,7 @@ function FormularioMovimiento(p: Props & { onCerrar: () => void; onListo: (t: st
           <Campo label="ml por unidad (frasco)" ancho={140}><InputNumero className="kp-input" inputMode="decimal" value={f.mlPorUnidad} onChange={e => set("mlPorUnidad", e.target.value)} /></Campo>
         </div>
       )}
+      {esCompra && <BloqueCosteo tipo={f.tipo} catalogo={p.costeo} valor={costeo} onCambio={cambiarCosteo} />}
       {esCompra && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 10, borderRadius: "var(--radius-md)", background: "var(--bg-base)", border: "0.5px solid var(--border-default)" }}>
           <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12.5, color: "var(--text-primary)" }}>

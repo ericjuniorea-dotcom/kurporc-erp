@@ -3,6 +3,7 @@
 // Los que no tienen una etapa única quedan «pendientes de revisión» para asignarla en la pantalla de revisión.
 // Nunca cambia importes ni la categoría anterior; solo agrega la clasificación. Idempotente: no toca lo ya clasificado.
 import prisma from "@/lib/db/prisma";
+import { etapaPorModo, sugerirSubcategoria } from "./sugerir";
 
 export const PROYECTO_INICIAL = "Instalación inicial de la granja";
 
@@ -14,15 +15,7 @@ export type Propuesta = {
   subcategoria: Sub; etapaCodigo: string | null; conProyecto: boolean; revision: string | null;
 };
 
-const norm = (s: string) => s.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-
-/** Etapa y revisión que corresponden a una subcategoría según su modo de registro. */
-export function etapaPorModo(sub: Pick<Sub, "modo" | "etapaCodigo">): { etapaCodigo: string | null; revision: string | null } {
-  if (sub.modo === "INVENTARIO") return { etapaCodigo: sub.etapaCodigo ?? null, revision: null }; // el costo lo da la etapa que consume (si es única, queda anotada)
-  if (sub.modo === "INVERSION") return { etapaCodigo: "INV", revision: null };
-  if (sub.modo === "REPARTO") return { etapaCodigo: sub.etapaCodigo ?? "CMP", revision: null };
-  return sub.etapaCodigo ? { etapaCodigo: sub.etapaCodigo, revision: null } : { etapaCodigo: null, revision: "Indicá a qué etapa corresponde" };
-}
+export { etapaPorModo };
 
 /** Propuesta para cada movimiento todavía sin clasificar (no escribe nada). */
 export async function proponerClasificacion(org: string): Promise<{ propuestas: Propuesta[]; sinTocar: number }> {
@@ -32,28 +25,15 @@ export async function proponerClasificacion(org: string): Promise<{ propuestas: 
       select: { id: true, tipo: true, fecha: true, montoGs: true, concepto: true, productoSanitarioId: true, categoria: { select: { nombre: true } } } }),
   ]);
   const porCodigo = new Map(subs.map(s => [s.codigo, s]));
-  const porNombre = new Map<string, Sub>();
-  for (const s of subs) for (const n of s.nombresAnteriores) porNombre.set(norm(n), s);
   const ids = [...new Set(movs.map(m => m.productoSanitarioId).filter(Boolean))] as string[];
   const vacunas = new Set((await prisma.productoInventario.findMany({ where: { id: { in: ids }, categoria: "VACUNA" }, select: { id: true } })).map(p => p.id));
 
   const propuestas: Propuesta[] = [];
   let sinTocar = 0;
   for (const m of movs as Mov[]) {
-    const nombre = norm(m.categoria.nombre);
-    let sub: Sub | undefined;
-    if (m.tipo === "INGRESO") { sinTocar++; continue; }
-    if (m.tipo === "FINANCIAMIENTO") {
-      sub = porNombre.get(nombre); // solo los intereses son gasto (financiero); préstamos, cuotas y aportes no
-      if (!sub || sub.modo === "INVERSION") { sinTocar++; continue; }
-    } else if (nombre === "sanidad") {
-      sub = porCodigo.get(m.productoSanitarioId && vacunas.has(m.productoSanitarioId) ? "SAN-01" : "SAN-02");
-    } else if (m.tipo === "INVERSION") {
-      sub = porNombre.get(nombre);
-      if (!sub || sub.modo !== "INVERSION") sub = porCodigo.get(nombre.includes("matri") || nombre.includes("reproduc") ? "INV-03" : "INV-02");
-    } else {
-      sub = porNombre.get(nombre);
-    }
+    const sugerida = sugerirSubcategoria(subs, m.tipo, m.categoria.nombre, !!m.productoSanitarioId && vacunas.has(m.productoSanitarioId));
+    if (sugerida === null) { sinTocar++; continue; }
+    let sub: Sub | undefined = sugerida;
     let revision: string | null = null;
     if (!sub) { sub = porCodigo.get("OTR-01"); revision = "Categoría sin equivalente: elegí la subcategoría"; }
     if (!sub) { sinTocar++; continue; }

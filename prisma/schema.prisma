@@ -2923,6 +2923,7 @@ model Movimiento {
   recepciones       RecepcionInventario[]
   subcategoriaGasto SubcategoriaGasto?    @relation(fields: [subcategoriaGastoId], references: [id], onDelete: SetNull)
   proyecto          ProyectoInversion?    @relation(fields: [proyectoId], references: [id], onDelete: SetNull)
+  division          MovimientoEtapa[]
 
   @@index([organizacionId, mes])
   @@index([organizacionId, categoriaId, mes])
@@ -3845,4 +3846,19 @@ model ProyectoInversion {
 
   @@index([organizacionId])
   @@map("proyecto_inversion")
+}
+
+// Fase 3: un gasto dividido entre etapas (porcentajes que suman 100 %)
+model MovimientoEtapa {
+  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizacionId String     @map("organizacion_id")
+  movimientoId   String     @map("movimiento_id") @db.Uuid
+  etapaCodigo    String     @map("etapa_codigo")
+  porcentaje     Decimal    @db.Decimal(5, 2)
+  montoGs        BigInt     @map("monto_gs")
+  movimiento     Movimiento @relation(fields: [movimientoId], references: [id], onDelete: Cascade)
+
+  @@unique([movimientoId, etapaCodigo])
+  @@index([organizacionId, etapaCodigo])
+  @@map("movimiento_etapa")
 }

@@ -6,7 +6,7 @@ import { IconAlertTriangle, IconCheck, IconLoader2, IconSearch } from "@tabler/i
 import { Paginador, usePaginas } from "@/components/ui/paginador";
 
 type Mov = { id: string; fecha: string; tipo: string; concepto: string; montoGs: string; subcategoriaGastoId: string | null; etapaCodigo: string | null;
-  proyectoId: string | null; revisionPendiente: boolean; motivoRevision: string | null; categoriaAnterior: string };
+  proyectoId: string | null; revisionPendiente: boolean; motivoRevision: string | null; categoriaAnterior: string; division: { etapaCodigo: string; porcentaje: number }[] };
 type Sub = { id: string; codigo: string; nombre: string; modo: string; etapaCodigo: string | null; activa: boolean };
 type Etapa = { codigo: string; nombre: string; tipo: string; activa: boolean };
 type Datos = { movimientos: Mov[]; sinClasificar: number; subcategorias: Sub[]; etapas: Etapa[]; proyectos: { id: string; nombre: string; activo: boolean }[]; puedeEditar: boolean };
@@ -154,6 +154,7 @@ export function PanelClasificacion() {
         {pag.visibles.map(m => {
           const s = m.subcategoriaGastoId ? subs.get(m.subcategoriaGastoId) : null;
           const destino = s?.modo === "INVENTARIO" ? (m.etapaCodigo ? `${etapas.get(m.etapaCodigo)?.nombre ?? m.etapaCodigo} (vía inventario)` : "Inventario") : s?.modo === "INVERSION" ? (m.proyectoId ? proyectos.get(m.proyectoId)?.nombre ?? "Proyecto" : "Sin proyecto")
+            : m.division.length ? `Dividido: ${m.division.map(x => `${etapas.get(x.etapaCodigo)?.nombre ?? x.etapaCodigo} ${x.porcentaje.toLocaleString("es-PY")} %`).join(" · ")}`
             : m.etapaCodigo ? (m.etapaCodigo === "CMP" ? "A repartir al cerrar el mes" : etapas.get(m.etapaCodigo)?.nombre ?? m.etapaCodigo) : "Sin etapa";
           return (
             <label key={m.id} style={{ display: "flex", gap: 10, padding: "12px 14px", borderBottom: "0.5px solid var(--border-default)", cursor: ed ? "pointer" : "default",
