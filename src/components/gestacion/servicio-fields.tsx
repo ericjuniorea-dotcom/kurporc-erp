@@ -61,19 +61,29 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+/** Días entre el servicio anterior y la fecha del nuevo servicio (o hoy). */
+function diasDesde(anterior: string, nueva?: string): number {
+  const a = Date.parse(anterior.slice(0, 10) + "T00:00:00Z");
+  const b = nueva ? Date.parse(nueva.slice(0, 10) + "T00:00:00Z") : Date.parse(new Date().toISOString().slice(0, 10) + "T00:00:00Z");
+  return Number.isFinite(a) && Number.isFinite(b) ? Math.max(0, Math.round((b - a) / 86_400_000)) : 0;
+}
+
 /* ─── Modal de confirmación de repetición de celo ──────────────── */
 
 function RepeatCeloModal({
   sow,
   previousService,
+  fechaNueva,
   onConfirm,
   onCancel,
 }: {
   sow: SowLite | undefined;
   previousService: PreviousService;
+  fechaNueva?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const dias = diasDesde(previousService.serviceDate, fechaNueva);
   const fechaAnterior = new Date(previousService.serviceDate).toLocaleDateString("es-PY", {
     day: "2-digit", month: "2-digit", year: "numeric",
   });
@@ -118,7 +128,7 @@ function RepeatCeloModal({
         <div style={{ padding: "20px 20px 16px" }}>
           <p style={{ fontSize: 13, color: "var(--text-primary)", margin: 0, lineHeight: 1.65 }}>
             La cerda <strong>{sow?.identCode}</strong> ya fue servida el{" "}
-            <strong>{fechaAnterior}</strong> (Lote {previousService.serviceBatch.weekLabel}) y
+            <strong>{fechaAnterior}</strong> (Lote {previousService.serviceBatch.weekLabel}), hace <strong>{dias} días</strong>, y
             no tiene parto confirmado.
           </p>
           <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "12px 0 0", lineHeight: 1.65 }}>
@@ -371,6 +381,7 @@ export function ServicioFields({
         <RepeatCeloModal
           sow={sow}
           previousService={previousService}
+          fechaNueva={watch("serviceDate")}
           onConfirm={handleModalConfirm}
           onCancel={handleModalCancel}
         />
@@ -530,7 +541,8 @@ export function ServicioFields({
                     day: "2-digit", month: "2-digit", year: "numeric",
                   })}
                 </strong>{" "}
-                (Lote {previousService.serviceBatch.weekLabel}). Al guardar se pedirá confirmación de repetición de celo.
+                (Lote {previousService.serviceBatch.weekLabel}), hace{" "}
+                <strong>{diasDesde(previousService.serviceDate, watch("serviceDate"))} días</strong>. Al guardar se pedirá confirmación de repetición de celo.
               </span>
             </div>
           )}

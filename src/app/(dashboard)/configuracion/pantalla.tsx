@@ -29,6 +29,8 @@ type ModuleKey = typeof MODULES[number]["key"];
 
 const CONFIG_TABS = ["Metas", "Genética", "Vacunas", "Procesos", "Alertas"] as const;
 type ConfigTab = typeof CONFIG_TABS[number];
+// La genética es del plantel reproductivo: solo se configura ahí (no en Gestación, Maternidad, Iniciación ni Engorde)
+const tabsDe = (m: string): readonly ConfigTab[] => m === "PLANTEL" ? CONFIG_TABS : CONFIG_TABS.filter(t => t !== "Genética");
 
 /* ─── Labels humanos para KPIs ─────────────────────────────────── */
 
@@ -865,7 +867,8 @@ export default function ConfiguracionPage() {
   const searchParams = useSearchParams();
 
   const [modulo, setModulo] = useState<ModuleKey>((searchParams.get("modulo") as ModuleKey) ?? "GESTACION");
-  const [tab, setTab] = useState<ConfigTab>((searchParams.get("tab") as ConfigTab) ?? "Metas");
+  const [tabElegida, setTab] = useState<ConfigTab>((searchParams.get("tab") as ConfigTab) ?? "Metas");
+  const tab: ConfigTab = tabsDe(modulo).includes(tabElegida) ? tabElegida : "Metas";
 
   function changeModulo(m: ModuleKey) {
     setModulo(m);
@@ -932,7 +935,7 @@ export default function ConfiguracionPage() {
 
           {/* Config tabs */}
           <div style={{ display: modulo === "GENERAL" ? "none" : "flex", gap: 0 }}>
-            {CONFIG_TABS.map(t => (
+            {tabsDe(modulo).map(t => (
               <button
                 key={t}
                 onClick={() => changeTab(t)}
@@ -954,7 +957,7 @@ export default function ConfiguracionPage() {
         <div style={{ flex: 1, padding: "16px 24px" }}>
           {modulo === "GENERAL" ? <PanelGenerales metas={<MetasTab modulo={modulo} />} /> : <>
           {tab === "Metas"    && <MetasTab    modulo={modulo} />}
-          {tab === "Genética" && <GeneticaTab />}
+          {tab === "Genética" && modulo === "PLANTEL" && <GeneticaTab />}
           {tab === "Vacunas"  && <VacunasTab  modulo={modulo} />}
           {tab === "Procesos" && <ProcesosTab modulo={modulo} />}
           {tab === "Alertas"  && <AlertasTab  modulo={modulo} />}
