@@ -228,11 +228,12 @@ function GeneticaTab() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ ...EMPTY_GENETICA_FORM });
+  const [puedeEliminar, setPuedeEliminar] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     const r = await fetch("/api/config/genetica");
-    if (r.ok) setGenetica(await r.json());
+    if (r.ok) { setGenetica(await r.json()); setPuedeEliminar(r.headers.get("x-puede-eliminar") === "1"); }
     setLoading(false);
   }, []);
 
@@ -244,6 +245,13 @@ function GeneticaTab() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ activa: !g.activa }),
     });
+    load();
+  }
+
+  async function eliminar(g: Genetica) {
+    if (!confirm(`¿Eliminar la genética «${g.nombre}»${g.empresa ? ` (${g.empresa})` : ""}? Queda registrado quién la eliminó.`)) return;
+    const r = await fetch(`/api/config/genetica/${g.id}`, { method: "DELETE" });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); alert(e.error ?? "No se pudo eliminar."); }
     load();
   }
 
@@ -290,6 +298,7 @@ function GeneticaTab() {
             <th>Composición</th>
             <th>Meta NV</th>
             <th>Estado</th>
+            {puedeEliminar && <th aria-label="Acciones" />}
           </tr>
         </thead>
         <tbody>
@@ -312,6 +321,14 @@ function GeneticaTab() {
                   <span style={{ fontSize: 11 }}>{g.activa ? "Activa" : "Inactiva"}</span>
                 </button>
               </td>
+              {puedeEliminar && (
+                <td style={{ textAlign: "right" }}>
+                  <button type="button" onClick={() => eliminar(g)} aria-label={`Eliminar ${g.nombre}`} title="Eliminar"
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 4 }}>
+                    <IconTrash size={15} />
+                  </button>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

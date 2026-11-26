@@ -206,6 +206,8 @@ const animal = z.object({
 const compraSchema = z.object({
   fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida"),
   categoria: z.enum(["LECHONES", "REPRODUCTORAS", "REPRODUCTORES"]),
+  // Reposición (reemplaza a una que sale) = gasto de Gestación; ampliación del plantel = inversión
+  motivo: z.enum(["REPOSICION", "AMPLIACION"]).optional().default("REPOSICION"),
   destino: z.enum(["INICIACION", "ENGORDE", "GESTACION", "CUARENTENA", "PLANTEL"]),
   proveedor: z.string().trim().min(2, "Escribí de qué granja vienen").max(120),
   cantidad: z.number().int().min(1, "¿Cuántos animales compraste?").max(5000),
@@ -239,7 +241,7 @@ export async function registrarCompraAnimales(datos: z.input<typeof compraSchema
       const existentes = await (modelo as typeof prisma.sow).findMany({ where: { tenantId: org, OR: [{ caravanaCode: { in: conCaravana.map(a => a.caravana), mode: "insensitive" } }, { identCode: { in: conCaravana.map(a => a.caravana), mode: "insensitive" } }] }, select: { identCode: true, caravanaCode: true } });
       if (existentes.length) throw new Error(`•Ya hay animales con esa caravana en tu plantel: ${existentes.map(e => e.caravanaCode || e.identCode).slice(0, 5).join(", ")}.`);
     }
-    const nombreCat = d.categoria === "LECHONES" ? "Compra de lechones para engorde" : "Matrices y reproductores";
+    const nombreCat = d.categoria === "LECHONES" ? "Compra de lechones para engorde" : d.motivo === "REPOSICION" ? "Reposición de reproductoras" : "Matrices y reproductores";
     const cat = await prisma.categoriaFinanciera.findFirst({ where: { nombre: nombreCat, OR: [{ organizacionId: null }, { organizacionId: org }] }, select: { id: true, tipo: true } });
     if (!cat) throw new Error(`•Falta la categoría «${nombreCat}» en Finanzas.`);
 

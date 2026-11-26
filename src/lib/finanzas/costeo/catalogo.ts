@@ -44,7 +44,7 @@ const SUBCATEGORIAS: Sub[] = [
   ["SAN-05", "Laboratorio y diagnóstico", "DIRECTO", "Etapa del lote analizado", null, []],
   ["GEN-01", "Semen", "INVENTARIO", "Gestación", "GES", ["Genética y reproducción"]],
   ["GEN-02", "Insumos de inseminación", "INVENTARIO", "Gestación", "GES", []],
-  ["GEN-03", "Reposición de reproductoras y verraco", "DIRECTO", "Gestación, a costo neto (compra menos valor de descarte)", "GES", ["Matrices y reproductores"]],
+  ["GEN-03", "Reposición de reproductoras y verraco", "DIRECTO", "Gestación, a costo neto (compra menos valor de descarte)", "GES", ["Reposición de reproductoras", "Matrices y reproductores"]],
   ["ANI-01", "Lechones para engorde", "DIRECTO", "Engorde, como costo de entrada del lote", "ENG", ["Compra de lechones para engorde"]],
   ["MOB-01", "Sueldos y jornales de producción", "REPARTO", "Por horas trabajadas en cada etapa", "CMP", ["Personal producción"]],
   ["MOB-02", "Cargas sociales (IPS)", "REPARTO", "Igual que el sueldo del que proviene", "CMP", ["Cargas sociales (IPS y aguinaldo)"]],

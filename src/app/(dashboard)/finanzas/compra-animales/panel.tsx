@@ -36,6 +36,7 @@ export function PanelCompraAnimales(p: { hoy: string; compras: Compra[]; proveed
   const router = useRouter();
   const [abierto, setAbierto] = useState(p.compras.length === 0 && p.puedo.crear);
   const [categoria, setCategoria] = useState<CategoriaAnimal>("LECHONES");
+  const [motivo, setMotivo] = useState<"REPOSICION" | "AMPLIACION">("REPOSICION");
   const [destino, setDestino] = useState<string>("INICIACION");
   const [fecha, setFecha] = useState(p.hoy);
   const [proveedor, setProveedor] = useState("");
@@ -73,7 +74,7 @@ export function PanelCompraAnimales(p: { hoy: string; compras: Compra[]; proveed
       : caravanasLechones.map(c => ({ caravana: c }));
     iniciar(async () => {
       const r = await registrarCompraAnimales({
-        fecha, categoria, destino: destino as "INICIACION", proveedor, cantidad: n, pesoTotalKg: pt != null && Number.isFinite(pt) ? pt : null,
+        fecha, categoria, motivo, destino: destino as "INICIACION", proveedor, cantidad: n, pesoTotalKg: pt != null && Number.isFinite(pt) ? pt : null,
         edadDias: ed != null && Number.isFinite(ed) ? Math.round(ed) : null, montoGs: montoLimpio, pagado,
         medioPago: pagado ? medio as "EFECTIVO" : null, cuentaFondosId: pagado && cuenta ? cuenta : null,
         facturaNumero: factura, ubicacion, observacion: obs, animales,
@@ -106,6 +107,13 @@ export function PanelCompraAnimales(p: { hoy: string; compras: Compra[]; proveed
             <Segmentos nombre="Qué compraste" valor={categoria} onCambio={cambiarCategoria}
               opciones={[{ v: "LECHONES", t: "Lechones" }, { v: "REPRODUCTORAS", t: "Reproductoras" }, { v: "REPRODUCTORES", t: "Reproductores (machos)" }]} />
           </label>
+          {porAnimal && (
+            <label style={etiqueta}>¿Por qué se compran?
+              <Segmentos nombre="Motivo" valor={motivo} onCambio={setMotivo}
+                opciones={[{ v: "REPOSICION", t: "Reposición" }, { v: "AMPLIACION", t: "Ampliación del plantel" }]} />
+              <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{motivo === "REPOSICION" ? "Reemplazan a otras que salen: van como gasto de Gestación." : "Agrandan el plantel: van como inversión, a un proyecto."}</span>
+            </label>
+          )}
           <label style={etiqueta}>¿A qué módulo van?
             <Segmentos nombre="Destino" valor={destino} onCambio={setDestino}
               opciones={DESTINOS_COMPRA[categoria].map(d => ({ v: d, t: MODULOS_TRANSFERENCIA[d].etiqueta }))} />

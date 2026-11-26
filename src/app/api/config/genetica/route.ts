@@ -18,7 +18,10 @@ export async function GET(req: NextRequest) {
     },
     orderBy: { nombre: "asc" },
   });
-  return NextResponse.json(genetica);
+  // Eliminar: solo el dueño, el Administrador general o el Jefe de producción
+  const p = await getPermisos();
+  const puedeEliminar = !!p && (p.esPropietario || p.rol === "ADMIN_GENERAL" || p.rol === "JEFE_PRODUCCION");
+  return NextResponse.json(genetica, { headers: { "x-puede-eliminar": puedeEliminar ? "1" : "0" } });
 }
 
 export async function POST(req: NextRequest) {
