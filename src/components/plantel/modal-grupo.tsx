@@ -73,7 +73,7 @@ export function ModalGrupoPlantel({ grupo, onClose, onVerFicha }: { grupo: Grupo
                     <th>Caravana</th>
                     {grupo === "GENERAL" && <th>Categoría</th>}
                     <th>Estado</th>
-                    <th>Línea</th>
+                    <th>Línea genética</th>
                     <th>{t.fecha}</th>
                     <th style={{ textAlign: "right" }}>{t.dias}</th>
                     <th>Detalle</th>

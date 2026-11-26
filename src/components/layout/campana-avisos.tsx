@@ -3,7 +3,7 @@
 // Se actualiza al abrir, cada 90 segundos con la pestaña visible y al volver a la app.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { IconBell, IconTruckDelivery, IconPackageImport, IconBabyCarriage, IconHeartPlus } from "@tabler/icons-react";
+import { IconBell, IconArrowsCross, IconPackageImport, IconBabyCarriage, IconHeartPlus } from "@tabler/icons-react";
 import { misAvisos, type Aviso } from "@/app/acciones/avisos";
 
 type Datos = { total: number; avisos: Aviso[] };
@@ -70,7 +70,7 @@ export function CampanaAvisos({ className }: { className?: string }) {
           ) : (
             <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
               {datos.avisos.map(a => {
-                const Icono = a.tipo === "enviar" ? IconTruckDelivery : a.tipo === "destete" ? IconBabyCarriage : a.tipo === "parto" ? IconHeartPlus : IconPackageImport;
+                const Icono = a.tipo === "enviar" ? IconArrowsCross : a.tipo === "destete" ? IconBabyCarriage : a.tipo === "parto" ? IconHeartPlus : IconPackageImport;
                 return (
                   <li key={a.id} style={{ borderTop: "0.5px solid var(--border-default)" }}>
                     <button type="button" onClick={() => { setAbierta(false); router.push(a.href); }} className="kp-fila-link"

@@ -230,6 +230,15 @@ export function ServicioFields({
   });
 
   const serviceType     = watch("serviceType");
+  // Monta natural: se elige uno de los reproductores del plantel (activos o en descanso)
+  const [verracos, setVerracos] = useState<{ identCode: string; caravanaCode: string | null; erpCode: string | null; geneticLine: string | null; plantelState: string | null }[] | null>(null);
+  useEffect(() => {
+    if (serviceType !== "NATURAL_MOUNT" || verracos) return;
+    fetch("/api/plantel/verracos", { cache: "no-store" }).then(r => r.ok ? r.json() : []).then((lista: unknown) => {
+      const arr = (Array.isArray(lista) ? lista : (lista as { boars?: unknown[] })?.boars ?? []) as { identCode: string; caravanaCode: string | null; erpCode: string | null; geneticLine: string | null; plantelState: string | null; isActive?: boolean }[];
+      setVerracos(arr.filter(b => b.isActive !== false && b.plantelState !== "CULLED" && b.plantelState !== "DEAD" && b.plantelState !== "QUARANTINE"));
+    }).catch(() => setVerracos([]));
+  }, [serviceType, verracos]);
   const currentWeightKg = watch("currentWeightKg");
   const expiryDate  = watch("expiryDate");
 
@@ -576,8 +585,18 @@ export function ServicioFields({
         <Section title={serviceType === "AI" ? "Dosis de semen" : "Reproductor"}>
           {serviceType === "NATURAL_MOUNT" ? (
             <div>
-              <label className="kp-label">Código del reproductor *</label>
-              <input className="kp-input" placeholder="Ej: R-204" style={{ maxWidth: 240 }} {...register("boarCode")} />
+              <label className="kp-label">Reproductor *</label>
+              <select className="kp-input" style={{ maxWidth: 320, appearance: "auto" }} {...register("boarCode")} disabled={verracos === null}>
+                <option value="">{verracos === null ? "Cargando reproductores…" : "Elegí el reproductor…"}</option>
+                {(verracos ?? []).map(b => (
+                  <option key={b.identCode} value={b.identCode}>
+                    {[`Caravana ${b.caravanaCode || b.identCode}`, b.geneticLine ? `Línea ${b.geneticLine}` : "Sin línea genética", b.plantelState === "RESTING" ? "en descanso" : null].filter(Boolean).join(" · ")}
+                  </option>
+                ))}
+              </select>
+              {verracos !== null && verracos.length === 0 && (
+                <p style={{ fontSize: 11.5, color: "var(--warning-text)", marginTop: 4 }}>No hay reproductores activos en el plantel. Cargalo en Plantel Reproductivo → Reproductores (o por Finanzas → Compra de animales).</p>
+              )}
               {errors.boarCode && (
                 <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}>{errors.boarCode.message}</p>
               )}

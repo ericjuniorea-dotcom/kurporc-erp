@@ -3,7 +3,7 @@
 // Al guardar se registra el gasto en el libro y los animales quedan «por recibir» en el módulo de destino.
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { IconLoader2, IconPlus, IconTruckDelivery, IconX } from "@tabler/icons-react";
+import { IconLoader2, IconPlus, IconArrowsCross, IconX } from "@tabler/icons-react";
 import { registrarCompraAnimales } from "@/app/acciones/transferencias";
 import { CATEGORIAS, DESTINOS_COMPRA, ESTADOS, MODULOS_TRANSFERENCIA, type CategoriaAnimal } from "@/lib/transferencias/tipos";
 import { gs } from "@/lib/finanzas/calculos";
@@ -12,6 +12,7 @@ import { InputNumero } from "@/components/ui/input-numero";
 
 type Compra = { id: string; fecha: string; categoria: string; destino: string; proveedor: string | null; cantidad: number; cantidadRecibida: number | null;
   pesoTotalKg: number | null; costoGs: number | null; estado: string; nota: string | null; cargo: string | null; recibio: string | null };
+type SinEnviar = { id: string; fecha: string; concepto: string; montoGs: string; cantidad: number; proveedor: string; categoria: CategoriaAnimal };
 type Fila = { caravana: string; sexo: "H" | "M" | ""; pesoKg: string; genetica: string; nacimiento: string };
 const filaVacia = (): Fila => ({ caravana: "", sexo: "", pesoKg: "", genetica: "", nacimiento: "" });
 const tarjeta: React.CSSProperties = { background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-lg)", padding: 14 };
@@ -32,7 +33,7 @@ function Segmentos<T extends string>({ valor, opciones, onCambio, nombre }: { va
   );
 }
 
-export function PanelCompraAnimales(p: { hoy: string; compras: Compra[]; proveedores: string[]; cuentas: { id: string; nombre: string }[]; puedo: { crear: boolean; pagar: boolean } }) {
+export function PanelCompraAnimales(p: { hoy: string; compras: Compra[]; sinEnviar: SinEnviar[]; proveedores: string[]; cuentas: { id: string; nombre: string }[]; puedo: { crear: boolean; pagar: boolean } }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(p.compras.length === 0 && p.puedo.crear);
   const [categoria, setCategoria] = useState<CategoriaAnimal>("LECHONES");
@@ -54,6 +55,14 @@ export function PanelCompraAnimales(p: { hoy: string; compras: Compra[]; proveed
   const [obs, setObs] = useState("");
   const [msg, setMsg] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
   const [pendiente, iniciar] = useTransition();
+  // Compra ya cargada en Movimientos: se completan los animales y se envían (el gasto no se repite)
+  const [vinculada, setVinculada] = useState<SinEnviar | null>(null);
+  function completar(c: SinEnviar) {
+    setVinculada(c); setCategoria(c.categoria); setDestino(DESTINOS_COMPRA[c.categoria][0]); setFecha(c.fecha); setProveedor(c.proveedor);
+    setCantidad(String(c.cantidad)); setMonto(c.montoGs); setPagado(false); setMsg(null); setAbierto(true);
+    if (c.categoria !== "LECHONES") setFilas(Array.from({ length: Math.min(200, c.cantidad) }, filaVacia));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   const porAnimal = categoria !== "LECHONES";
   const cambiarCategoria = (c: CategoriaAnimal) => { setCategoria(c); setDestino(DESTINOS_COMPRA[c][0]); };
@@ -77,11 +86,11 @@ export function PanelCompraAnimales(p: { hoy: string; compras: Compra[]; proveed
         fecha, categoria, motivo, destino: destino as "INICIACION", proveedor, cantidad: n, pesoTotalKg: pt != null && Number.isFinite(pt) ? pt : null,
         edadDias: ed != null && Number.isFinite(ed) ? Math.round(ed) : null, montoGs: montoLimpio, pagado,
         medioPago: pagado ? medio as "EFECTIVO" : null, cuentaFondosId: pagado && cuenta ? cuenta : null,
-        facturaNumero: factura, ubicacion, observacion: obs, animales,
+        facturaNumero: factura, ubicacion, observacion: obs, animales, ...(vinculada ? { movimientoId: vinculada.id } : {}),
       });
       if (!r.ok) { setMsg({ tipo: "error", texto: r.error }); return; }
       setMsg({ tipo: "ok", texto: `Listo: el gasto quedó en el libro y ${n} ${CATEGORIAS[categoria].unidad} quedaron por recibir en ${MODULOS_TRANSFERENCIA[destino as keyof typeof MODULOS_TRANSFERENCIA].etiqueta}.${r.aviso ? ` ${r.aviso}` : ""}` });
-      setCantidad(""); setPesoTotal(""); setEdad(""); setCaravanasTxt(""); setFilas([filaVacia()]); setMonto(""); setFactura(""); setObs("");
+      setVinculada(null); setCantidad(""); setPesoTotal(""); setEdad(""); setCaravanasTxt(""); setFilas([filaVacia()]); setMonto(""); setFactura(""); setObs("");
       router.refresh();
     });
   }
@@ -100,14 +109,15 @@ export function PanelCompraAnimales(p: { hoy: string; compras: Compra[]; proveed
       {abierto && p.puedo.crear && (
         <section style={{ ...tarjeta, display: "flex", flexDirection: "column", gap: 14 }} aria-label="Nueva compra de animales">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Nueva compra</h3>
-            <button type="button" className="btn" onClick={() => setAbierto(false)} aria-label="Cerrar"><IconX size={14} /></button>
+            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>{vinculada ? "Enviar compra ya cargada" : "Nueva compra"}</h3>
+            <button type="button" className="btn" onClick={() => { setAbierto(false); setVinculada(null); }} aria-label="Cerrar"><IconX size={14} /></button>
           </div>
+          {vinculada && <div className="kp-alert kp-alert-info" style={{ fontSize: 12.5 }}>«{vinculada.concepto}» ya está en el libro ({gs(vinculada.montoGs)}). Completá los datos de los animales: el gasto no se vuelve a cargar.</div>}
           <label style={etiqueta}>¿Qué compraste?
             <Segmentos nombre="Qué compraste" valor={categoria} onCambio={cambiarCategoria}
               opciones={[{ v: "LECHONES", t: "Lechones" }, { v: "REPRODUCTORAS", t: "Reproductoras" }, { v: "REPRODUCTORES", t: "Reproductores (machos)" }]} />
           </label>
-          {porAnimal && (
+          {porAnimal && !vinculada && (
             <label style={etiqueta}>¿Por qué se compran?
               <Segmentos nombre="Motivo" valor={motivo} onCambio={setMotivo}
                 opciones={[{ v: "REPOSICION", t: "Reposición" }, { v: "AMPLIACION", t: "Ampliación del plantel" }]} />
@@ -150,19 +160,36 @@ export function PanelCompraAnimales(p: { hoy: string; compras: Compra[]; proveed
           )}
 
           <div className="kp-form-compra">
-            <label style={etiqueta}>Total pagado (₲)<InputNumero className="kp-input" inputMode="numeric" value={monto} onChange={e => setMonto(e.target.value)} placeholder="Ej.: 21750000" />
+            <label style={etiqueta}>Total pagado (₲)<InputNumero className="kp-input" inputMode="numeric" disabled={!!vinculada} value={monto} onChange={e => setMonto(e.target.value)} placeholder="Ej.: 21750000" />
               {monto.replace(/\D/g, "") && <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{gs(monto.replace(/\D/g, ""))}{num(cantidad) > 0 ? ` · ${gs(String(Math.round(Number(monto.replace(/\D/g, "")) / num(cantidad))))} por animal` : ""}</span>}
             </label>
-            <label style={etiqueta}>¿Ya se pagó?
+            {!vinculada && <label style={etiqueta}>¿Ya se pagó?
               <Segmentos nombre="Ya se pagó" valor={pagado ? "si" : "no"} onCambio={v => setPagado(v === "si" && p.puedo.pagar)} opciones={[{ v: "no", t: "No, queda por pagar" }, ...(p.puedo.pagar ? [{ v: "si" as const, t: "Sí" }] : [])]} />
-            </label>
+            </label>}
             {pagado && <label style={etiqueta}>Medio de pago<select className="kp-input" value={medio} onChange={e => setMedio(e.target.value)}>{MEDIOS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}</select></label>}
             {pagado && p.cuentas.length > 0 && <label style={etiqueta}>Cuenta<select className="kp-input" value={cuenta} onChange={e => setCuenta(e.target.value)}><option value="">—</option>{p.cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}</select></label>}
           </div>
           <label style={etiqueta}>Observación (opcional)<input className="kp-input" value={obs} onChange={e => setObs(e.target.value)} /></label>
           <button type="button" className="btn btn-primary" disabled={pendiente} onClick={guardar} style={{ minHeight: 44, justifyContent: "center", fontSize: 14 }}>
-            {pendiente ? <IconLoader2 size={15} className="animate-spin" aria-hidden /> : <IconTruckDelivery size={16} aria-hidden />} Guardar compra y enviar a {MODULOS_TRANSFERENCIA[destino as keyof typeof MODULOS_TRANSFERENCIA].etiqueta}
+            {pendiente ? <IconLoader2 size={15} className="animate-spin" aria-hidden /> : <IconArrowsCross size={16} aria-hidden />} Guardar compra y enviar a {MODULOS_TRANSFERENCIA[destino as keyof typeof MODULOS_TRANSFERENCIA].etiqueta}
           </button>
+        </section>
+      )}
+
+      {p.sinEnviar.length > 0 && (
+        <section style={{ ...tarjeta, padding: 0, overflow: "hidden", borderColor: "var(--warning)" }} aria-label="Compras sin enviar">
+          <div style={{ padding: "10px 14px", borderBottom: "0.5px solid var(--border-default)", fontSize: 12.5, fontWeight: 600, color: "var(--warning-text)" }}>
+            Cargadas en Movimientos, sin enviar a ningún módulo ({p.sinEnviar.length})
+            <div style={{ fontWeight: 400, color: "var(--text-muted)", marginTop: 2 }}>Estos animales todavía no llegaron al plantel. Completá sus datos y envialos.</div>
+          </div>
+          <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+            {p.sinEnviar.map(c => (
+              <li key={c.id} style={{ padding: "10px 14px", borderTop: "0.5px solid var(--border-default)", display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", fontSize: 13 }}>
+                <span style={{ flex: "1 1 220px", minWidth: 0 }}><strong>{c.concepto}</strong><span style={{ color: "var(--text-muted)", fontSize: 12 }}> · {c.fecha.split("-").reverse().join("/")} · {gs(c.montoGs)}</span></span>
+                {p.puedo.crear && <button type="button" className="btn btn-primary" onClick={() => completar(c)}><IconArrowsCross size={14} aria-hidden /> Completar y enviar</button>}
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 

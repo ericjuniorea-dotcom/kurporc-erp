@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
   const [estados, abiertas, sows, p, cfgCuarentena] = await Promise.all([
     getGestacionStates(tenantId),
     idsCamadasAbiertas(tenantId),
-    prisma.sow.findMany({ where: { tenantId, isActive: true }, select: { id: true, identCode: true, caravanaCode: true, plantelState: true, breed: true, entryDate: true } }),
+    prisma.sow.findMany({ where: { tenantId, isActive: true }, select: { id: true, identCode: true, caravanaCode: true, plantelState: true, breed: true, geneticLine: true, entryDate: true } }),
     parametrosParadas(tenantId),
     prisma.configProceso.findFirst({ where: { tenantId, modulo: "PLANTEL", procesoKey: "cuarentena_hembras" }, select: { valor: true } }),
   ]);
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
   const quiero = (g: Exclude<Grupo, "GENERAL">) => grupo === "GENERAL" || grupo === g;
 
   for (const s of sows) {
-    const base = { id: s.id, tipo: "cerda" as const, caravana: s.caravanaCode || s.identCode, estado: ESTADO[s.plantelState ?? ""] ?? "—", linea: s.breed };
+    const base = { id: s.id, tipo: "cerda" as const, caravana: s.caravanaCode || s.identCode, estado: ESTADO[s.plantelState ?? ""] ?? "—", linea: s.geneticLine || s.breed };
     const c = enMat.get(s.id);
     const g = gest.get(s.id);
     if (c) {
@@ -100,10 +100,10 @@ export async function GET(req: NextRequest) {
   }
 
   if (quiero("REPRODUCTORES")) {
-    const boars = await prisma.boar.findMany({ where: { tenantId, plantelState: { in: ["ACTIVE", "RESTING"] } }, select: { id: true, identCode: true, caravanaCode: true, plantelState: true, breed: true, entryDate: true } });
+    const boars = await prisma.boar.findMany({ where: { tenantId, plantelState: { in: ["ACTIVE", "RESTING"] } }, select: { id: true, identCode: true, caravanaCode: true, plantelState: true, breed: true, geneticLine: true, entryDate: true } });
     for (const b of boars) filas.push({
       id: b.id, tipo: "verraco", caravana: b.caravanaCode || b.identCode, categoria: CATEGORIA.REPRODUCTORES, estado: ESTADO[b.plantelState ?? ""] ?? "—",
-      linea: b.breed, fecha: b.entryDate?.toISOString() ?? null, dias: b.entryDate ? dias(b.entryDate) : null, detalle: "",
+      linea: b.geneticLine || b.breed, fecha: b.entryDate?.toISOString() ?? null, dias: b.entryDate ? dias(b.entryDate) : null, detalle: "",
     });
   }
 

@@ -236,11 +236,11 @@ export async function createServiceEventForSow(
   let semenDoseId: string | undefined;
 
   if (serviceType === "NATURAL_MOUNT" && boarCode) {
-    const boar = await prisma.boar.upsert({
-      where:  { tenantId_identCode: { tenantId, identCode: boarCode } },
-      update: {},
-      create: { tenantId, identCode: boarCode },
+    const boar = await prisma.boar.findFirst({
+      where: { tenantId, OR: [{ identCode: boarCode }, { caravanaCode: { equals: boarCode, mode: "insensitive" } }, { erpCode: { equals: boarCode, mode: "insensitive" } }] },
+      select: { id: true },
     });
+    if (!boar) return { ok: false, error: `No hay un reproductor «${boarCode}» en el plantel. Elegilo de la lista.` };
     boarId = boar.id;
   }
 

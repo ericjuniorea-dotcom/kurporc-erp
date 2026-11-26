@@ -221,6 +221,7 @@ const compraSchema = z.object({
   ubicacion: z.string().trim().max(120).optional().default(""),
   observacion: z.string().trim().max(400).optional().default(""),
   animales: z.array(animal).max(5000).default([]),
+  movimientoId: z.string().uuid().optional(), // compra ya cargada en Movimientos: solo se envían los animales
 });
 
 export async function registrarCompraAnimales(datos: z.input<typeof compraSchema>): Promise<R<{ id: string; aviso?: string }>> {
@@ -246,7 +247,14 @@ export async function registrarCompraAnimales(datos: z.input<typeof compraSchema
     if (!cat) throw new Error(`•Falta la categoría «${nombreCat}» en Finanzas.`);
 
     const unidades = CATEGORIAS[d.categoria].unidad;
-    const mov = await crearMovimiento({
+    let mov: { ok: true; id: string; aviso?: string } | { ok: false; error: string };
+    let costo = BigInt(d.montoGs);
+    if (d.movimientoId) {
+      const m = await prisma.movimiento.findFirst({ where: { id: d.movimientoId, organizacionId: org, estado: { not: "ANULADO" } }, select: { id: true, montoGs: true, categoria: { select: { nombre: true } } } });
+      if (!m || !CATEGORIAS_COMPRA_ANIMALES.includes(m.categoria.nombre)) throw new Error("•Esa compra no existe o no es una compra de animales.");
+      if (await prisma.transferenciaAnimal.count({ where: { tenantId: org, movimientoId: m.id } })) throw new Error("•Esa compra ya se envió a un módulo.");
+      mov = { ok: true, id: m.id }; costo = m.montoGs;
+    } else mov = await crearMovimiento({ desdeCompraAnimales: true,
       fecha: d.fecha, tipo: cat.tipo as "GASTO" | "INVERSION", concepto: `Compra de ${d.cantidad} ${unidades} · ${d.proveedor}`, categoriaId: cat.id,
       cantidad: String(d.cantidad), unidadMedida: "cabezas", contraparte: d.proveedor, medioPago: d.medioPago, cuentaFondosId: d.cuentaFondosId,
       montoGs: d.montoGs, pagado: d.pagado, fechaPago: d.fecha, facturaNumero: d.facturaNumero, observacion: d.observacion,
@@ -256,13 +264,30 @@ export async function registrarCompraAnimales(datos: z.input<typeof compraSchema
     const t = await prisma.transferenciaAnimal.create({ data: {
       tenantId: org, origen: "COMPRA", destino: d.destino, categoria: d.categoria, estado: "EN_CAMINO",
       motivo: `Compra de ${d.cantidad} ${unidades} a ${d.proveedor}`, cantidad: d.cantidad,
-      pesoTotalKg: d.pesoTotalKg, edadDias: d.edadDias, proveedor: d.proveedor, movimientoId: mov.id, costoTotalGs: BigInt(d.montoGs),
+      pesoTotalKg: d.pesoTotalKg, edadDias: d.edadDias, proveedor: d.proveedor, movimientoId: mov.id, costoTotalGs: costo,
       animales: d.animales.length ? d.animales : undefined, ubicacion: d.ubicacion || null, creadaPor: session.user.id,
       enviadaPor: session.user.id, enviadaEn: new Date(),
     }, select: { id: true } });
     refrescar();
     return { ok: true, id: t.id, aviso: mov.aviso };
   } catch (e) { return manejar(e); }
+}
+
+const CATEGORIAS_COMPRA_ANIMALES = ["Matrices y reproductores", "Reposición de reproductoras", "Compra de lechones para engorde"];
+
+/** Compras de animales cargadas en Movimientos que nunca se enviaron a un módulo (los animales no llegaron). */
+export async function comprasSinEnviar() {
+  const { permisos } = await requirePermiso("finanzas.movimientos.ver");
+  const org = permisos.organizacionId;
+  const enviados = (await prisma.transferenciaAnimal.findMany({ where: { tenantId: org, movimientoId: { not: null } }, select: { movimientoId: true } })).map(t => t.movimientoId!);
+  const movs = await prisma.movimiento.findMany({
+    where: { organizacionId: org, estado: { not: "ANULADO" }, categoria: { nombre: { in: CATEGORIAS_COMPRA_ANIMALES } }, id: { notIn: enviados } },
+    orderBy: { fecha: "desc" }, take: 50,
+    select: { id: true, fecha: true, concepto: true, montoGs: true, cantidad: true, categoria: { select: { nombre: true } }, contraparte: { select: { nombre: true } } },
+  });
+  return movs.map(m => ({ id: m.id, fecha: m.fecha.toISOString().slice(0, 10), concepto: m.concepto, montoGs: m.montoGs.toString(),
+    cantidad: m.cantidad ? Math.max(1, Math.round(Number(m.cantidad))) : 1, proveedor: m.contraparte?.nombre ?? "",
+    categoria: (m.categoria.nombre === "Compra de lechones para engorde" ? "LECHONES" : /reproductor|verraco|macho/i.test(m.concepto) ? "REPRODUCTORES" : "REPRODUCTORAS") as "LECHONES" | "REPRODUCTORAS" | "REPRODUCTORES" }));
 }
 
 /** Compras de animales para la pantalla de Finanzas: en qué quedó cada una (recibida, por recibir, rechazada). */

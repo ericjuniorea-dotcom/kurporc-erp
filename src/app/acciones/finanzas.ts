@@ -63,8 +63,12 @@ const movimientoSchema = z.object({
   subcategoriaGastoId: z.string().uuid().or(z.literal("")).optional().default(""),
   etapaCodigo: z.string().regex(/^[A-Z]{2,5}$/).or(z.literal("")).optional().default(""),
   proyectoId: z.string().uuid().or(z.literal("")).optional().default(""),
+  desdeCompraAnimales: z.boolean().optional().default(false), // solo Compra de animales
   division: z.array(z.object({ etapaCodigo: z.string().regex(/^[A-Z]{2,5}$/, "Elegí la etapa"), porcentaje: z.number().min(0).max(100) })).max(12).optional().default([]),
 }).strict();
+
+/** Categorías de compra de animales: solo entran por Compra de animales (crean la transferencia al módulo). */
+const CATEGORIAS_ANIMALES = ["Matrices y reproductores", "Reposición de reproductoras", "Compra de lechones para engorde"];
 
 const dec = (v: string) => (v ? v.replace(",", ".") : null);
 
@@ -82,6 +86,9 @@ export async function crearMovimiento(datos: z.input<typeof movimientoSchema>): 
     const cat = await prisma.categoriaFinanciera.findFirst({ where: { id: d.categoriaId, OR: [{ organizacionId: null }, { organizacionId: org }] } });
     if (!cat) throw new Error("•Esa categoría no existe.");
     if (cat.tipo !== d.tipo) throw new Error("•La categoría no corresponde al tipo elegido.");
+    if (CATEGORIAS_ANIMALES.includes(cat.nombre) && !d.desdeCompraAnimales) {
+      throw new Error("•Las compras de animales se cargan en Finanzas → Compra de animales: así el gasto queda en el libro y los animales llegan al módulo que los recibe.");
+    }
     const esCobro = cat.signo > 0;
     if (d.pagado && !puede(permisos, esCobro ? "finanzas.cobrar.registrar_cobro" : "finanzas.pagar.registrar_pago")) {
       throw new Error(`•No tenés permiso para registrar ${esCobro ? "cobros" : "pagos"}: cargalo como ${esCobro ? "por cobrar" : "pendiente"}.`);

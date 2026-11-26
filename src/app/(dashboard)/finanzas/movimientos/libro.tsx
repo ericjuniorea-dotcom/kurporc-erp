@@ -209,6 +209,7 @@ function FormularioMovimiento(p: Props & { onCerrar: () => void; onListo: (t: st
   const esCobro = (cat?.signo ?? (f.tipo === "INGRESO" ? 1 : -1)) > 0;
   const esSanidad = cat?.nombre === "Sanidad" && /vacuna|medicamento/i.test(f.subcategoria);
   const esCompra = f.tipo === "GASTO" || f.tipo === "INVERSION";
+  const esCompraAnimales = !!cat && ["Matrices y reproductores", "Reposición de reproductoras", "Compra de lechones para engorde"].includes(cat.nombre);
   const prodInv = p.productos.find(x => x.id === f.inventarioProductoId);
   const UNIDAD: Record<string, string> = { DOSIS: "dosis", ML: "ml", KG: "kg", UNIDAD: "unidades", SACO: "sacos" };
   const CAT: Record<string, string> = { VACUNA: "Vacunas", MEDICAMENTO: "Medicamentos", SUPLEMENTO: "Suplementos", BALANCEADO: "Balanceado", EQUIPAMIENTO: "Equipamiento" };
@@ -290,7 +291,13 @@ function FormularioMovimiento(p: Props & { onCerrar: () => void; onListo: (t: st
           <Campo label="ml por unidad (frasco)" ancho={140}><InputNumero className="kp-input" inputMode="decimal" value={f.mlPorUnidad} onChange={e => set("mlPorUnidad", e.target.value)} /></Campo>
         </div>
       )}
-      {esCompra && <BloqueCosteo tipo={f.tipo} catalogo={p.costeo} valor={costeo} onCambio={cambiarCosteo} />}
+      {esCompraAnimales && (
+        <div className="kp-alert kp-alert-warning" style={{ fontSize: 12.5, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <span style={{ flex: "1 1 240px" }}>Las compras de animales se cargan en <strong>Compra de animales</strong>: así el gasto queda en el libro y los animales llegan al módulo que los recibe.</span>
+          <a className="btn btn-primary" href="/finanzas/compra-animales">Ir a Compra de animales</a>
+        </div>
+      )}
+      {esCompra && !esCompraAnimales && <BloqueCosteo tipo={f.tipo} catalogo={p.costeo} valor={costeo} onCambio={cambiarCosteo} />}
       {esCompra && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 10, borderRadius: "var(--radius-md)", background: "var(--bg-base)", border: "0.5px solid var(--border-default)" }}>
           <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12.5, color: "var(--text-primary)" }}>
@@ -370,7 +377,7 @@ function FormularioMovimiento(p: Props & { onCerrar: () => void; onListo: (t: st
       {error && <Aviso tipo="error">{error}</Aviso>}
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
         <button type="button" className="btn" onClick={p.onCerrar} disabled={pendiente}>Cancelar</button>
-        <button type="submit" className="btn btn-primary" disabled={pendiente}>{pendiente && <IconLoader2 size={14} className="animate-spin" aria-hidden />} Guardar</button>
+        <button type="submit" className="btn btn-primary" disabled={pendiente || esCompraAnimales}>{pendiente && <IconLoader2 size={14} className="animate-spin" aria-hidden />} Guardar</button>
       </div>
     </form>
   );

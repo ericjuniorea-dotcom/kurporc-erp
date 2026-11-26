@@ -2,7 +2,7 @@
 // Transferencias del módulo: órdenes para enviar (salen de acá) y animales por recibir (llegan acá).
 // Recibir = aceptar: recién ahí los animales entran al módulo. Pensado para el celular (tarjetas, botones grandes).
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { IconArrowRight, IconCheck, IconChevronDown, IconChevronUp, IconLoader2, IconTruckDelivery, IconX } from "@tabler/icons-react";
+import { IconArrowRight, IconCheck, IconChevronDown, IconChevronUp, IconLoader2, IconArrowsCross, IconX } from "@tabler/icons-react";
 import { enviarTransferencia, panelTransferencias, recibirTransferencia, rechazarTransferencia } from "@/app/acciones/transferencias";
 import { CaravanaFicha } from "@/components/plantel/caravana-ficha";
 import { CATEGORIAS } from "@/lib/transferencias/tipos";
@@ -32,7 +32,7 @@ export function PanelTransferencias({ pantalla, onCambio }: { pantalla: Pantalla
   return (
     <section aria-labelledby={`tr-${pantalla}`} style={{ background: "var(--bg-surface)", border: "0.5px solid var(--accent-border, var(--border-default))", borderRadius: "var(--radius-lg)", padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <IconTruckDelivery size={18} style={{ color: "var(--accent)" }} aria-hidden />
+        <IconArrowsCross size={18} style={{ color: "var(--accent)" }} aria-hidden />
         <h3 id={`tr-${pantalla}`} style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Transferencias</h3>
         {porRecibir.length > 0 && <span className="badge badge-danger">{porRecibir.length} por recibir</span>}
         {paraEnviar.length > 0 && <span className="badge badge-warn">{paraEnviar.length} para enviar</span>}
@@ -110,7 +110,7 @@ function TarjetaEnviar({ f, puede, onListo }: { f: Fila; puede: boolean; onListo
       {puede ? (
         <button type="button" className="btn btn-primary" disabled={pendiente} style={{ width: "100%", justifyContent: "center", minHeight: 42 }}
           onClick={() => iniciar(async () => { setError(null); const r = await enviarTransferencia(f.id); if (!r.ok) setError(r.error); else onListo(); })}>
-          {pendiente ? <IconLoader2 size={14} className="animate-spin" aria-hidden /> : <IconTruckDelivery size={15} aria-hidden />} Ya salió: enviar a {f.aDonde}
+          {pendiente ? <IconLoader2 size={14} className="animate-spin" aria-hidden /> : <IconArrowsCross size={15} aria-hidden />} Ya salió: enviar a {f.aDonde}
         </button>
       ) : <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Lo envía alguien con permiso en este módulo.</span>}
       {error && <span role="alert" style={{ fontSize: 12, color: "var(--danger-text)" }}>{error}</span>}
