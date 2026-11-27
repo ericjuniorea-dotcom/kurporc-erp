@@ -2203,6 +2203,7 @@ model RecepcionInventario {
   costoUnitario    Decimal?           @map("costo_unitario") @db.Decimal(14, 4)
   proveedor        String?
   numeroLote       String?            @map("numero_lote")
+  fleteGs          BigInt             @default(0) @map("flete_gs") // flete sumado al costo
   fechaVencimiento DateTime?          @map("fecha_vencimiento") @db.Date
   compradoPor      String             @map("comprado_por")
   estado           String             @default("PENDIENTE") // PENDIENTE | ACEPTADA | RECHAZADA | ANULADA
@@ -2921,6 +2922,7 @@ model Movimiento {
   motivoRevision      String?             @map("motivo_revision")
   clasificadoPor      String?             @map("clasificado_por")
   clasificadoEn       DateTime?           @map("clasificado_en")
+  fleteRecepcionId    String?             @map("flete_recepcion_id") @db.Uuid // flete de esta compra (LOG-02)
   creadoPor           String              @map("creado_por")
   createdAt           DateTime            @default(now()) @map("created_at")
   updatedAt           DateTime            @updatedAt @map("updated_at")

@@ -5,8 +5,9 @@ import { IconPlus, IconTrash } from "@tabler/icons-react";
 import { InputNumero } from "@/components/ui/input-numero";
 
 export type SubCosteo = { id: string; codigo: string; nombre: string; modo: string; etapaCodigo: string | null; nombresAnteriores: string[]; categoria: string };
-export type CatalogoCosteo = { subcategorias: SubCosteo[]; etapas: { codigo: string; nombre: string }[]; proyectos: { id: string; nombre: string }[] };
-export type ValorCosteo = { subId: string; etapa: string; proyectoId: string; dividir: boolean; filas: { etapa: string; pct: string }[] };
+export type CatalogoCosteo = { subcategorias: SubCosteo[]; etapas: { codigo: string; nombre: string }[]; proyectos: { id: string; nombre: string }[];
+  compras: { id: string; texto: string }[] }; // compras recientes que entraron al inventario (para el flete)
+export type ValorCosteo = { subId: string; etapa: string; proyectoId: string; dividir: boolean; filas: { etapa: string; pct: string }[]; fleteDe?: string };
 
 export const COSTEO_VACIO: ValorCosteo = { subId: "", etapa: "", proyectoId: "", dividir: false, filas: [] };
 const num = (v: string) => Number((v || "0").replace(",", "."));
@@ -15,7 +16,7 @@ export const sumaDivision = (filas: ValorCosteo["filas"]) => Math.round(filas.re
 /** Lo que va al servidor. */
 export function costeoParaGuardar(v: ValorCosteo) {
   return {
-    subcategoriaGastoId: v.subId, etapaCodigo: v.dividir ? "" : v.etapa, proyectoId: v.proyectoId,
+    subcategoriaGastoId: v.subId, etapaCodigo: v.dividir || v.fleteDe ? "" : v.etapa, proyectoId: v.proyectoId, fleteRecepcionId: v.fleteDe ?? "",
     division: v.dividir ? v.filas.map(f => ({ etapaCodigo: f.etapa, porcentaje: num(f.pct) })) : [],
   };
 }
@@ -27,13 +28,14 @@ export function BloqueCosteo({ tipo, catalogo, valor, onCambio }: { tipo: string
   const sub = catalogo.subcategorias.find(s => s.id === valor.subId);
   const opciones = catalogo.subcategorias.filter(s => (tipo === "INVERSION") === (s.modo === "INVERSION"));
   const grupos = [...new Set(opciones.map(s => s.categoria))];
-  const conEtapa = sub && (sub.modo === "DIRECTO" || sub.modo === "REPARTO");
+  const esFlete = sub?.codigo === "LOG-02";
+  const conEtapa = sub && (sub.modo === "DIRECTO" || sub.modo === "REPARTO") && !(esFlete && valor.fleteDe);
   const suma = sumaDivision(valor.filas);
   const usadas = new Set(valor.filas.map(f => f.etapa));
 
   function elegirSub(id: string) {
     const s = catalogo.subcategorias.find(x => x.id === id);
-    onCambio({ ...valor, subId: id, etapa: s && (s.modo === "DIRECTO" || s.modo === "REPARTO") ? (s.etapaCodigo ?? (s.modo === "REPARTO" ? "CMP" : "")) : "", dividir: false, filas: [] });
+    onCambio({ ...valor, subId: id, etapa: s && (s.modo === "DIRECTO" || s.modo === "REPARTO") ? (s.etapaCodigo ?? (s.modo === "REPARTO" ? "CMP" : "")) : "", dividir: false, filas: [], fleteDe: undefined });
   }
   function activarDivision() {
     const primera = valor.etapa && valor.etapa !== "CMP" ? valor.etapa : "";
@@ -75,6 +77,16 @@ export function BloqueCosteo({ tipo, catalogo, valor, onCambio }: { tipo: string
         )}
       </div>
 
+      {esFlete && (
+        <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <span className="kp-label">¿De qué compra es el flete?</span>
+          <select className="kp-input" value={valor.fleteDe ?? ""} onChange={e => set({ fleteDe: e.target.value, etapa: e.target.value ? "" : valor.etapa, dividir: false, filas: [] })}>
+            <option value="">No es de una compra (elegí la etapa)</option>
+            {catalogo.compras.map(c => <option key={c.id} value={c.id}>{c.texto}</option>)}
+          </select>
+          {valor.fleteDe && <span style={{ fontSize: 12, color: "var(--text-muted)" }}>El flete se suma al costo de ese producto en el inventario (y de ahí a la etapa que lo consume).</span>}
+        </label>
+      )}
       {sub?.modo === "INVENTARIO" && (
         <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Va al inventario: el costo pasa a la etapa recién cuando se consume (marcá «Entra al inventario»).</div>
       )}

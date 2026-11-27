@@ -10,7 +10,7 @@ import { guardarReglaReparto, repartirMes } from "@/app/acciones/costeo-reparto"
 type Criterio = "PERSONAL" | "POTENCIA" | "ANIMALES" | "PORCENTAJE" | "ETAPA";
 type Regla = { subcategoriaCodigo: string; criterio: Criterio; valores: Record<string, number>; etapaCodigo: string | null };
 type Linea = { movimientoId: string; fecha: string; concepto: string; subcategoria: string; montoGs: string; criterio: Criterio; partes: { etapa: string; porcentaje: number; montoGs: string }[]; error: string | null };
-type Datos = { mes: number; animales: Record<string, number>; personal: Record<string, number>; reglas: Regla[]; criterios: Record<Criterio, { nombre: string; como: string }>;
+type Datos = { mes: number; animales: Record<string, number>; personal: Record<string, number>; potencia: Record<string, number>; reglas: Regla[]; criterios: Record<Criterio, { nombre: string; como: string }>;
   etapas: { codigo: string; nombre: string; tipo: string }[]; repartidos: number; lineas: Linea[]; subcategorias: { codigo: string; nombre: string }[]; puedeRepartir: boolean };
 
 const tarjeta: React.CSSProperties = { background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-lg)" };
@@ -82,6 +82,7 @@ export function RepartoCompartidos({ mes, cerrado }: { mes: number; cerrado: boo
           </details>
           <div style={{ padding: "10px 14px", borderTop: "0.5px solid var(--border-default)", fontSize: 11.5, color: "var(--text-muted)" }}>
             Animales presentes a fin de mes: {Object.entries(datos.animales).filter(([, v]) => v > 0).map(([e, v]) => `${nombre(e)} ${v.toLocaleString("es-PY")}`).join(" · ") || "—"}.
+            {" "}Potencia: {Object.entries(datos.potencia).map(([e, v]) => `${nombre(e)} ${v.toLocaleString("es-PY")} kW`).join(" · ") || "sin cargar"}.
             {" "}Personal: {Object.entries(datos.personal).map(([e, v]) => `${nombre(e)} ${v.toLocaleString("es-PY", { maximumFractionDigits: 1 })}`).join(" · ") || "—"}.
           </div>
           {datos.puedeRepartir && !cerrado && (
@@ -117,7 +118,7 @@ function FilaRegla({ r, titulo, datos, productivas, pendiente, guardar }: { r: R
   const [criterio, setCriterio] = useState<Criterio>(r.criterio);
   const [valores, setValores] = useState<Record<string, string>>(Object.fromEntries(Object.entries(r.valores).map(([k, v]) => [k, String(v)])));
   const [etapa, setEtapa] = useState(r.etapaCodigo ?? "");
-  const conValores = criterio === "POTENCIA" || criterio === "PORCENTAJE";
+  const conValores = criterio === "PORCENTAJE";
   const suma = productivas.reduce((s, e) => s + (nro(valores[e.codigo] ?? "") || 0), 0);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingBottom: 10, borderBottom: "0.5px dashed var(--border-default)" }}>
@@ -136,14 +137,14 @@ function FilaRegla({ r, titulo, datos, productivas, pendiente, guardar }: { r: R
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {productivas.map(e => (
             <label key={e.codigo} style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 11.5, color: "var(--text-secondary)", flex: "1 1 110px" }}>
-              {e.nombre} ({criterio === "POTENCIA" ? "kW" : "%"})
+              {e.nombre} (%)
               <InputNumero className="kp-input" inputMode="decimal" value={valores[e.codigo] ?? ""} onChange={ev => setValores(v => ({ ...v, [e.codigo]: ev.target.value }))} />
             </label>
           ))}
         </div>
       )}
       <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>
-        {datos.criterios[criterio].como}{criterio === "PORCENTAJE" ? ` Suma: ${suma.toLocaleString("es-PY")} %.` : criterio === "POTENCIA" ? ` Total: ${suma.toLocaleString("es-PY")} kW.` : ""}
+        {datos.criterios[criterio].como}{criterio === "PORCENTAJE" ? ` Suma: ${suma.toLocaleString("es-PY")} %.` : criterio === "POTENCIA" ? ` Cargado: ${productivas.map(e => `${e.nombre} ${(datos.potencia[e.codigo] ?? 0).toLocaleString("es-PY")} kW`).join(" · ")}.` : ""}
       </div>
       <button type="button" className="btn" style={{ alignSelf: "flex-start" }} disabled={pendiente || (criterio === "ETAPA" && !etapa) || (criterio === "PORCENTAJE" && Math.round(suma * 100) !== 10_000)}
         onClick={() => guardar({ subcategoriaCodigo: r.subcategoriaCodigo, criterio, etapaCodigo: criterio === "ETAPA" ? etapa : null,

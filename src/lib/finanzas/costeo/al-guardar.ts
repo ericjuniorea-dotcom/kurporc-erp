@@ -11,6 +11,7 @@ export type EntradaCosteo = {
   tipo: string; categoriaNombre: string; montoGs: bigint; esVacuna: boolean;
   subcategoriaGastoId?: string; etapaCodigo?: string; proyectoId?: string;
   division?: { etapaCodigo: string; porcentaje: number }[];
+  fleteRecepcionId?: string; // LOG-02: compra a la que corresponde el flete
 };
 export type Costeo = {
   datos: { subcategoriaGastoId: string | null; etapaCodigo: string | null; proyectoId: string | null; revisionPendiente: boolean; motivoRevision: string | null };
@@ -50,6 +51,11 @@ export async function resolverCosteo(org: string, e: EntradaCosteo): Promise<Cos
 
   if (sub.modo === "INVENTARIO") {
     return { datos: { subcategoriaGastoId: sub.id, etapaCodigo: sub.etapaCodigo, proyectoId: null, revisionPendiente: !!revision, motivoRevision: revision }, division: [] };
+  }
+
+  // Flete de una compra: se suma al costo del ítem (R4), no lleva etapa propia
+  if (sub.codigo === "LOG-02" && e.fleteRecepcionId) {
+    return { datos: { subcategoriaGastoId: sub.id, etapaCodigo: null, proyectoId: null, revisionPendiente: false, motivoRevision: null }, division: [] };
   }
 
   // Directo o a repartir: una etapa, o dividido entre varias

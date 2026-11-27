@@ -531,6 +531,14 @@ interface ProcesoTemplate {
 const MODULE_PROCESOS: Partial<Record<ModuleKey, ProcesoTemplate[]>> = {
   GESTACION: [
     {
+      key: "potencia_electrica",
+      label: "Potencia eléctrica del módulo",
+      descripcion: "kW instalados en este módulo (lámparas, calefactores, ventiladores, bombas…: suma de los watts ÷ 1.000). Cada factura de luz se reparte entre los módulos en proporción a estos kW al cerrar el mes.",
+      params: {
+        kw: { type: "number", label: "Potencia instalada", min: 0, max: 100000, unit: "kW", defaultVal: 0 },
+      },
+    },
+    {
       key: "protocolo_inseminacion",
       label: "Protocolo de inseminación artificial",
       descripcion: "Define cuántas dosis se aplican por ciclo de celo y el intervalo entre ellas. Dentro de este período no se generará alerta de repetición de celo.",
@@ -573,6 +581,14 @@ const MODULE_PROCESOS: Partial<Record<ModuleKey, ProcesoTemplate[]>> = {
     },
   ],
   MATERNIDAD: [
+    {
+      key: "potencia_electrica",
+      label: "Potencia eléctrica del módulo",
+      descripcion: "kW instalados en este módulo (lámparas, calefactores, ventiladores, bombas…: suma de los watts ÷ 1.000). Cada factura de luz se reparte entre los módulos en proporción a estos kW al cerrar el mes.",
+      params: {
+        kw: { type: "number", label: "Potencia instalada", min: 0, max: 100000, unit: "kW", defaultVal: 0 },
+      },
+    },
     {
       key: "corte_cola",
       label: "Corte de cola",
@@ -626,6 +642,14 @@ const MODULE_PROCESOS: Partial<Record<ModuleKey, ProcesoTemplate[]>> = {
   ],
   RECRIA: [
     {
+      key: "potencia_electrica",
+      label: "Potencia eléctrica del módulo",
+      descripcion: "kW instalados en este módulo (lámparas, calefactores, ventiladores, bombas…: suma de los watts ÷ 1.000). Cada factura de luz se reparte entre los módulos en proporción a estos kW al cerrar el mes.",
+      params: {
+        kw: { type: "number", label: "Potencia instalada", min: 0, max: 100000, unit: "kW", defaultVal: 0 },
+      },
+    },
+    {
       key: "desinfeccion_sala",
       label: "Desinfección de sala",
       descripcion: "Limpieza y desinfección periódica de las salas de recría.",
@@ -637,6 +661,14 @@ const MODULE_PROCESOS: Partial<Record<ModuleKey, ProcesoTemplate[]>> = {
     },
   ],
   ENGORDE: [
+    {
+      key: "potencia_electrica",
+      label: "Potencia eléctrica del módulo",
+      descripcion: "kW instalados en este módulo (lámparas, calefactores, ventiladores, bombas…: suma de los watts ÷ 1.000). Cada factura de luz se reparte entre los módulos en proporción a estos kW al cerrar el mes.",
+      params: {
+        kw: { type: "number", label: "Potencia instalada", min: 0, max: 100000, unit: "kW", defaultVal: 0 },
+      },
+    },
     {
       key: "vacio_sanitario",
       label: "Vacío sanitario",

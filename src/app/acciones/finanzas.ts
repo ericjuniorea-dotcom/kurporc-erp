@@ -12,6 +12,7 @@ import { ipDe, registrarAuditoria, userAgentDe } from "@/lib/seguridad/auditoria
 import { cifrar } from "@/lib/seguridad/cifrado";
 import { fechaISO, gs } from "@/lib/finanzas/calculos";
 import { resolverCosteo } from "@/lib/finanzas/costeo/al-guardar";
+import { aplicarFlete } from "@/lib/inventario/flete";
 
 type R<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
@@ -64,6 +65,7 @@ const movimientoSchema = z.object({
   etapaCodigo: z.string().regex(/^[A-Z]{2,5}$/).or(z.literal("")).optional().default(""),
   proyectoId: z.string().uuid().or(z.literal("")).optional().default(""),
   desdeCompraAnimales: z.boolean().optional().default(false), // solo Compra de animales
+  fleteRecepcionId: z.string().uuid().or(z.literal("")).optional().default(""), // flete (LOG-02) de esta compra
   division: z.array(z.object({ etapaCodigo: z.string().regex(/^[A-Z]{2,5}$/, "Elegí la etapa"), porcentaje: z.number().min(0).max(100) })).max(12).optional().default([]),
 }).strict();
 
@@ -156,7 +158,9 @@ export async function crearMovimiento(datos: z.input<typeof movimientoSchema>): 
       esVacuna = !!(await prisma.productoInventario.findFirst({ where: { id: d.productoSanitarioId || d.inventarioProductoId, tenantId: org, categoria: "VACUNA" }, select: { id: true } }));
     }
     const costeo = await resolverCosteo(org, { tipo: d.tipo, categoriaNombre: cat.nombre, montoGs: monto, esVacuna,
-      subcategoriaGastoId: d.subcategoriaGastoId || undefined, etapaCodigo: d.etapaCodigo || undefined, proyectoId: d.proyectoId || undefined, division: d.division });
+      subcategoriaGastoId: d.subcategoriaGastoId || undefined, etapaCodigo: d.etapaCodigo || undefined, proyectoId: d.proyectoId || undefined, division: d.division, fleteRecepcionId: d.fleteRecepcionId || undefined });
+    const esFlete = !!d.fleteRecepcionId && !!costeo.datos.subcategoriaGastoId && costeo.datos.etapaCodigo === null && costeo.division.length === 0
+      && (await prisma.subcategoriaGasto.findUnique({ where: { id: costeo.datos.subcategoriaGastoId }, select: { codigo: true } }))?.codigo === "LOG-02";
     const id = await conActor(session.user.id, async tx => {
       const m = await tx.movimiento.create({
         data: {
@@ -173,6 +177,10 @@ export async function crearMovimiento(datos: z.input<typeof movimientoSchema>): 
         },
         select: { id: true },
       });
+      if (esFlete) {
+        const f = await aplicarFlete(tx, org, d.fleteRecepcionId, monto);
+        await tx.movimiento.update({ where: { id: m.id }, data: { fleteRecepcionId: d.fleteRecepcionId, ...(f.etapaDirecta ? { etapaCodigo: f.etapaDirecta } : {}) } });
+      }
       if (costeo.division.length) {
         await tx.movimientoEtapa.createMany({ data: costeo.division.map(x => ({ organizacionId: org, movimientoId: m.id, ...x })) });
       }

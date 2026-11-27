@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     prisma.etapaCosto.findMany({ where: { organizacionId: org, activa: true, codigo: { notIn: ["INV", "CMP"] } }, orderBy: { orden: "asc" }, select: { codigo: true, nombre: true, tipo: true } }),
   ]);
   return NextResponse.json({
-    mes: m, animales: p.animales, personal: p.personal, reglas: p.reglas, criterios: CRITERIOS, etapas, repartidos: p.repartidos,
+    mes: m, animales: p.animales, personal: p.personal, potencia: p.potencia, reglas: p.reglas, criterios: CRITERIOS, etapas, repartidos: p.repartidos,
     subcategorias: p.subcategorias,
     lineas: p.lineas.map(l => ({ ...l, montoGs: l.montoGs.toString(), partes: l.partes.map(x => ({ ...x, montoGs: x.montoGs.toString() })) })),
     puedeRepartir: puede(permisos, "finanzas.cierre.cerrar"),

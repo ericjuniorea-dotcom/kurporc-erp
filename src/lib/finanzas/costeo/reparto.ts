@@ -15,7 +15,7 @@ export type Regla = { subcategoriaCodigo: string; criterio: Criterio; valores: R
 
 export const CRITERIOS: Record<Criterio, { nombre: string; como: string }> = {
   PERSONAL: { nombre: "Por personal de cada módulo", como: "Cada persona de RRHH cuenta para la etapa de su sector (pesa su sueldo base si está cargado). «Todos» y veterinario se dividen entre las etapas productivas; administración no entra (es Estructura)." },
-  POTENCIA: { nombre: "Por potencia instalada (kW)", como: "Monto × kW de la etapa ÷ kW totales." },
+  POTENCIA: { nombre: "Por potencia de cada módulo (kW)", como: "Factura × kW del módulo ÷ kW de todos los módulos. Los kW se cargan en Configuración → módulo → Procesos → Potencia eléctrica." },
   ANIMALES: { nombre: "Por animales presentes", como: "Monto × animales de la etapa a fin de mes ÷ animales totales." },
   PORCENTAJE: { nombre: "Porcentaje fijo", como: "Monto × % de cada etapa." },
   ETAPA: { nombre: "Todo a una etapa", como: "El monto completo va a la etapa elegida." },
@@ -41,6 +41,15 @@ export async function reglasDe(org: string): Promise<Regla[]> {
 export const reglaPara = (reglas: Regla[], codigo: string) => reglas.find(r => r.subcategoriaCodigo === codigo) ?? reglas.find(r => r.subcategoriaCodigo === "*")!;
 
 const finDeMes = (mes: number) => new Date(Date.UTC(Math.floor(mes / 100), mes % 100, 1) - 1);
+
+/** kW por etapa cargados en Configuración → módulo → Procesos → Potencia eléctrica. */
+const MODULO_ETAPA: Record<string, string> = { GESTACION: "GES", MATERNIDAD: "MAT", RECRIA: "DES", ENGORDE: "ENG" };
+export async function potencia(org: string): Promise<Record<string, number>> {
+  const filas = await prisma.configProceso.findMany({ where: { tenantId: org, procesoKey: "potencia_electrica", modulo: { in: Object.keys(MODULO_ETAPA) } }, select: { modulo: true, valor: true } });
+  const r: Record<string, number> = {};
+  for (const f of filas) { const kw = Number((f.valor as { kw?: unknown } | null)?.kw ?? 0); if (kw > 0) r[MODULO_ETAPA[f.modulo]] = kw; }
+  return r;
+}
 
 /** Animales presentes por etapa al último día del mes. */
 export async function censo(org: string, mes: number): Promise<Record<string, number>> {
@@ -92,13 +101,13 @@ export async function proponerReparto(org: string, mes: number) {
     prisma.subcategoriaGasto.findMany({ where: { organizacionId: org }, select: { codigo: true, nombre: true } }),
   ]);
   const etapasConAnimales = PRODUCTIVAS.filter(e => (animales[e] ?? 0) > 0);
-  const gente = await personal(org, etapasConAnimales);
+  const [gente, kw] = await Promise.all([personal(org, etapasConAnimales), potencia(org)]);
   const pesosDe = (r: Regla): { pesos: Record<string, number>; error: string | null } => {
     if (r.criterio === "ETAPA") return r.etapaCodigo ? { pesos: { [r.etapaCodigo]: 1 }, error: null } : { pesos: {}, error: "Falta elegir la etapa." };
-    const pesos = r.criterio === "PERSONAL" ? gente : r.criterio === "ANIMALES" ? animales : r.valores;
+    const pesos = r.criterio === "PERSONAL" ? gente : r.criterio === "ANIMALES" ? animales : r.criterio === "POTENCIA" ? (Object.keys(kw).length ? kw : r.valores) : r.valores;
     const limpio = Object.fromEntries(Object.entries(pesos).filter(([, v]) => Number(v) > 0));
     if (!Object.keys(limpio).length) {
-      return { pesos: {}, error: r.criterio === "POTENCIA" ? "Falta cargar la potencia instalada (kW) de cada etapa."
+      return { pesos: {}, error: r.criterio === "POTENCIA" ? "Falta la potencia (kW) de cada módulo: cargala en Configuración → módulo → Procesos → Potencia eléctrica."
         : r.criterio === "PERSONAL" ? "No hay personal de producción con sector en RRHH."
         : r.criterio === "ANIMALES" ? "No hay animales presentes a fin de mes." : "Faltan los porcentajes." };
     }
@@ -124,7 +133,7 @@ export async function proponerReparto(org: string, mes: number) {
     };
   });
   const hechos = new Set((await prisma.repartoMes.findMany({ where: { organizacionId: org, mes }, select: { movimientoId: true }, distinct: ["movimientoId"] })).map(r => r.movimientoId));
-  return { lineas, animales, personal: gente, reglas, subcategorias: subs, repartidos: lineas.filter(l => hechos.has(l.movimientoId)).length };
+  return { lineas, animales, personal: gente, potencia: kw, reglas, subcategorias: subs, repartidos: lineas.filter(l => hechos.has(l.movimientoId)).length };
 }
 
 /** Aplica el reparto del mes (reemplaza el anterior). Bloquea si alguna línea tiene un error. */
