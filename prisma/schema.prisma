@@ -2114,8 +2114,9 @@ model ProductoInventario {
   recepciones           RecepcionInventario[]
 
   // Costeo por etapa: a qué subcategoría de gasto pertenece y en qué etapa se consume por defecto
-  subcategoriaGastoId String? @map("subcategoria_gasto_id") @db.Uuid
-  etapaConsumoCodigo  String? @map("etapa_consumo_codigo")
+  subcategoriaGastoId String?  @map("subcategoria_gasto_id") @db.Uuid
+  etapaConsumoCodigo  String?  @map("etapa_consumo_codigo")
+  costoPromedio       Decimal? @map("costo_promedio") @db.Decimal(14, 4) // costo promedio ponderado (Fase 4, lo mantiene la base)
 
   @@index([tenantId])
   @@index([tenantId, categoria])
@@ -2166,17 +2167,24 @@ enum OrigenMovimiento {
 // Historial de toda entrada/salida de inventario — audita (no reemplaza) el
 // descuento/incremento directo que ya hace cada flujo sobre LoteInventario.
 model MovimientoInventario {
-  id           String           @id @default(cuid())
-  tenantId     String
-  productoId   String
-  loteId       String?
-  tipo         TipoMovimiento
-  cantidad     Decimal          @db.Decimal(12, 3)
-  origen       OrigenMovimiento
-  referenciaId String?
-  fecha        DateTime         @default(now())
-  usuarioId    String?          @map("usuario_id") // quién lo hizo
-  nota         String?
+  id            String           @id @default(cuid())
+  tenantId      String
+  productoId    String
+  loteId        String?
+  tipo          TipoMovimiento
+  cantidad      Decimal          @db.Decimal(12, 3)
+  origen        OrigenMovimiento
+  referenciaId  String?
+  fecha         DateTime         @default(now())
+  usuarioId     String?          @map("usuario_id") // quién lo hizo
+  nota          String?
+  // Fase 4 (costeo por etapa): lo completa la base al insertar si no viene
+  etapaCodigo   String?          @map("etapa_codigo")
+  loteAnimal    String?          @map("lote_animal")
+  motivo        String?
+  costoUnitario Decimal?         @map("costo_unitario") @db.Decimal(14, 4)
+  costoGs       BigInt?          @map("costo_gs")
+  conteoId      String?          @map("conteo_id") @db.Uuid
 
   producto ProductoInventario @relation(fields: [productoId], references: [id])
   lote     LoteInventario?    @relation(fields: [loteId], references: [id])
@@ -3862,4 +3870,36 @@ model MovimientoEtapa {
   @@unique([movimientoId, etapaCodigo])
   @@index([organizacionId, etapaCodigo])
   @@map("movimiento_etapa")
+}
+
+// Fase 4: conteo físico mensual del inventario
+model ConteoInventario {
+  id             String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String                 @map("tenant_id")
+  fecha          DateTime               @db.Date
+  mes            Int
+  valorSistemaGs BigInt                 @default(0) @map("valor_sistema_gs")
+  diferenciaGs   BigInt                 @default(0) @map("diferencia_gs")
+  creadoPor      String                 @map("creado_por")
+  createdAt      DateTime               @default(now()) @map("created_at")
+  items          ConteoInventarioItem[]
+
+  @@index([tenantId, mes])
+  @@map("conteo_inventario")
+}
+
+model ConteoInventarioItem {
+  id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conteoId      String           @map("conteo_id") @db.Uuid
+  productoId    String           @map("producto_id")
+  saldoSistema  Decimal          @map("saldo_sistema") @db.Decimal(12, 3)
+  contado       Decimal          @db.Decimal(12, 3)
+  diferencia    Decimal          @db.Decimal(12, 3)
+  costoUnitario Decimal?         @map("costo_unitario") @db.Decimal(14, 4)
+  diferenciaGs  BigInt           @default(0) @map("diferencia_gs")
+  motivo        String?
+  conteo        ConteoInventario @relation(fields: [conteoId], references: [id], onDelete: Cascade)
+
+  @@index([conteoId])
+  @@map("conteo_inventario_item")
 }

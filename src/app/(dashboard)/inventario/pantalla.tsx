@@ -11,6 +11,7 @@ import {
 import { RecepcionesInventario } from "@/components/inventario/recepciones";
 import { NuevoProducto } from "@/components/inventario/nuevo-producto";
 import { eliminarProducto } from "@/app/acciones/inventario";
+import { PanelCosteoInventario } from "@/components/inventario/costeo-panel";
 import dynamic from "next/dynamic";
 
 // Se bajan recién cuando se abren (la pantalla inicial queda más liviana)
@@ -51,8 +52,13 @@ interface Movimiento {
   usuario: string | null;
   nota: string | null;
   valorGs: number | null;
+  etapa: string | null;
 }
 
+const ETAPA_LABEL: Record<string, string> = {
+  GES: "Gestación", MAT: "Maternidad", DES: "Destete y recría", ENG: "Engorde", MAN: "Mantenimiento", VER: "Áreas verdes",
+  BIO: "Bioseguridad", EST: "Estructura", FIN: "Financieros", CMP: "Compartido",
+};
 const CATEGORIA_LABEL: Record<string, string> = {
   VACUNA: "Vacunas", SUPLEMENTO: "Suplementos", MEDICAMENTO: "Medicamentos",
   BALANCEADO: "Balanceado", EQUIPAMIENTO: "Equipamiento",
@@ -98,7 +104,7 @@ export default function InventarioPage() {
   const [loading,     setLoading]     = useState(true);
   const [filtro,      setFiltro]      = useState<(typeof FILTROS)[number]>("TODOS");
   const [busqueda,    setBusqueda]    = useState("");
-  const [tab,         setTab]         = useState<"inventario" | "movimientos" | "analisis">("inventario");
+  const [tab,         setTab]         = useState<"inventario" | "movimientos" | "costos" | "analisis">("inventario");
   const [mostrarCriticos, setMostrarCriticos] = useState(false);
   const [msg,         setMsg]         = useState<string | null>(null);
   const [err,         setErr]         = useState<string | null>(null);
@@ -166,9 +172,9 @@ export default function InventarioPage() {
         title="Inventario"
         icon={IconPackages}
         iconColor="var(--text-secondary)"
-        tabs={[{ key: "inventario", label: "Inventario" }, { key: "movimientos", label: "Movimientos" }, { key: "analisis", label: "Central de análisis" }]}
+        tabs={[{ key: "inventario", label: "Inventario" }, { key: "movimientos", label: "Movimientos" }, { key: "costos", label: "Costos y conteo" }, { key: "analisis", label: "Central de análisis" }]}
         activeTab={tab}
-        onTabChange={(k) => setTab(k as "inventario" | "movimientos" | "analisis")}
+        onTabChange={(k) => setTab(k as "inventario" | "movimientos" | "costos" | "analisis")}
       />
       <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
         {msg && <div className="kp-alert kp-alert-ok"><IconCheck size={13} /> {msg}</div>}
@@ -246,6 +252,8 @@ export default function InventarioPage() {
           <div style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
             <IconLoader2 size={24} style={{ color: "var(--text-muted)", animation: "spin 1s linear infinite" }} />
           </div>
+        ) : tab === "costos" ? (
+          <PanelCosteoInventario />
         ) : tab === "analisis" ? (
           <CentralAnalisisLogistica onComprar={iniciarCompra} stock={stock} />
         ) : tab === "inventario" ? (
@@ -328,7 +336,7 @@ export default function InventarioPage() {
                 <thead>
                   <tr>
                     <th>Fecha</th><th>Producto</th><th>Tipo</th><th>Origen</th>
-                    <th style={{ textAlign: "right" }}>Cantidad</th><th style={{ textAlign: "right" }}>Valor</th><th>Lote</th><th>Quién</th>
+                    <th style={{ textAlign: "right" }}>Cantidad</th><th style={{ textAlign: "right" }}>Valor</th><th>Etapa</th><th>Lote</th><th>Quién</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -339,9 +347,10 @@ export default function InventarioPage() {
                       <td><span style={{ fontSize: 10, fontWeight: 600, color: TIPO_COLOR[m.tipo] }}>{m.tipo}</span></td>
                       <td style={{ fontSize: 11 }}>{ORIGEN_LABEL[m.origen] ?? m.origen}</td>
                       <td style={{ textAlign: "right", fontSize: 11, fontVariantNumeric: "tabular-nums" }}>
-                        {m.tipo === "SALIDA" ? "-" : "+"}{m.cantidad} {UNIDAD_LABEL[m.producto.unidadMedida] ?? ""}
+                        {m.tipo === "SALIDA" || (m.tipo === "AJUSTE" && m.cantidad < 0) ? "-" : "+"}{Math.abs(m.cantidad)} {UNIDAD_LABEL[m.producto.unidadMedida] ?? ""}
                       </td>
                       <td style={{ textAlign: "right", fontSize: 11, fontVariantNumeric: "tabular-nums" }}>{fmtGs(m.valorGs)}</td>
+                      <td style={{ fontSize: 11 }}>{m.etapa ? (ETAPA_LABEL[m.etapa] ?? m.etapa) : "—"}</td>
                       <td style={{ fontSize: 11, color: "var(--text-muted)" }}>{m.numeroLote ?? "—"}</td>
                       <td style={{ fontSize: 11 }} title={m.nota ?? undefined}>{m.usuario ?? "—"}{m.nota ? <span style={{ color: "var(--text-muted)" }}> · {m.nota}</span> : null}</td>
                     </tr>

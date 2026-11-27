@@ -33,7 +33,8 @@ export async function GET(req: NextRequest) {
     producto: m.producto,
     numeroLote: m.lote?.numeroLote ?? null,
     usuario: m.usuarioId ? nombres.get(m.usuarioId) ?? "—" : null,
-    valorGs: m.lote?.costoUnitario ? Math.round(Math.abs(Number(m.cantidad)) * Number(m.lote.costoUnitario)) : null,
+    valorGs: m.costoGs != null ? Number(m.costoGs) : m.lote?.costoUnitario ? Math.round(Math.abs(Number(m.cantidad)) * Number(m.lote.costoUnitario)) : null,
+    etapa: m.etapaCodigo,
     nota: m.nota,
   })));
 }
