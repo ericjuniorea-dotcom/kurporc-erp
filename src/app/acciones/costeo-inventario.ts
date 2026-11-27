@@ -75,11 +75,7 @@ export async function valorizarStock(datos: z.input<typeof valorizar>): Promise<
       // Solo los lotes sin costo: lo comprado conserva su precio. La base recalcula el promedio.
       const n = await tx.loteInventario.updateMany({ where: { tenantId: org, vacunaId: prod.id, costoUnitario: null }, data: { costoUnitario: d.costoUnitario } });
       if (!n.count) throw new Error("•Este producto ya tiene costo en todos sus lotes.");
-      const p = await tx.productoInventario.findUnique({ where: { id: prod.id }, select: { costoPromedio: true } });
-      const costo = Number(p?.costoPromedio ?? d.costoUnitario);
-      // Salidas anteriores que quedaron sin valor: se valorizan al promedio
-      await tx.$executeRaw`update movimientos_inventario set costo_unitario = ${costo}, costo_gs = round(abs(cantidad) * ${costo})
-        where "tenantId" = ${org} and "productoId" = ${prod.id} and costo_unitario is null`;
+      // Las salidas anteriores NO se revalorizan: ese consumo ya está en el libro como compra (no se cuenta dos veces)
     });
     refrescar(org);
     return { ok: true };

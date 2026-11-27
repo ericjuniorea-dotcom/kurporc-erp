@@ -67,6 +67,7 @@ export async function censo(org: string, mes: number): Promise<Record<string, nu
     MAT: enMat.size + partos.reduce((s, p) => s + p.bornAlive, 0),
     DES: recria._sum.currentCount ?? 0,
     ENG: engorde._sum.currentCount ?? 0,
+    CERDAS: cerdas.length, // cerdas del plantel (no es una etapa: para el costo por cerda)
   };
 }
 
@@ -97,7 +98,7 @@ export async function proponerReparto(org: string, mes: number) {
   const [movs, reglas, animales, subs] = await Promise.all([
     prisma.movimiento.findMany({ where: { organizacionId: org, mes, etapaCodigo: "CMP", estado: { not: "ANULADO" } }, orderBy: { fecha: "asc" },
       select: { id: true, fecha: true, concepto: true, montoGs: true, subcategoriaGasto: { select: { codigo: true, nombre: true } } } }),
-    reglasDe(org), censo(org, mes),
+    reglasDe(org), censo(org, mes).then(c => Object.fromEntries(PRODUCTIVAS.map(e => [e, c[e] ?? 0])) as Record<string, number>),
     prisma.subcategoriaGasto.findMany({ where: { organizacionId: org }, select: { codigo: true, nombre: true } }),
   ]);
   const etapasConAnimales = PRODUCTIVAS.filter(e => (animales[e] ?? 0) > 0);

@@ -18,6 +18,7 @@ const SECCIONES: (SeccionFinanzas & { permiso: string })[] = [
   { grupo: "Análisis", href: "/finanzas/estado", label: "Estado financiero", permiso: "finanzas.estado.ver" },
   { grupo: "Análisis", href: "/finanzas/indicadores", label: "Indicadores", permiso: "finanzas.indicadores.ver" },
   { grupo: "Análisis", href: "/finanzas/analisis", label: "Análisis del año", permiso: "finanzas.indicadores.ver" },
+  { grupo: "Análisis", href: "/finanzas/costos-etapa", label: "Costos por etapa", permiso: "finanzas.costos.ver" },
   { grupo: "Análisis", href: "/finanzas/costos", label: "Costos", permiso: "finanzas.costos.ver" },
   { grupo: "Análisis", href: "/finanzas/produccion", label: "Producción", permiso: "finanzas.costos.ver" },
   { grupo: "Análisis", href: "/finanzas/alimentacion", label: "Alimentación", permiso: "finanzas.balanceado.ver" },

@@ -4,13 +4,13 @@
 // Se puede usar en el navegador y en el servidor (no consulta la base).
 
 export type Sentido = "mayor" | "menor"; // mayor = más es mejor · menor = menos es mejor
-export type GrupoIndicador = "Reproducción" | "Maternidad" | "Iniciación" | "Engorde" | "General" | "Inventario" | "Actividad";
+export type GrupoIndicador = "Reproducción" | "Maternidad" | "Iniciación" | "Engorde" | "General" | "Inventario" | "Actividad" | "Costos";
 export type MetaRef = { modulo: string; kpiKey: string; defecto: number };
 
 export interface Indicador {
   nombre: string;
   grupo: GrupoIndicador;
-  unidad: "%" | "kg" | "días" | "lechones" | "partos" | "animales" | "";
+  unidad: "%" | "kg" | "días" | "lechones" | "partos" | "animales" | "₲" | "";
   decimales: number;
   sentido?: Sentido;
   meta?: MetaRef;
@@ -201,6 +201,33 @@ export const INDICADORES = {
     formula: "Fecha del parto + días de lactancia meta de la camada abierta más antigua.",
     paraQue: "Para preparar el lugar en Iniciación y organizar el servicio de las cerdas que salen.",
   },
+
+  // ── Costos (Finanzas → Costos por etapa) ─────────────────────
+  costo_lechon_destetado: {
+    nombre: "Costo por lechón destetado", grupo: "Costos", unidad: "₲", decimales: 0, sentido: "menor",
+    formula: "(Costo de Gestación + Maternidad, con su parte de apoyo y estructura) ÷ lechones destetados en el mismo período.",
+    paraQue: "Cuánto te cuesta producir cada lechón al destete. Si sube, mirá qué etapa y qué categoría crecieron (alimento, mano de obra, sanidad) y si bajaron los destetados (mortalidad, nacidos vivos).",
+  },
+  costo_kg_destetado: {
+    nombre: "Costo por kg de lechón destetado", grupo: "Costos", unidad: "₲", decimales: 0, sentido: "menor",
+    formula: "El mismo costo de Gestación + Maternidad ÷ kg de lechones destetados (peso total de las camadas al destete) en el período.",
+    paraQue: "Compara granjas y meses aunque el peso al destete cambie. Si sube con el costo por lechón estable, los lechones salen más livianos.",
+  },
+  costo_cerda_anio: {
+    nombre: "Costo por cerda por año", grupo: "Costos", unidad: "₲", decimales: 0, sentido: "menor",
+    formula: "(Costo de Gestación + Maternidad del período) ÷ cerdas promedio del plantel, llevado a 12 meses.",
+    paraQue: "Lo que cuesta mantener una madre un año. Junto con los destetados por cerda por año explica el costo del lechón.",
+  },
+  peso_alimentacion: {
+    nombre: "Peso de la alimentación", grupo: "Costos", unidad: "%", decimales: 0,
+    formula: "Costo de alimentación ÷ costo total de las etapas productivas × 100.",
+    paraQue: "En granjas tecnificadas el alimento es la mayor parte del costo. Si el % cambia mucho de un mes a otro, revisá precio del balanceado y desvío de consumo.",
+  },
+  peso_estructura: {
+    nombre: "Peso de la estructura", grupo: "Costos", unidad: "%", decimales: 0, sentido: "menor",
+    formula: "Costo de Estructura (administración, servicios generales, impuestos, comercial) ÷ costo total × 100.",
+    paraQue: "Cuánto de cada guaraní se va en lo que no produce directamente. Si sube, revisá gastos de administración y servicios.",
+  },
 } satisfies Record<string, Indicador>;
 
 export type ClaveIndicador = keyof typeof INDICADORES;
@@ -245,5 +272,5 @@ export function tendencia(reciente: number | null, anual: number | null, sentido
 export function formatear(v: number | null | undefined, i: Pick<Indicador, "unidad" | "decimales">): string {
   if (v == null || !Number.isFinite(v)) return "—";
   const n = v.toLocaleString("es-PY", { minimumFractionDigits: i.decimales, maximumFractionDigits: i.decimales });
-  return i.unidad === "%" ? `${n}%` : i.unidad === "kg" ? `${n} kg` : i.unidad === "días" ? `${n} d` : n;
+  return i.unidad === "%" ? `${n}%` : i.unidad === "kg" ? `${n} kg` : i.unidad === "días" ? `${n} d` : i.unidad === "₲" ? `₲ ${n}` : n;
 }
