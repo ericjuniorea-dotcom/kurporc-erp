@@ -795,6 +795,7 @@ model HeatRepeat {
 
   sow Sow @relation(fields: [sowId], references: [id])
 
+  @@unique([serviceEventId]) // una repetición por servicio
   @@index([tenantId])
   @@map("heat_repeats")
 }
