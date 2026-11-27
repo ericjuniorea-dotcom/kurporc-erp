@@ -14,6 +14,7 @@ export const PARAMETROS: DefParam[] = [
   { grupo: "Caja y metas", clave: "metaCoberturaDias", etiqueta: "Meta de cobertura de caja (días)", tipo: "int" },
   { grupo: "Caja y metas", clave: "alertaCoberturaDias", etiqueta: "Alerta de cobertura (días)", tipo: "int" },
   { grupo: "Caja y metas", clave: "metaDesvio", etiqueta: "Desvío de presupuesto aceptable", tipo: "pct" },
+  { grupo: "Caja y metas", clave: "umbralOtrosGastos", etiqueta: "Alerta de «Otros gastos» (% del gasto total)", tipo: "pct", ayuda: "Fugas: avisa cuando los gastos sin clasificar bien (OTR-01) pasan este %" },
   { grupo: "Caja y metas", clave: "alertaDesvio", etiqueta: "Desvío que hay que explicar", tipo: "pct" },
   { grupo: "Caja y metas", clave: "limiteAprobacionPagoGs", etiqueta: "Pagos que necesitan aprobación (más de)", tipo: "gs", opcional: true, ayuda: "Vacío = ningún pago necesita aprobación" },
   { grupo: "Producción", clave: "matricesActivasManual", etiqueta: "Matrices activas (fijo)", tipo: "int", opcional: true, ayuda: "Vacío = las activas de Plantel" },

@@ -68,6 +68,7 @@ export async function censo(org: string, mes: number): Promise<Record<string, nu
     DES: recria._sum.currentCount ?? 0,
     ENG: engorde._sum.currentCount ?? 0,
     CERDAS: cerdas.length, // cerdas del plantel (no es una etapa: para el costo por cerda)
+    CERDAS_MAT: enMat.size, // cerdas en maternidad (no es una etapa: para el consumo teórico de alimento)
   };
 }
 

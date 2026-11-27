@@ -3110,6 +3110,7 @@ model ParametrosFinancieros {
   alertaCoberturaDias         Int     @default(20) @map("alerta_cobertura_dias")
   metaDesvio                  Decimal @default(0.05) @map("meta_desvio") @db.Decimal(5, 4)
   alertaDesvio                Decimal @default(0.10) @map("alerta_desvio") @db.Decimal(5, 4)
+  umbralOtrosGastos           Decimal @default(0.03) @map("umbral_otros_gastos") @db.Decimal(5, 4) // Fugas: alerta de Otros gastos
   vidaObraAnios               Int     @default(20) @map("vida_obra_anios")
   vidaEquiposAnios            Int     @default(10) @map("vida_equipos_anios")
   modoAmortizacion            String  @default("POR_ACTIVO") @map("modo_amortizacion") // PLANILLA | POR_ACTIVO
