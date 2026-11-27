@@ -295,7 +295,11 @@ export async function createServiceEventForSow(
   }
 
   // ── Registrar repetición + verificar umbral ───────────────────────
-  if (heatRepeatAlert) {
+  // Una sola repetición por servicio: si ya se registró a mano (Repetición de celo), no se duplica
+  const repeticionYaRegistrada = heatRepeatAlert && previousEventId
+    ? !!(await prisma.heatRepeat.findFirst({ where: { tenantId, serviceEventId: previousEventId }, select: { id: true } }))
+    : false;
+  if (heatRepeatAlert && !repeticionYaRegistrada) {
     await prisma.heatRepeat.create({
       data: {
         tenantId,

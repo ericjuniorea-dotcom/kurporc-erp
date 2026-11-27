@@ -20,7 +20,27 @@ export async function POST(req: NextRequest) {
 
   if (!sowId) return NextResponse.json({ error: "sowId requerido" }, { status: 400 });
 
-  const detDate = fechaDeteccion ? new Date(fechaDeteccion) : new Date();
+  // La cerda tiene que ser de esta granja
+  const cerda = await prisma.sow.findFirst({ where: { id: sowId, tenantId }, select: { id: true } });
+  if (!cerda) return NextResponse.json({ error: "Esa cerda no es de tu granja." }, { status: 404 });
+
+  // Fecha al mediodía UTC (se ve el mismo día en cualquier zona horaria)
+  const hoyIso = new Date().toISOString().slice(0, 10);
+  const fechaIso = typeof fechaDeteccion === "string" && /^\d{4}-\d{2}-\d{2}/.test(fechaDeteccion) ? fechaDeteccion.slice(0, 10) : hoyIso;
+  const detDate = new Date(`${fechaIso}T12:00:00Z`);
+  if (fechaIso > hoyIso) return NextResponse.json({ error: "La fecha de la repetición no puede ser futura." }, { status: 400 });
+
+  // El servicio que repitió: el indicado o, si no vino, el último servicio de la cerda
+  const servicio = serviceEventId
+    ? await prisma.serviceEvent.findFirst({ where: { id: serviceEventId, tenantId, sowId }, select: { id: true, serviceDate: true } })
+    : await prisma.serviceEvent.findFirst({ where: { tenantId, sowId }, orderBy: { serviceDate: "desc" }, select: { id: true, serviceDate: true } });
+  if (!servicio) return NextResponse.json({ error: "Esta cerda no tiene un servicio para marcar como repetido." }, { status: 400 });
+  if (fechaIso < servicio.serviceDate.toISOString().slice(0, 10)) {
+    return NextResponse.json({ error: `La repetición no puede ser anterior al servicio (${servicio.serviceDate.toISOString().slice(0, 10).split("-").reverse().join("/")}).` }, { status: 400 });
+  }
+  // Una sola repetición por servicio
+  const ya = await prisma.heatRepeat.findFirst({ where: { tenantId, serviceEventId: servicio.id }, select: { repeatDate: true } });
+  if (ya) return NextResponse.json({ error: `La repetición de este servicio ya está registrada (${ya.repeatDate.toISOString().slice(0, 10).split("-").reverse().join("/")}).` }, { status: 409 });
 
   // Actualizar estado cerda a EMPTY (requiere nuevo servicio)
   await prisma.sow.update({
@@ -33,7 +53,7 @@ export async function POST(req: NextRequest) {
     data: {
       tenantId,
       sowId,
-      serviceEventId: serviceEventId ?? undefined,
+      serviceEventId: servicio.id,
       repeatDate:     detDate,
       cause:          causaProbable || "Repetición de celo confirmada",
       employeeId:     session.user.id ?? undefined,
@@ -41,9 +61,9 @@ export async function POST(req: NextRequest) {
   }).catch(() => {});
 
   // Marcar tarea de diagnóstico como completada (repetición de celo = diagnóstico implícito)
-  if (serviceEventId) {
+  {
     const tarea = await prisma.task.findFirst({
-      where: { tenantId, disparador: `servicio-${serviceEventId}-diagnostico` },
+      where: { tenantId, disparador: `servicio-${servicio.id}-diagnostico` },
       select: { id: true },
     });
     if (tarea) {
