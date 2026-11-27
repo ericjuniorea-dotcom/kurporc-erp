@@ -3903,3 +3903,36 @@ model ConteoInventarioItem {
   @@index([conteoId])
   @@map("conteo_inventario_item")
 }
+
+// Fase 5: cómo se reparte cada gasto compartido (por subcategoría; '*' = el resto)
+model ReglaReparto {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizacionId     String   @map("organizacion_id")
+  subcategoriaCodigo String   @map("subcategoria_codigo")
+  criterio           String // PERSONAL | POTENCIA | ANIMALES | PORCENTAJE | ETAPA
+  valores            Json     @default("{}")
+  etapaCodigo        String?  @map("etapa_codigo")
+  actualizadoPor     String?  @map("actualizado_por")
+  updatedAt          DateTime @default(now()) @map("updated_at")
+
+  @@unique([organizacionId, subcategoriaCodigo])
+  @@map("regla_reparto")
+}
+
+// Fase 5: resultado del reparto de un gasto compartido en un mes (el movimiento original no cambia)
+model RepartoMes {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizacionId String   @map("organizacion_id")
+  mes            Int
+  movimientoId   String   @map("movimiento_id") @db.Uuid
+  etapaCodigo    String   @map("etapa_codigo")
+  porcentaje     Decimal  @db.Decimal(7, 4)
+  montoGs        BigInt   @map("monto_gs")
+  criterio       String
+  creadoPor      String   @map("creado_por")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@unique([movimientoId, etapaCodigo])
+  @@index([organizacionId, mes])
+  @@map("reparto_mes")
+}

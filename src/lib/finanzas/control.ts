@@ -263,6 +263,12 @@ export async function evaluarCierre(org: string, mes: number, manual: Record<str
     prisma.causaDesvio.findMany({ where: { organizacionId: org, mes }, select: { categoriaId: true } }),
   ]);
   const fallan = ctrl.filter(c => !c.noAplica && c.valor !== 0);
+  // Costeo por etapa (R15): nada sin clasificar ni compartido sin repartir
+  const { pendientesDeReparto } = await import("@/lib/finanzas/costeo/reparto");
+  const [sinClasificar, sinRepartir] = await Promise.all([
+    prisma.movimiento.count({ where: { organizacionId: org, mes, estado: { not: "ANULADO" }, tipo: { in: ["GASTO", "INVERSION"] }, OR: [{ subcategoriaGastoId: null }, { revisionPendiente: true }] } }),
+    pendientesDeReparto(org, mes),
+  ]);
   const sanidad = ctrl.find(c => c.codigo === 8)!;
   const activas = cajas.cuentas.filter(c => c.activa);
   const sinDeclarar = activas.filter(c => !c.declarado || c.declarado.fecha.getTime() < inicio.getTime());
@@ -281,5 +287,7 @@ export async function evaluarCierre(org: string, mes: number, manual: Record<str
     { clave: "conciliacion", nombre: "Saldo de caja contado y extractos declarados, sin diferencia", ok: activas.length > 0 && sinDeclarar.length === 0 && conDif.length === 0, detalle: activas.length === 0 ? "No hay cuentas" : sinDeclarar.length ? `Falta declarar: ${sinDeclarar.map(c => c.nombre).join(", ")}` : conDif.length ? `Con diferencia: ${conDif.map(c => c.nombre).join(", ")}` : "OK" },
     { clave: "causas", nombre: "Causa escrita para cada desvío a explicar", ok: explicar === 0, detalle: explicar ? `${explicar} desvío(s) sin causa` : "OK" },
     { clave: "pendientes", nombre: "Pendientes del mes con el estado correcto", ok: !!manual.pendientes, detalle: "Confirmación manual", manual: true },
+    { clave: "clasificacion", nombre: "Gastos e inversiones del mes clasificados (etapa o proyecto)", ok: sinClasificar === 0, detalle: sinClasificar ? `${sinClasificar} para revisar en Revisión de la clasificación` : "OK" },
+    { clave: "reparto", nombre: "Gastos compartidos repartidos entre las etapas", ok: sinRepartir === 0, detalle: sinRepartir ? `${sinRepartir} sin repartir: tocá «Repartir» abajo` : "OK" },
   ];
 }

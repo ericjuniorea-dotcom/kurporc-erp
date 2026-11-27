@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { IconLoader2 } from "@tabler/icons-react";
 import { Aviso } from "@/components/auth/marco-auth";
 import { cerrarMes, reabrirMes } from "@/app/acciones/finanzas";
+import { RepartoCompartidos } from "./reparto";
 import type { Control, PasoCierre } from "@/lib/finanzas/control";
 
 const tarjeta: React.CSSProperties = { background: "var(--bg-surface)", border: "0.5px solid var(--border-default)", borderRadius: "var(--radius-lg)" };
@@ -77,6 +78,7 @@ export function PanelCierre(p: {
           </>
         )}
       </div>
+      <RepartoCompartidos mes={p.mes} cerrado={p.estado === "CERRADO"} />
       <div style={{ ...tarjeta, overflowX: "auto" }}>
         <div style={{ padding: "12px 14px 4px", fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>Controles del libro (todos tienen que dar 0)</div>
         <table className="kp-table" style={{ minWidth: 760 }}>
