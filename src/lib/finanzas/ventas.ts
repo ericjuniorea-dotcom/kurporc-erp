@@ -25,6 +25,8 @@ export type DatosVenta = {
   fleteGs?: bigint;       // gasto de venta del lote (no cambia el importe)
   destino: keyof typeof DESTINOS; cliente: string;
   loteDesteteId?: string | null; loteEngordeId?: string | null;
+  /** Varios lotes en una venta: cada uno con cuántos animales salen de él (suman la cantidad). */
+  lotes?: { loteId: string; cantidad: number }[];
   recibePor?: string | null; remitoFactura?: string | null; guiaTraslado?: string | null;
   fechaVencimientoCobro?: Date | null;
   cobro?: { fecha: Date; cuentaFondosId: string | null; medioPago: string | null } | null;
@@ -46,10 +48,17 @@ export async function registrarVenta(tx: Tx, d: DatosVenta) {
   if (descuentos < 0n || descuentos >= bruto) throw new ErrorVenta("Los descuentos no pueden superar el importe.");
   const importe = bruto - descuentos;
 
+  // Lotes de la venta: los indicados, o el lote único de antes
+  const esEngorde = !!d.loteEngordeId || d.tipoVenta === "CERDO_TERMINADO";
+  let lotes = (d.lotes ?? []).filter(l => l.loteId && l.cantidad > 0);
+  if (!lotes.length && (d.loteDesteteId || d.loteEngordeId)) lotes = [{ loteId: (d.loteDesteteId || d.loteEngordeId)!, cantidad: d.cantidad }];
+  if (new Set(lotes.map(l => l.loteId)).size !== lotes.length) throw new ErrorVenta("Hay un lote repetido en la venta.");
+  if (lotes.length && lotes.reduce((s, l) => s + l.cantidad, 0) !== d.cantidad) throw new ErrorVenta(`Los animales de los lotes (${lotes.reduce((s, l) => s + l.cantidad, 0)}) no suman la cantidad vendida (${d.cantidad}).`);
+
   // Carencia sanitaria (regla del dominio): no se vende un lote con un tratamiento cuya carencia sigue vigente
-  if (d.loteEngordeId) {
+  for (const l of esEngorde ? lotes : []) {
     const carencia = await tx.withdrawalPeriod.findFirst({
-      where: { tenantId: d.organizacionId, growingBatchId: d.loteEngordeId, isActive: true, endDate: { gt: d.fechaSalida } },
+      where: { tenantId: d.organizacionId, growingBatchId: l.loteId, isActive: true, endDate: { gt: d.fechaSalida } },
       orderBy: { endDate: "desc" }, include: { medicine: { select: { name: true } } },
     });
     if (carencia) throw new ErrorVenta(`El lote está en período de carencia por ${carencia.medicine.name} hasta el ${carencia.endDate.toISOString().slice(0, 10).split("-").reverse().join("/")}: no se puede vender antes.`);
@@ -73,34 +82,39 @@ export async function registrarVenta(tx: Tx, d: DatosVenta) {
   }
 
   // Baja de los animales del lote y edad promedio
+  // Baja de los animales de cada lote (kg e importe de cada lote en proporción a sus animales) y edad promedio ponderada
   let edadPromDias: number | null = null;
-  if (d.loteDesteteId) {
-    const lote = await tx.nurseryBatch.findFirst({ where: { id: d.loteDesteteId, tenantId: d.organizacionId }, select: { currentCount: true, entryDate: true, batchCode: true, weanings: { select: { lactationDays: true } } } });
-    if (!lote) throw new ErrorVenta("Ese lote de destete no existe.");
-    const lact = lote.weanings.length ? lote.weanings.reduce((s, w) => s + w.lactationDays, 0) / lote.weanings.length : 0;
-    edadPromDias = Math.round(lact + (d.fechaSalida.getTime() - lote.entryDate.getTime()) / 86_400_000);
+  let edadSuma = 0;
+  for (const l of lotes) {
+    const parte = l.cantidad / d.cantidad;
+    if (!esEngorde) {
+      const lote = await tx.nurseryBatch.findFirst({ where: { id: l.loteId, tenantId: d.organizacionId }, select: { currentCount: true, entryDate: true, batchCode: true, weanings: { select: { lactationDays: true } } } });
+      if (!lote) throw new ErrorVenta("Uno de los lotes de destete no existe.");
+      const lact = lote.weanings.length ? lote.weanings.reduce((s, w) => s + w.lactationDays, 0) / lote.weanings.length : 0;
+      edadSuma += (lact + (d.fechaSalida.getTime() - lote.entryDate.getTime()) / 86_400_000) * l.cantidad;
+      if (!d.bajaYaHecha) {
+        if (l.cantidad > lote.currentCount) throw new ErrorVenta(`El lote ${lote.batchCode} tiene ${lote.currentCount} lechones: no se pueden sacar ${l.cantidad}.`);
+        await tx.nurseryBatch.update({ where: { id: l.loteId }, data: { currentCount: { decrement: l.cantidad }, ...(lote.currentCount === l.cantidad ? { isActive: false } : {}) } });
+      }
+    } else {
+      const lote = await tx.growingBatch.findFirst({ where: { id: l.loteId, tenantId: d.organizacionId }, select: { currentCount: true, batchCode: true } });
+      if (!lote) throw new ErrorVenta("Uno de los lotes de engorde no existe.");
+      if (!d.bajaYaHecha) {
+        if (l.cantidad > lote.currentCount) throw new ErrorVenta(`El lote ${lote.batchCode} tiene ${lote.currentCount} animales: no se pueden sacar ${l.cantidad}.`);
+        await tx.growingBatch.update({ where: { id: l.loteId }, data: { currentCount: { decrement: l.cantidad } } });
+      }
+    }
     if (!d.bajaYaHecha) {
-      if (d.cantidad > lote.currentCount) throw new ErrorVenta(`El lote ${lote.batchCode} tiene ${lote.currentCount} lechones: no se pueden vender ${d.cantidad}.`);
-      await tx.nurseryBatch.update({ where: { id: d.loteDesteteId }, data: { currentCount: { decrement: d.cantidad }, ...(lote.currentCount === d.cantidad ? { isActive: false } : {}) } });
+      await tx.batchSale.create({
+        data: {
+          tenantId: d.organizacionId, nurseryBatchId: esEngorde ? null : l.loteId, growingBatchId: esEngorde ? l.loteId : null,
+          saleDate: d.fechaSalida, animalCount: l.cantidad, totalWeightKg: Math.round(d.kgTotales * parte * 100) / 100,
+          pricePerKg: Number(importe) / d.kgTotales, totalAmount: Math.round(Number(importe) * parte), buyerName: d.cliente, transferGuide: d.guiaTraslado ?? null,
+        },
+      });
     }
   }
-  if (d.loteEngordeId) {
-    const lote = await tx.growingBatch.findFirst({ where: { id: d.loteEngordeId, tenantId: d.organizacionId }, select: { currentCount: true } });
-    if (!lote) throw new ErrorVenta("Ese lote de engorde no existe.");
-    if (!d.bajaYaHecha) {
-      if (d.cantidad > lote.currentCount) throw new ErrorVenta(`El lote tiene ${lote.currentCount} animales: no se pueden vender ${d.cantidad}.`);
-      await tx.growingBatch.update({ where: { id: d.loteEngordeId }, data: { currentCount: { decrement: d.cantidad } } });
-    }
-  }
-  if (!d.bajaYaHecha && (d.loteDesteteId || d.loteEngordeId)) {
-    await tx.batchSale.create({
-      data: {
-        tenantId: d.organizacionId, nurseryBatchId: d.loteDesteteId ?? null, growingBatchId: d.loteEngordeId ?? null,
-        saleDate: d.fechaSalida, animalCount: d.cantidad, totalWeightKg: d.kgTotales,
-        pricePerKg: Number(importe) / d.kgTotales, totalAmount: Number(importe), buyerName: d.cliente, transferGuide: d.guiaTraslado ?? null,
-      },
-    });
-  }
+  if (!esEngorde && lotes.length) edadPromDias = Math.round(edadSuma / d.cantidad);
 
   const cliente = await tx.contraparte.upsert({
     where: { organizacionId_nombre: { organizacionId: d.organizacionId, nombre: d.cliente } },
@@ -118,7 +132,8 @@ export async function registrarVenta(tx: Tx, d: DatosVenta) {
   const venta = await tx.venta.create({
     data: {
       organizacionId: d.organizacionId, unidadId, granjaId, fechaSalida: d.fechaSalida, tipoVenta: d.tipoVenta,
-      loteDesteteId: d.loteDesteteId ?? null, loteEngordeId: d.loteEngordeId ?? null, edadPromDias, cantidad: d.cantidad,
+      loteDesteteId: !esEngorde ? lotes[0]?.loteId ?? null : null, loteEngordeId: esEngorde ? lotes[0]?.loteId ?? null : null, edadPromDias, cantidad: d.cantidad,
+      lotes: lotes.map(l => ({ tipo: esEngorde ? "ENGORDE" : "DESTETE", loteId: l.loteId, cantidad: l.cantidad })),
       kgTotales: d.kgTotales, modoPrecio: d.modoPrecio,
       precioGsKg: d.modoPrecio !== "POR_CABEZA" ? d.precioGs : null, precioGsCabeza: d.modoPrecio === "POR_CABEZA" ? d.precioGs : null,
       rendimientoPct: d.rendimientoPct ?? null, kgCanal, descuentosGs: descuentos, fleteGs: d.fleteGs ?? 0n,

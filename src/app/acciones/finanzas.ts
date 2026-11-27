@@ -331,6 +331,7 @@ const ventaSchema = z.object({
   tipoVenta: z.enum(["LECHONES", "MATRIZ_DESCARTE", "REPRODUCTOR", "DOSIS_SEMINALES", "CERDO_TERMINADO", "OTRO"]),
   loteDesteteId: z.string().max(40).optional().default(""),
   loteEngordeId: z.string().max(40).optional().default(""),
+  lotes: z.array(z.object({ loteId: z.string().min(1).max(40), cantidad: z.number().int().min(1, "Cada lote lleva al menos 1 animal").max(100000) })).max(30).optional().default([]),
   cantidad: z.coerce.number().int("La cantidad es un número entero").min(1, "Cargá la cantidad").max(100000),
   kgTotales: z.string().trim().regex(/^\d{1,7}([.,]\d{1,2})?$/, "Kg inválidos"),
   modoPrecio: z.enum(["POR_KG", "POR_CABEZA", "POR_KG_CANAL"]),
@@ -364,7 +365,7 @@ export async function crearVenta(datos: z.input<typeof ventaSchema>): Promise<R<
         cantidad: d.cantidad, kgTotales: Number(d.kgTotales.replace(",", ".")), modoPrecio: d.modoPrecio, precioGs: BigInt(d.precioGs),
         rendimientoPct: d.rendimientoPct ? Number(d.rendimientoPct.replace(",", ".")) : null,
         descuentosGs: BigInt(d.descuentosGs || "0"), fleteGs: BigInt(d.fleteGs || "0"),
-        destino: d.destino, cliente: d.cliente, loteDesteteId: d.loteDesteteId || null, loteEngordeId: d.loteEngordeId || null,
+        destino: d.destino, cliente: d.cliente, loteDesteteId: d.loteDesteteId || null, loteEngordeId: d.loteEngordeId || null, lotes: d.lotes,
         recibePor: d.recibePor || null, remitoFactura: d.remitoFactura || null, guiaTraslado: d.guiaTraslado || null,
         fechaVencimientoCobro: d.fechaVencimientoCobro ? fechaISO(d.fechaVencimientoCobro) : null,
         cobro: d.cobrada ? { fecha: fechaISO(d.fechaCobro || d.fechaSalida), cuentaFondosId: d.cuentaFondosId, medioPago: d.medioPago } : null,
@@ -389,9 +390,17 @@ export async function anularVenta(id: string, motivo: string): Promise<R> {
     await conActor(session.user.id, async tx => {
       await tx.venta.update({ where: { id }, data: { estado: "ANULADA" } });
       await tx.movimiento.update({ where: { id: v.movimientoId }, data: { estado: "ANULADO", motivoAnulacion: `Venta anulada: ${texto}`, anuladoPor: session.user.id, anuladoEn: new Date() } });
-      // Los animales vuelven al lote
-      if (v.loteDesteteId) await tx.nurseryBatch.update({ where: { id: v.loteDesteteId }, data: { currentCount: { increment: v.cantidad }, isActive: true } });
-      if (v.loteEngordeId) await tx.growingBatch.update({ where: { id: v.loteEngordeId }, data: { currentCount: { increment: v.cantidad } } });
+      // Los animales vuelven a cada lote del que salieron
+      const lotes = (Array.isArray(v.lotes) ? v.lotes : []) as { tipo: string; loteId: string; cantidad: number }[];
+      if (lotes.length) {
+        for (const l of lotes) {
+          if (l.tipo === "ENGORDE") await tx.growingBatch.update({ where: { id: l.loteId }, data: { currentCount: { increment: l.cantidad } } });
+          else await tx.nurseryBatch.update({ where: { id: l.loteId }, data: { currentCount: { increment: l.cantidad }, isActive: true } });
+        }
+      } else {
+        if (v.loteDesteteId) await tx.nurseryBatch.update({ where: { id: v.loteDesteteId }, data: { currentCount: { increment: v.cantidad }, isActive: true } });
+        if (v.loteEngordeId) await tx.growingBatch.update({ where: { id: v.loteEngordeId }, data: { currentCount: { increment: v.cantidad } } });
+      }
     });
     await registrarAuditoria("MOVIMIENTO_ANULADO", "venta", id, { motivo: texto, importeGs: v.importeGs.toString() }, await ctx(session.user.id, permisos.organizacionId));
     revalidatePath("/finanzas", "layout");

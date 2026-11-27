@@ -2973,6 +2973,7 @@ model Venta {
   tipoVenta             String    @map("tipo_venta") // LECHONES | MATRIZ_DESCARTE | REPRODUCTOR | DOSIS_SEMINALES | CERDO_TERMINADO | OTRO
   loteDesteteId         String?   @map("lote_destete_id")
   loteEngordeId         String?   @map("lote_engorde_id")
+  lotes                 Json      @default("[]") // [{ tipo: DESTETE|ENGORDE, loteId, cantidad }] — una venta puede juntar varios lotes
   edadPromDias          Int?      @map("edad_prom_dias")
   cantidad              Int
   kgTotales             Decimal   @map("kg_totales") @db.Decimal(12, 2)

@@ -35,7 +35,15 @@ export async function analizarLote(org: string, id: string) {
   if (!lote) return null;
   const [params, ventas, curva, contrapartes] = await Promise.all([
     prisma.parametrosFinancieros.findUnique({ where: { organizacionId: org } }),
-    prisma.venta.findMany({ where: { organizacionId: org, loteEngordeId: id, estado: "CONFIRMADA" } }),
+    prisma.venta.findMany({ where: { organizacionId: org, estado: "CONFIRMADA", OR: [{ loteEngordeId: id }, { lotes: { array_contains: [{ loteId: id }] } }] } })
+      .then(vs => vs.map(v => {
+        // Venta de varios lotes: a este lote le toca su parte (por animales)
+        const ls = (Array.isArray(v.lotes) ? v.lotes : []) as { loteId: string; cantidad: number }[];
+        const mio = ls.find(l => l.loteId === id);
+        if (!mio || ls.length <= 1 || !v.cantidad) return v;
+        const parte = mio.cantidad / v.cantidad;
+        return { ...v, importeGs: BigInt(Math.round(Number(v.importeGs) * parte)), fleteGs: BigInt(Math.round(Number(v.fleteGs) * parte)) };
+      })),
     lote.curvaId ? prisma.curvaEngorde.findFirst({ where: { id: lote.curvaId, organizacionId: org } }) : prisma.curvaEngorde.findFirst({ where: { organizacionId: org, predeterminada: true } }),
     prisma.contraparte.findMany({ where: { organizacionId: org, tipo: { in: ["PROVEEDOR", "AMBOS", "CLIENTE"] } }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
   ]);

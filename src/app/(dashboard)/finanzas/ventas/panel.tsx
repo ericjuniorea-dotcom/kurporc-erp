@@ -100,8 +100,12 @@ function FormularioVenta(p: Parameters<typeof PanelVentas>[0] & { onCerrar: () =
   });
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
+  // Una venta puede juntar animales de varios lotes: cada fila es un lote y cuántos salen de él
+  const [filas, setFilas] = useState<{ loteId: string; cantidad: string }[]>([{ loteId: "", cantidad: "" }]);
   const set = (k: keyof typeof f, v: string | boolean) => setF(x => ({ ...x, [k]: v }));
-  const cant = Number(f.cantidad) || 0, kg = Number(f.kgTotales.replace(",", ".")) || 0, precio = Number(f.precioGs) || 0;
+  const conLote = filas.filter(x => x.loteId);
+  const sumaLotes = conLote.reduce((s, x) => s + (Number(x.cantidad) || 0), 0);
+  const cant = conLote.length ? sumaLotes : Number(f.cantidad) || 0, kg = Number(f.kgTotales.replace(",", ".")) || 0, precio = Number(f.precioGs) || 0;
   const rend = Number(f.rendimientoPct.replace(",", ".")) || 0;
   const importe = (f.modoPrecio === "POR_KG" ? Math.round(kg * precio) : f.modoPrecio === "POR_KG_CANAL" ? Math.round(kg * rend / 100 * precio) : cant * precio) - (Number(f.descuentosGs) || 0);
   const lotes = f.tipoVenta === "CERDO_TERMINADO" ? p.lotesEngorde : f.tipoVenta === "LECHONES" ? p.lotesDestete : [];
@@ -109,10 +113,13 @@ function FormularioVenta(p: Parameters<typeof PanelVentas>[0] & { onCerrar: () =
   function guardar(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (conLote.some(x => !(Number(x.cantidad) > 0))) { setError("Escribí cuántos animales salen de cada lote."); return; }
+    for (const x of conLote) { const l = lotes.find(y => y.id === x.loteId); if (l && Number(x.cantidad) > l.currentCount) { setError(`El lote ${l.batchCode} tiene ${l.currentCount} animales: no se pueden sacar ${x.cantidad}.`); return; } }
     iniciar(async () => {
       const r = await crearVenta({
         ...f, tipoVenta: f.tipoVenta as "LECHONES", modoPrecio: f.modoPrecio as "POR_KG", destino: f.destino as "ENGORDE", cantidad: cant,
-        loteDesteteId: f.tipoVenta === "LECHONES" ? f.loteDesteteId : "", loteEngordeId: f.tipoVenta === "CERDO_TERMINADO" ? f.loteEngordeId : "",
+        loteDesteteId: "", loteEngordeId: "",
+        lotes: lotes.length ? conLote.map(x => ({ loteId: x.loteId, cantidad: Number(x.cantidad) || 0 })) : [],
         cuentaFondosId: f.cuentaFondosId || null, medioPago: (f.medioPago || null) as never,
       });
       if (r.ok) p.onListo(`Venta registrada por ${gs(r.importe)}. El ingreso ya está en el libro${f.cobrada ? " como cobrado" : " como por cobrar"}.`);
@@ -128,18 +135,38 @@ function FormularioVenta(p: Parameters<typeof PanelVentas>[0] & { onCerrar: () =
       </div>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <Campo label="Fecha de salida" ancho={140}><input type="date" className="kp-input" value={f.fechaSalida} onChange={e => set("fechaSalida", e.target.value)} required /></Campo>
-        <Campo label="Qué se vende" ancho={170}><select className="kp-input" value={f.tipoVenta} onChange={e => set("tipoVenta", e.target.value)}>{Object.entries(TIPOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Campo>
-        {lotes.length > 0 && (
-          <Campo label={f.tipoVenta === "LECHONES" ? "Lote de destete" : "Lote de engorde"} ancho={200}>
-            <select className="kp-input" value={f.tipoVenta === "LECHONES" ? f.loteDesteteId : f.loteEngordeId} onChange={e => set(f.tipoVenta === "LECHONES" ? "loteDesteteId" : "loteEngordeId", e.target.value)}>
-              <option value="">Sin lote</option>
-              {lotes.map(l => <option key={l.id} value={l.id}>{l.batchCode} · {l.currentCount} animales</option>)}
-            </select>
-          </Campo>
-        )}
+        <Campo label="Qué se vende" ancho={170}><select className="kp-input" value={f.tipoVenta} onChange={e => { set("tipoVenta", e.target.value); setFilas([{ loteId: "", cantidad: "" }]); }}>{Object.entries(TIPOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Campo>
       </div>
+      {lotes.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 10, borderRadius: "var(--radius-md)", background: "var(--bg-base)", border: "0.5px solid var(--border-default)" }}>
+          <span className="kp-label">{f.tipoVenta === "LECHONES" ? "Lotes de destete" : "Lotes de engorde"} (de dónde salen los animales)</span>
+          {filas.map((x, i) => {
+            const usados = new Set(filas.filter((_, j) => j !== i).map(y => y.loteId));
+            const l = lotes.find(y => y.id === x.loteId);
+            return (
+              <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <select className="kp-input" style={{ flex: "1 1 190px", minWidth: 0 }} aria-label={`Lote ${i + 1}`} value={x.loteId}
+                  onChange={e => setFilas(fs => fs.map((y, j) => j === i ? { loteId: e.target.value, cantidad: y.cantidad || (e.target.value ? String(lotes.find(z => z.id === e.target.value)?.currentCount ?? "") : "") } : y))}>
+                  <option value="">{i === 0 ? "Sin lote" : "Elegí el lote…"}</option>
+                  {lotes.filter(y => !usados.has(y.id)).map(y => <option key={y.id} value={y.id}>{y.batchCode} · {y.currentCount} animales</option>)}
+                </select>
+                {x.loteId && <InputNumero className="kp-input" inputMode="numeric" aria-label={`Animales del lote ${i + 1}`} placeholder="Cantidad" style={{ width: 110 }} value={x.cantidad}
+                  onChange={e => setFilas(fs => fs.map((y, j) => j === i ? { ...y, cantidad: e.target.value.replace(/\D/g, "") } : y))} />}
+                {l && Number(x.cantidad) > l.currentCount && <span style={{ fontSize: 11.5, color: "var(--danger-text)" }}>tiene {l.currentCount}</span>}
+                {filas.length > 1 && <button type="button" aria-label="Quitar lote" onClick={() => setFilas(fs => fs.filter((_, j) => j !== i))} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 4 }}><IconX size={14} /></button>}
+              </div>
+            );
+          })}
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            {filas.every(x => x.loteId) && filas.length < lotes.length && (
+              <button type="button" onClick={() => setFilas(fs => [...fs, { loteId: "", cantidad: "" }])} style={{ background: "none", border: "none", padding: 0, color: "var(--accent-text)", fontSize: 12.5, cursor: "pointer" }}>+ Agregar otro lote</button>
+            )}
+            {conLote.length > 0 && <span style={{ fontSize: 12.5, color: "var(--text-secondary)", fontVariantNumeric: "tabular-nums" }}>Total: <strong>{sumaLotes.toLocaleString("es-PY")}</strong> animales de {conLote.length} {conLote.length === 1 ? "lote" : "lotes"}</span>}
+          </div>
+        </div>
+      )}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <Campo label="Cantidad" ancho={100}><InputNumero className="kp-input" inputMode="numeric" value={f.cantidad} onChange={e => set("cantidad", e.target.value.replace(/\D/g, ""))} required /></Campo>
+        <Campo label={conLote.length ? "Cantidad (suma de los lotes)" : "Cantidad"} ancho={100}><InputNumero className="kp-input" inputMode="numeric" value={conLote.length ? String(sumaLotes) : f.cantidad} disabled={conLote.length > 0} onChange={e => set("cantidad", e.target.value.replace(/\D/g, ""))} required /></Campo>
         <Campo label="Kg totales (balanza)" ancho={140}><InputNumero className="kp-input" inputMode="decimal" value={f.kgTotales} onChange={e => set("kgTotales", e.target.value)} required /></Campo>
         <Campo label="Precio" ancho={130}>
           <select className="kp-input" value={f.modoPrecio} onChange={e => set("modoPrecio", e.target.value)}><option value="POR_KG">Por kg vivo</option><option value="POR_KG_CANAL">Por kg de canal</option><option value="POR_CABEZA">Por cabeza</option></select>
